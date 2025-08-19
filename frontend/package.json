@@ -1,0 +1,36 @@
+{
+  "name": "meal-planner-frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "test:typescript": "./node_modules/.bin/tsc -p .",
+    "test:eslint": "eslint --config eslint.config.js src/"
+  },
+  "dependencies": {
+    "@emotion/css": "^11.13.4",
+    "@emotion/react": "^11.13.5",
+    "@emotion/styled": "^11.13.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-router-dom": "^6.28.0",
+    "use-local-storage": "^3.0.0"
+  },
+  "devDependencies": {
+    "@emotion/babel-plugin": "^11.13.5",
+    "@eslint/js": "^9.33.0",
+    "@types/node": "^22.10.2",
+    "@types/react": "^18.3.17",
+    "@types/react-dom": "^18.3.5",
+    "@typescript-eslint/eslint-plugin": "^8.40.0",
+    "@typescript-eslint/parser": "^8.40.0",
+    "@vitejs/plugin-react": "^4.3.4",
+    "eslint": "^9.17.0",
+    "eslint-plugin-import": "^2.31.0",
+    "typescript": "^5.7.2",
+    "vite": "^6.0.3"
+  }
+}
