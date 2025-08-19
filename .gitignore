@@ -9,3 +9,19 @@ yarn-error.log*
 .env.production.local
 
 build
+
+# Django
+backend/venv/
+backend/db.sqlite3
+backend/__pycache__/
+backend/*/__pycache__/
+backend/*/*/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+__pycache__/
+.Python
+backend/media/
+backend/staticfiles/
+.env
+backend/.env
