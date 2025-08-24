@@ -84,6 +84,81 @@ For local development with IDE support:
    yarn dev  # for development server
    ```
 
+### Code Quality and Formatting
+
+The project uses modern tools for code quality and formatting:
+
+#### **VS Code Setup:**
+**Recommended Extensions:** VS Code will automatically suggest installing recommended extensions from `.vscode/extensions.json`
+
+**Auto-actions on save:**
+- **Python files:** Ruff formatting + import sorting
+- **JS/TS/React files:** Prettier formatting only (imports preserved as-is)
+- **JSON/CSS files:** Prettier formatting
+
+#### **Backend (Python) - Ruff:**
+```bash
+cd backend
+source venv_local/bin/activate
+
+# Check for linting errors
+ruff check .
+
+# Format all Python files
+ruff format .
+
+# Auto-fix fixable issues
+ruff check --fix .
+
+# Check specific file
+ruff check accounts/views.py
+```
+
+**What Ruff provides:**
+- Line length enforcement (88 characters)
+- Unused import detection and removal
+- Import sorting with Django-style organization
+- Auto-fixing of syntax and style issues
+- Integration with pycodestyle, pyflakes, and isort rules
+
+#### **Frontend (React/TypeScript) - ESLint + Prettier:**
+```bash
+cd frontend
+
+# Run all linting checks (ESLint + TypeScript)
+yarn lint
+
+# Check for linting errors only
+yarn test:eslint
+
+# Check TypeScript types only
+yarn test:typescript
+
+# Format code with Prettier
+yarn format
+
+# Check if code is formatted correctly
+yarn format:check
+
+# Auto-fix ESLint issues
+yarn lint:fix
+```
+
+**What ESLint + Prettier provides:**
+- **ESLint:** TypeScript/JavaScript error detection and unused variable warnings
+- **Prettier:** Code formatting with 2 spaces, semicolons, and 88 character line length
+- **Import organization:** Sorting and grouping with defined order
+- **Auto-fix capabilities:** Manual import organization and basic syntax fixes
+
+**Configured import organization rules:**
+1. **Built-in modules** (Node.js)
+2. **External libraries** (react, axios, etc.) - alphabetically sorted
+3. **Internal modules** (project components)
+4. **Relative imports** (../, ./)
+5. **Index imports**
+
+Empty lines between groups, duplicate imports merged automatically.
+
 ## Project Structure
 
 ```
