@@ -32,8 +32,9 @@ build/
 .env.test.local
 .env.production.local
 
-# IDE files
-.vscode/
+# IDE files  
+.vscode/*
+!.vscode/extensions.json
 .idea/
 *.swp
 *.swo
