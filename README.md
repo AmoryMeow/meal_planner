@@ -62,6 +62,7 @@ TBD
 - **Frontend:** http://localhost
 - **API Backend:** http://localhost:8000
 - **Admin Panel:** http://localhost/admin/
+- **API Documentation:** http://localhost/api/doc/ (requires admin login)
 - **PostgreSQL:** localhost:5432
 
 ### Development Setup
@@ -148,9 +149,22 @@ docker-compose ps
 
 ## API
 
-The Django REST API will be available at `/api/` endpoint.
+The Django REST API is available at `/api/` endpoint.
 
-API documentation: TBD
+### API Documentation
+
+Interactive API documentation is available via Swagger UI at:
+- **URL:** http://localhost/api/doc/
+- **Authentication:** Requires admin/staff user login
+- **Features:** Interactive API testing, request/response examples, schema definitions
+
+To access the documentation:
+1. Create a superuser account (if not already done):
+   ```bash
+   docker-compose exec backend python manage.py createsuperuser
+   ```
+2. Navigate to http://localhost/api/doc/
+3. Login with your admin credentials when prompted
 
 ## Deployment
 
