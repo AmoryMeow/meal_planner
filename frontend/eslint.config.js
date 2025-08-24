@@ -1,6 +1,7 @@
 import js from "@eslint/js";
 import tseslint from "@typescript-eslint/eslint-plugin";
 import tsparser from "@typescript-eslint/parser";
+import importPlugin from "eslint-plugin-import";
 
 export default [
   js.configs.recommended,
@@ -27,11 +28,33 @@ export default [
     },
     plugins: {
       "@typescript-eslint": tseslint,
+      import: importPlugin,
     },
     rules: {
       "no-unused-vars": "off",
       "@typescript-eslint/no-unused-vars": "warn",
       "no-console": "warn",
+
+      // Import sorting and grouping rules
+      "import/order": [
+        "error",
+        {
+          groups: [
+            "builtin", // Node.js built-in modules
+            "external", // External libraries (react, axios, etc.)
+            "internal", // Internal modules (our components)
+            ["parent", "sibling"], // Relative imports (../, ./)
+            "index", // Index imports
+          ],
+          "newlines-between": "always",
+          alphabetize: {
+            order: "asc",
+            caseInsensitive: true,
+          },
+        },
+      ],
+      "import/newline-after-import": "error",
+      "import/no-duplicates": "error",
     },
   },
   {
