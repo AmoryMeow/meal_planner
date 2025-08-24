@@ -1,0 +1,15 @@
+{
+    "recommendations": [
+        // Essential Python development
+        "ms-python.python",
+        "charliermarsh.ruff",
+        
+        // Frontend development
+        "esbenp.prettier-vscode",
+        "ms-vscode.vscode-typescript-next",
+        "ms-vscode.vscode-eslint",
+        
+        // Docker support
+        "ms-azuretools.vscode-docker"
+    ]
+}
