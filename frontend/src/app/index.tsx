@@ -1,3 +1,6 @@
+import { Routes, Route } from "react-router-dom";
+
+import { Login, Register } from "@package/auth";
 import { ThemeProvider, useColors, useIsMobile } from "@package/ui";
 
 import { Header } from "./header";
@@ -31,10 +34,13 @@ const AppContent = () => {
       }}
     >
       <Header />
-
       {isAuthenticated && <Menu variant="top" />}
 
-      <Main isAuthenticated={isAuthenticated} />
+      <Routes>
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/*" element={<Main isAuthenticated={isAuthenticated} />} />
+      </Routes>
 
       {isAuthenticated && <Menu variant="bottom" />}
     </div>
