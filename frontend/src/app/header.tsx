@@ -1,3 +1,5 @@
+import { Link } from "react-router-dom";
+
 import { ThemeToggle, useColors, useIsMobile, hexToRgba } from "@package/ui";
 
 export const Header = () => {
@@ -29,11 +31,14 @@ export const Header = () => {
           margin: "0 auto",
         }}
       >
-        <div
+        <Link
+          to="/"
           css={{
             display: "flex",
             alignItems: "center",
             gap: 12,
+            textDecoration: "none",
+            color: "inherit",
           }}
         >
           <MealCalendarIcon size={40} />
@@ -67,7 +72,7 @@ export const Header = () => {
               Plan • Cook • Share
             </div>
           </div>
-        </div>
+        </Link>
 
         <div css={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ThemeToggle compact={isMobile} />

@@ -1,5 +1,6 @@
-import { AuthButton } from "@package/auth";
-import { useColors, hexToRgba, useIsMobile } from "@package/ui";
+import { useNavigate } from "react-router-dom";
+
+import { useColors, hexToRgba, useIsMobile, Button } from "@package/ui";
 
 const FeatureCard = ({
   icon,
@@ -89,6 +90,7 @@ const FeatureCard = ({
 export const Landing = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
+  const navigate = useNavigate();
 
   return (
     <div css={{ display: "flex", justifyContent: "center" }}>
@@ -195,8 +197,12 @@ export const Landing = () => {
               flexWrap: "wrap",
             }}
           >
-            <AuthButton variant="primary" onClick={() => {}} label="Sign Up" />
-            <AuthButton variant="secondary" onClick={() => {}} label="Sign In" />
+            <Button variant="primary" onClick={() => navigate("/register")}>
+              Sign Up
+            </Button>
+            <Button variant="secondary" onClick={() => navigate("/login")}>
+              Sign In
+            </Button>
           </div>
         </section>
       </div>

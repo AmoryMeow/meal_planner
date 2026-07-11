@@ -1,6 +1,7 @@
-import { useColors, hexToRgba, useIsMobile } from "@package/ui";
 import { ReactNode } from "react";
 import { useLocation, Link } from "react-router-dom";
+
+import { useColors, hexToRgba, useIsMobile } from "@package/ui";
 
 type MenuType = {
   label: string;
