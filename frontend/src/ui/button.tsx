@@ -1,6 +1,6 @@
 import { useColors, hexToRgba } from "@package/ui";
 
-export const AuthButton = ({
+export const Button = ({
   variant,
   onClick,
   label,
