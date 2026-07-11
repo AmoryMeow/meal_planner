@@ -42,10 +42,18 @@ export default [
           groups: [
             "builtin", // Node.js built-in modules
             "external", // External libraries (react, axios, etc.)
-            "internal", // Internal modules (our components)
+            "internal", // Internal modules (@package/*)
             ["parent", "sibling"], // Relative imports (../, ./)
             "index", // Index imports
           ],
+          pathGroups: [
+            {
+              pattern: "@package/**",
+              group: "internal",
+              position: "before",
+            },
+          ],
+          pathGroupsExcludedImportTypes: ["builtin"],
           "newlines-between": "always",
           alphabetize: {
             order: "asc",
