@@ -56,6 +56,7 @@ export const Input = ({
           width: "100%",
           height: 44,
           padding: "0 16px",
+          boxSizing: "border-box",
           borderRadius: 8,
           border: error ? `1px solid ${colors.danger}` : `1px solid ${colors.border}`,
           background: disabled ? colors.surfaceAlt : colors.background,
