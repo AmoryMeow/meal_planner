@@ -1,3 +1,5 @@
+import { useId } from "react";
+
 import { useColors, hexToRgba } from "@package/ui";
 
 export interface InputProps {
@@ -11,6 +13,7 @@ export interface InputProps {
   disabled?: boolean;
   error?: string;
   className?: string;
+  flex?: boolean;
 }
 
 export const Input = ({
@@ -24,13 +27,17 @@ export const Input = ({
   disabled = false,
   error,
   className,
+  flex = false,
 }: InputProps) => {
   const colors = useColors();
+  const generatedId = useId();
+  const inputId = name ? `${name}-${generatedId}` : generatedId;
 
   return (
-    <div className={className} css={className === "flex-1" ? { flex: 1 } : undefined}>
+    <div className={className} css={flex ? { flex: 1 } : undefined}>
       {label && (
         <label
+          htmlFor={inputId}
           css={{
             display: "block",
             fontSize: 14,
@@ -45,6 +52,7 @@ export const Input = ({
       )}
 
       <input
+        id={inputId}
         type={type}
         name={name}
         value={value}
