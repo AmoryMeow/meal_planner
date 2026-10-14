@@ -29,7 +29,7 @@ export const Register = () => {
     // console.log("Registration attempt:", formData);
   };
 
-  const handleInputChange = (e: any) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({
       ...prev,

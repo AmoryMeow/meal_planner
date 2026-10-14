@@ -12,7 +12,7 @@ export interface ButtonProps {
   icon?: React.ReactNode;
   iconPosition?: "left" | "right";
   children?: React.ReactNode;
-  onClick?: (e: any) => void;
+  onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   className?: string;
 }
 
@@ -209,7 +209,7 @@ export const Button = ({
   const currentSize = sizeConfig[size];
   const variantStyles = getVariantStyles();
 
-  const handleClick = (e: any) => {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
     if (disabled || loading) {
       e.preventDefault();
       return;

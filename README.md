@@ -4,7 +4,11 @@ A modern full-stack application for meal planning with React frontend and Django
 
 ## Features
 
-TBD
+**Status:** Work in progress.
+
+- Responsive React interface with light/dark themes, a landing page, and sign-in and registration forms.
+- Django REST API with user registration, JWT authentication, profile management, admin-only user endpoints, and Swagger documentation.
+- Planned: recipes, weekly meal plans, shared groups, and automatically generated shopping lists.
 
 ## Tech Stack
 
@@ -195,7 +199,7 @@ DB_PORT=5432
 
 # Django
 SECRET_KEY=your-secret-key-here
-DEBUG=True
+DEBUG=False
 ALLOWED_HOSTS=localhost,127.0.0.1,backend,nginx
 ```
 
@@ -243,5 +247,5 @@ To access the documentation:
 
 ## Deployment
 
-TBD
-
+A public deployment is not available yet. Run the complete application locally with
+Docker Compose using the instructions in [Quick Start](#quick-start).
