@@ -68,4 +68,11 @@ export default [
   {
     ignores: ["node_modules/**", "dist/**", "build/**"],
   },
+  {
+    files: ["**/*.{ts,tsx}"],
+    rules: {
+      // TypeScript already reports undefined identifiers, including type-only names.
+      "no-undef": "off",
+    },
+  },
 ];

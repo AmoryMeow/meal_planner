@@ -1,4 +1,4 @@
-import { useId } from "react";
+import { type ChangeEvent, useId } from "react";
 
 import { useColors, hexToRgba } from "@package/ui";
 
@@ -7,7 +7,7 @@ export interface InputProps {
   type?: "text" | "email" | "password" | "tel" | "url" | "search";
   name?: string;
   value: string;
-  onChange: (e: any) => void;
+  onChange: (event: ChangeEvent<HTMLInputElement>) => void;
   placeholder?: string;
   required?: boolean;
   disabled?: boolean;
