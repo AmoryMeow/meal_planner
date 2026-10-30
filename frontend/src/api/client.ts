@@ -37,6 +37,7 @@ export const apiRequest = async <T>(
 
   const response = await fetch(`${API_URL}${path}`, {
     ...options,
+    credentials: options.credentials ?? "include",
     headers,
   });
   const body = await parseResponse(response);

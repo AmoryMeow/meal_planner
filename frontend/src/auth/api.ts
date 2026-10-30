@@ -8,12 +8,11 @@ export type User = {
   date_joined: string;
 };
 
-export type AuthTokens = {
+export type AccessTokenResponse = {
   access: string;
-  refresh: string;
 };
 
-export type RegistrationResponse = AuthTokens & {
+export type RegistrationResponse = AccessTokenResponse & {
   user: User;
 };
 
@@ -28,10 +27,6 @@ export type RegistrationInput = LoginInput & {
   password_confirm: string;
 };
 
-export type RefreshTokenInput = {
-  refresh: string;
-};
-
 export const register = (input: RegistrationInput) =>
   apiRequest<RegistrationResponse>("/auth/register/", {
     method: "POST",
@@ -39,15 +34,21 @@ export const register = (input: RegistrationInput) =>
   });
 
 export const login = (input: LoginInput) =>
-  apiRequest<AuthTokens>("/auth/login/", {
+  apiRequest<AccessTokenResponse>("/auth/login/", {
     method: "POST",
     body: JSON.stringify(input),
   });
 
-export const refreshToken = (input: RefreshTokenInput) =>
-  apiRequest<AuthTokens>("/auth/token/refresh/", {
+export const refreshToken = () =>
+  apiRequest<AccessTokenResponse>("/auth/token/refresh/", {
     method: "POST",
-    body: JSON.stringify(input),
+    body: JSON.stringify({}),
+  });
+
+export const logout = () =>
+  apiRequest<void>("/auth/logout/", {
+    method: "POST",
+    body: JSON.stringify({}),
   });
 
 export const getProfile = (accessToken: string) =>

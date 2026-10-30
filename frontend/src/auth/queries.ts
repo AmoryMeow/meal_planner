@@ -5,6 +5,7 @@ import { ApiError } from "@package/api";
 import {
   getProfile,
   login,
+  logout,
   refreshToken,
   register,
   type RegistrationInput,
@@ -31,6 +32,8 @@ export const useRegistrationMutation = () => {
 export const useLoginMutation = () => useMutation({ mutationFn: login });
 
 export const useRefreshTokenMutation = () => useMutation({ mutationFn: refreshToken });
+
+export const useLogoutMutation = () => useMutation({ mutationFn: logout });
 
 export const useProfileQuery = (accessToken: string | null) =>
   useQuery({

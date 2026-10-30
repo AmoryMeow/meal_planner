@@ -1,11 +1,11 @@
 export {
   getProfile,
   login,
+  logout,
   refreshToken,
   register,
-  type AuthTokens,
+  type AccessTokenResponse,
   type LoginInput,
-  type RefreshTokenInput,
   type RegistrationInput,
   type RegistrationResponse,
   type User,
@@ -14,6 +14,7 @@ export { Login } from "./login";
 export {
   authQueryKeys,
   useLoginMutation,
+  useLogoutMutation,
   useProfileQuery,
   useRefreshTokenMutation,
   useRegistrationMutation,
