@@ -20,3 +20,4 @@ export {
   useRegistrationMutation,
 } from "./queries";
 export { Register } from "./register";
+export { AuthSessionProvider, useAuthSession, type AuthStatus } from "./session";

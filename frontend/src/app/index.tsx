@@ -1,6 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 
-import { Login, Register } from "@package/auth";
+import { AuthSessionProvider, Login, Register, useAuthSession } from "@package/auth";
 import { ThemeProvider, useColors, useIsMobile } from "@package/ui";
 
 import { Header } from "./header";
@@ -9,17 +9,53 @@ import { Menu } from "./menu";
 
 export default function App() {
   return (
-    <ThemeProvider>
-      <AppContent />
-    </ThemeProvider>
+    <AuthSessionProvider>
+      <ThemeProvider>
+        <AppContent />
+      </ThemeProvider>
+    </AuthSessionProvider>
   );
 }
 
 const AppContent = () => {
   const colors = useColors();
+  const { isAuthenticated, status } = useAuthSession();
 
-  // TODO: Add authentication check here
-  const isAuthenticated = false;
+  if (status === "loading") {
+    return (
+      <div
+        role="status"
+        css={{
+          minHeight: "100dvh",
+          display: "grid",
+          placeItems: "center",
+          background: colors.background,
+          color: colors.textSecondary,
+        }}
+      >
+        Restoring session…
+      </div>
+    );
+  }
+
+  if (status === "error") {
+    return (
+      <div
+        role="alert"
+        css={{
+          minHeight: "100dvh",
+          display: "grid",
+          placeItems: "center",
+          padding: 24,
+          background: colors.background,
+          color: colors.danger,
+          textAlign: "center",
+        }}
+      >
+        Unable to restore your session. Please reload the page.
+      </div>
+    );
+  }
 
   return (
     <div

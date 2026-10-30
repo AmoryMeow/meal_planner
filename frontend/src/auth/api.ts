@@ -27,6 +27,8 @@ export type RegistrationInput = LoginInput & {
   password_confirm: string;
 };
 
+let refreshRequest: Promise<AccessTokenResponse> | null = null;
+
 export const register = (input: RegistrationInput) =>
   apiRequest<RegistrationResponse>("/auth/register/", {
     method: "POST",
@@ -39,11 +41,18 @@ export const login = (input: LoginInput) =>
     body: JSON.stringify(input),
   });
 
-export const refreshToken = () =>
-  apiRequest<AccessTokenResponse>("/auth/token/refresh/", {
-    method: "POST",
-    body: JSON.stringify({}),
-  });
+export const refreshToken = () => {
+  if (!refreshRequest) {
+    refreshRequest = apiRequest<AccessTokenResponse>("/auth/token/refresh/", {
+      method: "POST",
+      body: JSON.stringify({}),
+    }).finally(() => {
+      refreshRequest = null;
+    });
+  }
+
+  return refreshRequest;
+};
 
 export const logout = () =>
   apiRequest<void>("/auth/logout/", {
