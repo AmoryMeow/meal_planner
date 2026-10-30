@@ -41,6 +41,7 @@ INSTALLED_APPS = [
     # Third party apps
     "rest_framework",
     "rest_framework_simplejwt",
+    "rest_framework_simplejwt.token_blacklist",
     "corsheaders",
     "drf_spectacular",
     # Local apps
@@ -162,7 +163,7 @@ REST_FRAMEWORK = {
 
 # Simple JWT Configuration
 SIMPLE_JWT = {
-    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=60),
+    "ACCESS_TOKEN_LIFETIME": timedelta(minutes=15),
     "REFRESH_TOKEN_LIFETIME": timedelta(days=7),
     "ROTATE_REFRESH_TOKENS": True,
     "BLACKLIST_AFTER_ROTATION": True,
@@ -177,6 +178,14 @@ SIMPLE_JWT = {
     "AUTH_TOKEN_CLASSES": ("rest_framework_simplejwt.tokens.AccessToken",),
     "TOKEN_TYPE_CLAIM": "token_type",
 }
+
+AUTH_REFRESH_COOKIE_NAME = "refresh_token"
+AUTH_REFRESH_COOKIE_PATH = "/api/auth/"
+AUTH_REFRESH_COOKIE_SECURE = (
+    os.getenv("AUTH_REFRESH_COOKIE_SECURE", "True").lower() == "true"
+)
+AUTH_REFRESH_COOKIE_SAMESITE = "Strict"
+AUTH_REFRESH_COOKIE_MAX_AGE = int(SIMPLE_JWT["REFRESH_TOKEN_LIFETIME"].total_seconds())
 
 # CORS Configuration
 CORS_ALLOWED_ORIGINS = [
