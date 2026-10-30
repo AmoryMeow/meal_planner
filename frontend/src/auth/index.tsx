@@ -20,4 +20,5 @@ export {
   useRegistrationMutation,
 } from "./queries";
 export { Register } from "./register";
+export { GuestRoute, ProtectedRoute } from "./route-guards";
 export { AuthSessionProvider, useAuthSession, type AuthStatus } from "./session";

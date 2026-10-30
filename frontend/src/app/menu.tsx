@@ -10,11 +10,23 @@ type MenuType = {
 };
 
 const config: MenuType[] = [
-  { link: "/", label: "Home", icon: <span aria-hidden>📅</span> },
-  { link: "/dishes", label: "Dishes", icon: <span aria-hidden>🍽️</span> },
-  { link: "/list", label: "List", icon: <span aria-hidden>🛒</span> },
-  { link: "/groups", label: "Groups", icon: <span aria-hidden>👥</span> },
-  { link: "/profile", label: "Profile", icon: <span aria-hidden>👤</span> },
+  { link: "/plan", label: "Home", icon: <span aria-hidden>📅</span> },
+  {
+    link: "/plan/dishes",
+    label: "Dishes",
+    icon: <span aria-hidden>🍽️</span>,
+  },
+  { link: "/plan/list", label: "List", icon: <span aria-hidden>🛒</span> },
+  {
+    link: "/plan/groups",
+    label: "Groups",
+    icon: <span aria-hidden>👥</span>,
+  },
+  {
+    link: "/plan/profile",
+    label: "Profile",
+    icon: <span aria-hidden>👤</span>,
+  },
 ];
 
 type Props = {
@@ -71,7 +83,9 @@ export const Menu = ({ variant }: Props) => {
       >
         {config.map(item => {
           const active =
-            item.link === "/" ? pathname === "/" : pathname.startsWith(item.link);
+            item.link === "/plan"
+              ? pathname === "/plan"
+              : pathname.startsWith(item.link);
 
           return (
             <Link
