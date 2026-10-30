@@ -1,12 +1,15 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
 import { useColors, Input, Button } from "@package/ui";
 
 import { AuthCard } from "./auth-card";
+import { useRegistrationMutation } from "./queries";
 
 export const Register = () => {
   const colors = useColors();
+  const navigate = useNavigate();
+  const registration = useRegistrationMutation();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -16,8 +19,9 @@ export const Register = () => {
   });
   const [confirmPasswordError, setConfirmPasswordError] = useState("");
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSubmit = (event: React.FormEvent) => {
+    event.preventDefault();
+    registration.reset();
 
     if (formData.password !== formData.confirmPassword) {
       setConfirmPasswordError("Passwords don't match");
@@ -25,16 +29,23 @@ export const Register = () => {
     }
 
     setConfirmPasswordError("");
-    // TODO: Implement registration logic
-    // console.log("Registration attempt:", formData);
+    registration.mutate(
+      {
+        email: formData.email,
+        first_name: formData.firstName,
+        last_name: formData.lastName,
+        password: formData.password,
+        password_confirm: formData.confirmPassword,
+      },
+      { onSuccess: () => navigate("/login", { replace: true }) }
+    );
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
-      ...prev,
-      [name]: value,
-    }));
+  const handleInputChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = event.target;
+
+    setFormData(previous => ({ ...previous, [name]: value }));
+    registration.reset();
 
     if (name === "password" || name === "confirmPassword") {
       setConfirmPasswordError("");
@@ -55,6 +66,8 @@ export const Register = () => {
             value={formData.firstName}
             onChange={handleInputChange}
             placeholder="First name"
+            disabled={registration.isPending}
+            error={registration.apiFieldErrors.first_name}
             required
             flex
           />
@@ -65,6 +78,8 @@ export const Register = () => {
             value={formData.lastName}
             onChange={handleInputChange}
             placeholder="Last name"
+            disabled={registration.isPending}
+            error={registration.apiFieldErrors.last_name}
             required
             flex
           />
@@ -77,6 +92,8 @@ export const Register = () => {
           value={formData.email}
           onChange={handleInputChange}
           placeholder="Enter your email"
+          disabled={registration.isPending}
+          error={registration.apiFieldErrors.email}
           required
         />
 
@@ -87,6 +104,8 @@ export const Register = () => {
           value={formData.password}
           onChange={handleInputChange}
           placeholder="Create a password"
+          disabled={registration.isPending}
+          error={registration.apiFieldErrors.password}
           required
         />
 
@@ -97,11 +116,29 @@ export const Register = () => {
           value={formData.confirmPassword}
           onChange={handleInputChange}
           placeholder="Confirm your password"
+          disabled={registration.isPending}
           required
-          error={confirmPasswordError}
+          error={confirmPasswordError || registration.apiFieldErrors.password_confirm}
         />
 
-        <Button variant="primary" type="submit">
+        {registration.submitError && (
+          <div
+            role="alert"
+            css={{
+              color: colors.danger,
+              background: colors.dangerBg,
+              border: `1px solid ${colors.danger}`,
+              borderRadius: 8,
+              padding: "10px 12px",
+              fontSize: 14,
+              lineHeight: 1.4,
+            }}
+          >
+            {registration.submitError}
+          </div>
+        )}
+
+        <Button variant="primary" type="submit" loading={registration.isPending}>
           Create Account
         </Button>
       </form>
