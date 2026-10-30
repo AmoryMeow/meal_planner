@@ -25,11 +25,18 @@ export const useRegistrationMutation = () => {
   return {
     ...mutation,
     apiFieldErrors,
-    submitError: getSubmitError(mutation.error, apiFieldErrors),
+    submitError: getRegistrationSubmitError(mutation.error, apiFieldErrors),
   };
 };
 
-export const useLoginMutation = () => useMutation({ mutationFn: login });
+export const useLoginMutation = () => {
+  const mutation = useMutation({ mutationFn: login });
+
+  return {
+    ...mutation,
+    submitError: getLoginSubmitError(mutation.error),
+  };
+};
 
 export const useRefreshTokenMutation = () => useMutation({ mutationFn: refreshToken });
 
@@ -57,11 +64,20 @@ const getRegistrationApiFieldErrors = (
   };
 };
 
-const getSubmitError = (
+const getRegistrationSubmitError = (
   error: Error | null,
   apiFieldErrors: RegistrationApiFieldErrors
 ): string => {
   if (!error || Object.values(apiFieldErrors).some(Boolean)) return "";
+  if (error instanceof ApiError) return error.message;
+  return "Unable to connect to the server. Please try again.";
+};
+
+const getLoginSubmitError = (error: Error | null): string => {
+  if (!error) return "";
+  if (error instanceof ApiError && error.status === 401) {
+    return "Incorrect email or password.";
+  }
   if (error instanceof ApiError) return error.message;
   return "Unable to connect to the server. Please try again.";
 };

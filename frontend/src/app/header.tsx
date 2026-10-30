@@ -1,10 +1,12 @@
 import { Link } from "react-router-dom";
 
+import { useAuthSession } from "@package/auth";
 import { ThemeToggle, useColors, useIsMobile, hexToRgba } from "@package/ui";
 
 export const Header = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
+  const { isAuthenticated } = useAuthSession();
 
   return (
     <header
@@ -32,7 +34,7 @@ export const Header = () => {
         }}
       >
         <Link
-          to="/"
+          to={isAuthenticated ? "/plan" : "/"}
           css={{
             display: "flex",
             alignItems: "center",

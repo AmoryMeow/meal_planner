@@ -9,12 +9,12 @@ export const ProtectedRoute = () => {
   const { status } = useAuthSession();
 
   if (status === "loading") {
-    return <SessionStatus role="status">Restoring session…</SessionStatus>;
+    return <SessionLoader />;
   }
 
   if (status === "error") {
     return (
-      <SessionStatus role="alert">
+      <SessionStatus>
         Unable to restore your session. Please reload the page.
       </SessionStatus>
     );
@@ -31,7 +31,7 @@ export const GuestRoute = () => {
   const { status } = useAuthSession();
 
   if (status === "loading") {
-    return <SessionStatus role="status">Restoring session…</SessionStatus>;
+    return <SessionLoader />;
   }
 
   if (status === "authenticated") {
@@ -41,24 +41,68 @@ export const GuestRoute = () => {
   return <Outlet />;
 };
 
-const SessionStatus = ({
-  children,
-  role,
-}: {
-  children: React.ReactNode;
-  role: "alert" | "status";
-}) => {
+const SessionLoader = () => {
   const colors = useColors();
 
   return (
     <div
-      role={role}
+      role="status"
+      aria-label="Restoring session"
       css={{
         minHeight: "calc(100dvh - var(--header-h))",
         display: "grid",
         placeItems: "center",
         padding: 24,
-        color: role === "alert" ? colors.danger : colors.textSecondary,
+      }}
+    >
+      <svg
+        aria-hidden="true"
+        width="32"
+        height="32"
+        viewBox="0 0 24 24"
+        fill="none"
+        css={{
+          animation: "session-spin 0.8s linear infinite",
+          "@keyframes session-spin": {
+            from: { transform: "rotate(0deg)" },
+            to: { transform: "rotate(360deg)" },
+          },
+          "@media (prefers-reduced-motion: reduce)": {
+            animation: "none",
+          },
+        }}
+      >
+        <circle
+          cx="12"
+          cy="12"
+          r="10"
+          stroke={colors.primary}
+          strokeWidth="3"
+          strokeOpacity="0.2"
+        />
+        <path
+          d="M12 2a10 10 0 0 1 10 10"
+          stroke={colors.primary}
+          strokeWidth="3"
+          strokeLinecap="round"
+        />
+      </svg>
+    </div>
+  );
+};
+
+const SessionStatus = ({ children }: { children: React.ReactNode }) => {
+  const colors = useColors();
+
+  return (
+    <div
+      role="alert"
+      css={{
+        minHeight: "calc(100dvh - var(--header-h))",
+        display: "grid",
+        placeItems: "center",
+        padding: 24,
+        color: colors.danger,
         textAlign: "center",
       }}
     >
