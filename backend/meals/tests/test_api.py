@@ -4,7 +4,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
-from meals.models import Meal
+from meals.models import Ingredient, Meal
 
 
 class MealApiTests(APITestCase):
@@ -98,3 +98,135 @@ class MealApiTests(APITestCase):
         self.assertEqual(delete_response.status_code, status.HTTP_404_NOT_FOUND)
         meal.refresh_from_db()
         self.assertEqual(meal.name, "Private meal")
+
+
+class IngredientApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.meal = Meal.objects.create(owner=self.user, name="Vegetable soup")
+        self.other_meal = Meal.objects.create(
+            owner=self.other_user,
+            name="Private meal",
+        )
+
+    def test_list_requires_authentication(self):
+        response = self.client.get(reverse("ingredient-list", args=[self.meal.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_contains_meals_ingredients(self):
+        ingredient = Ingredient.objects.create(
+            meal=self.meal,
+            name="Carrot",
+            quantity="2.00",
+            unit="piece",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(reverse("ingredient-list", args=[self.meal.id]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], ingredient.id)
+
+    def test_user_can_add_ingredient_to_own_meal(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            reverse("ingredient-list", args=[self.meal.id]),
+            {"name": "Carrot", "quantity": "2.00", "unit": "piece"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ingredient = Ingredient.objects.get(pk=response.data["id"])
+        self.assertEqual(ingredient.meal, self.meal)
+
+    def test_user_can_update_own_ingredient(self):
+        ingredient = Ingredient.objects.create(
+            meal=self.meal,
+            name="Carrot",
+            quantity="2.00",
+            unit="piece",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("ingredient-detail", args=[self.meal.id, ingredient.id]),
+            {"quantity": "3.00"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        ingredient.refresh_from_db()
+        self.assertEqual(str(ingredient.quantity), "3.00")
+
+    def test_user_can_delete_own_ingredient(self):
+        ingredient = Ingredient.objects.create(
+            meal=self.meal,
+            name="Carrot",
+            quantity="2.00",
+            unit="piece",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.delete(
+            reverse("ingredient-detail", args=[self.meal.id, ingredient.id])
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Ingredient.objects.filter(pk=ingredient.id).exists())
+
+    def test_user_cannot_access_another_users_ingredients(self):
+        ingredient = Ingredient.objects.create(
+            meal=self.other_meal,
+            name="Secret ingredient",
+            quantity="1.00",
+            unit="piece",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        list_response = self.client.get(
+            reverse("ingredient-list", args=[self.other_meal.id])
+        )
+        detail_response = self.client.get(
+            reverse("ingredient-detail", args=[self.other_meal.id, ingredient.id])
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(detail_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_ingredient_must_belong_to_meal_from_url(self):
+        second_meal = Meal.objects.create(owner=self.user, name="Second meal")
+        ingredient = Ingredient.objects.create(
+            meal=self.meal,
+            name="Carrot",
+            quantity="2.00",
+            unit="piece",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            reverse("ingredient-detail", args=[second_meal.id, ingredient.id])
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_create_rejects_non_positive_quantity(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            reverse("ingredient-list", args=[self.meal.id]),
+            {"name": "Carrot", "quantity": "0.00", "unit": "piece"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("quantity", response.data)

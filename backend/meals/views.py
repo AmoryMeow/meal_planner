@@ -1,8 +1,10 @@
-from rest_framework import viewsets
+from django.shortcuts import get_object_or_404
+
+from rest_framework import generics, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Meal
-from .serializers import MealSerializer
+from .models import Ingredient, Meal
+from .serializers import IngredientSerializer, MealSerializer
 
 
 class MealViewSet(viewsets.ModelViewSet):
@@ -18,3 +20,32 @@ class MealViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+
+class IngredientListCreateView(generics.ListCreateAPIView):
+    serializer_class = IngredientSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_meal(self):
+        return get_object_or_404(
+            Meal,
+            pk=self.kwargs["meal_pk"],
+            owner=self.request.user,
+        )
+
+    def get_queryset(self):
+        return Ingredient.objects.filter(meal=self.get_meal()).order_by("id")
+
+    def perform_create(self, serializer):
+        serializer.save(meal=self.get_meal())
+
+
+class IngredientDetailView(generics.RetrieveUpdateDestroyAPIView):
+    serializer_class = IngredientSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Ingredient.objects.filter(
+            meal_id=self.kwargs["meal_pk"],
+            meal__owner=self.request.user,
+        )
