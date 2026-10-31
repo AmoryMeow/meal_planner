@@ -1,32 +1,64 @@
 from decimal import Decimal
+from types import SimpleNamespace
 
 from django.test import TestCase
 
 from accounts.models import User
-from meals.models import Ingredient, Meal
-from meals.serializers import IngredientSerializer, MealSerializer
+from meals.models import Ingredient, Meal, MealIngredient
+from meals.serializers import (
+    IngredientSerializer,
+    MealIngredientSerializer,
+    MealSerializer,
+)
 
 
 class IngredientSerializerTests(TestCase):
-    def test_serializes_ingredient(self):
+    def test_serializes_catalog_ingredient(self):
         owner = User.objects.create_user(
             email="owner@example.com",
             password="A-secure-password-123",
         )
-        meal = Meal.objects.create(owner=owner, name="Vegetable soup")
-        ingredient = Ingredient.objects.create(
-            meal=meal,
+        ingredient = Ingredient.objects.create(owner=owner, name="Carrot")
+
+        data = IngredientSerializer(ingredient).data
+
+        self.assertEqual(data["id"], ingredient.id)
+        self.assertEqual(data["name"], "Carrot")
+        self.assertIn("created_at", data)
+        self.assertIn("updated_at", data)
+
+
+class MealIngredientSerializerTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_owner = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.ingredient = Ingredient.objects.create(
+            owner=self.owner,
             name="Carrot",
+        )
+
+    def test_serializes_meal_ingredient(self):
+        meal = Meal.objects.create(owner=self.owner, name="Vegetable soup")
+        meal_ingredient = MealIngredient.objects.create(
+            meal=meal,
+            ingredient=self.ingredient,
             quantity=Decimal("2.00"),
             unit="piece",
         )
 
-        data = IngredientSerializer(ingredient).data
+        data = MealIngredientSerializer(meal_ingredient).data
 
         self.assertEqual(
             data,
             {
-                "id": ingredient.id,
+                "id": meal_ingredient.id,
+                "ingredient_id": self.ingredient.id,
                 "name": "Carrot",
                 "quantity": "2.00",
                 "unit": "piece",
@@ -34,12 +66,34 @@ class IngredientSerializerTests(TestCase):
         )
 
     def test_rejects_non_positive_quantity(self):
-        serializer = IngredientSerializer(
-            data={"name": "Carrot", "quantity": "0.00", "unit": "piece"}
+        serializer = MealIngredientSerializer(
+            data={
+                "ingredient_id": self.ingredient.id,
+                "quantity": "0.00",
+                "unit": "piece",
+            },
+            context={"request": SimpleNamespace(user=self.owner)},
         )
 
         self.assertFalse(serializer.is_valid())
         self.assertIn("quantity", serializer.errors)
+
+    def test_rejects_another_users_catalog_ingredient(self):
+        ingredient = Ingredient.objects.create(
+            owner=self.other_owner,
+            name="Private ingredient",
+        )
+        serializer = MealIngredientSerializer(
+            data={
+                "ingredient_id": ingredient.id,
+                "quantity": "1.00",
+                "unit": "piece",
+            },
+            context={"request": SimpleNamespace(user=self.owner)},
+        )
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("ingredient_id", serializer.errors)
 
 
 class MealSerializerTests(TestCase):
@@ -55,9 +109,10 @@ class MealSerializerTests(TestCase):
             name="Vegetable soup",
             tags=["vegetarian", "soup"],
         )
-        ingredient = Ingredient.objects.create(
+        ingredient = Ingredient.objects.create(owner=self.owner, name="Carrot")
+        meal_ingredient = MealIngredient.objects.create(
             meal=meal,
-            name="Carrot",
+            ingredient=ingredient,
             quantity=Decimal("2.00"),
             unit="piece",
         )
@@ -72,7 +127,8 @@ class MealSerializerTests(TestCase):
             data["ingredients"],
             [
                 {
-                    "id": ingredient.id,
+                    "id": meal_ingredient.id,
+                    "ingredient_id": ingredient.id,
                     "name": "Carrot",
                     "quantity": "2.00",
                     "unit": "piece",
@@ -106,7 +162,7 @@ class MealSerializerTests(TestCase):
             data={
                 "name": "Vegetable soup",
                 "ingredients": [
-                    {"name": "Carrot", "quantity": "2.00", "unit": "piece"}
+                    {"ingredient_id": 1, "quantity": "2.00", "unit": "piece"}
                 ],
             }
         )

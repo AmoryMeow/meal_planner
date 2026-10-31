@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
-from meals.models import Ingredient, Meal
+from meals.models import Ingredient, Meal, MealIngredient
 
 
 class MealsAdminTests(TestCase):
@@ -17,9 +17,10 @@ class MealsAdminTests(TestCase):
             password="A-secure-password-123",
         )
         self.meal = Meal.objects.create(owner=self.owner, name="Vegetable soup")
-        self.ingredient = Ingredient.objects.create(
+        self.ingredient = Ingredient.objects.create(owner=self.owner, name="Carrot")
+        self.meal_ingredient = MealIngredient.objects.create(
             meal=self.meal,
-            name="Carrot",
+            ingredient=self.ingredient,
             quantity="2.00",
             unit="piece",
         )
@@ -28,6 +29,7 @@ class MealsAdminTests(TestCase):
     def test_meal_and_ingredient_models_are_registered(self):
         self.assertTrue(admin.site.is_registered(Meal))
         self.assertTrue(admin.site.is_registered(Ingredient))
+        self.assertTrue(admin.site.is_registered(MealIngredient))
 
     def test_meal_admin_lists_meals(self):
         response = self.client.get(reverse("admin:meals_meal_changelist"))
@@ -46,6 +48,12 @@ class MealsAdminTests(TestCase):
 
     def test_ingredient_admin_lists_ingredients(self):
         response = self.client.get(reverse("admin:meals_ingredient_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.ingredient.name)
+
+    def test_meal_ingredient_admin_lists_associations(self):
+        response = self.client.get(reverse("admin:meals_mealingredient_changelist"))
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.ingredient.name)

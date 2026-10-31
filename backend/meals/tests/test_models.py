@@ -2,10 +2,11 @@ from decimal import Decimal
 
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
+from django.db.models.deletion import RestrictedError
 from django.test import TestCase
 
 from accounts.models import User
-from meals.models import Ingredient, Meal
+from meals.models import Ingredient, Meal, MealIngredient
 
 
 class MealModelTests(TestCase):
@@ -70,75 +71,166 @@ class IngredientModelTests(TestCase):
             email="owner@example.com",
             password="A-secure-password-123",
         )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+
+    def test_ingredient_name_is_normalized_per_owner(self):
+        ingredient = Ingredient.objects.create(
+            owner=self.user,
+            name="  Green   Onion  ",
+        )
+
+        self.assertEqual(ingredient.name, "Green Onion")
+        self.assertEqual(ingredient.normalized_name, "green onion")
+        self.assertQuerySetEqual(self.user.ingredients.all(), [ingredient])
+
+    def test_owner_cannot_have_duplicate_normalized_ingredient_names(self):
+        Ingredient.objects.create(owner=self.user, name="Carrot")
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Ingredient.objects.create(owner=self.user, name="  CARROT ")
+
+    def test_updating_name_updates_normalized_name(self):
+        ingredient = Ingredient.objects.create(owner=self.user, name="Green onion")
+
+        ingredient.name = "  SPRING   Onion "
+        ingredient.save(update_fields=("name",))
+        ingredient.refresh_from_db()
+
+        self.assertEqual(ingredient.name, "SPRING Onion")
+        self.assertEqual(ingredient.normalized_name, "spring onion")
+
+    def test_different_owners_can_use_the_same_ingredient_name(self):
+        first = Ingredient.objects.create(owner=self.user, name="Carrot")
+        second = Ingredient.objects.create(owner=self.other_user, name="Carrot")
+
+        self.assertNotEqual(first.owner, second.owner)
+
+    def test_string_representation_is_ingredient_name(self):
+        ingredient = Ingredient(owner=self.user, name="Carrot")
+
+        self.assertEqual(str(ingredient), "Carrot")
+
+
+class MealIngredientModelTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.ingredient = Ingredient.objects.create(owner=self.user, name="Carrot")
         self.meal = Meal.objects.create(owner=self.user, name="Vegetable soup")
 
     def test_meal_can_have_no_ingredients(self):
         self.assertFalse(self.meal.ingredients.exists())
 
-    def test_ingredient_belongs_to_meal(self):
-        ingredient = Ingredient.objects.create(
+    def test_catalog_ingredient_can_be_used_in_multiple_meals(self):
+        second_meal = Meal.objects.create(owner=self.user, name="Salad")
+        soup_ingredient = MealIngredient.objects.create(
             meal=self.meal,
-            name="Carrot",
+            ingredient=self.ingredient,
             quantity=Decimal("2.00"),
             unit="piece",
         )
-
-        self.assertQuerySetEqual(self.meal.ingredients.all(), [ingredient])
-        self.assertEqual(ingredient.quantity, Decimal("2.00"))
-        self.assertEqual(ingredient.unit, "piece")
-
-    def test_ingredient_accepts_fractional_quantity(self):
-        ingredient = Ingredient.objects.create(
-            meal=self.meal,
-            name="Olive oil",
-            quantity=Decimal("0.25"),
-            unit="l",
+        salad_ingredient = MealIngredient.objects.create(
+            meal=second_meal,
+            ingredient=self.ingredient,
+            quantity=Decimal("1.00"),
+            unit="piece",
         )
 
-        ingredient.refresh_from_db()
+        self.assertQuerySetEqual(self.meal.ingredients.all(), [soup_ingredient])
+        self.assertQuerySetEqual(second_meal.ingredients.all(), [salad_ingredient])
+        self.assertQuerySetEqual(
+            self.ingredient.meal_ingredients.order_by("id"),
+            [soup_ingredient, salad_ingredient],
+        )
 
-        self.assertEqual(ingredient.quantity, Decimal("0.25"))
+    def test_meal_ingredient_accepts_fractional_quantity(self):
+        meal_ingredient = MealIngredient.objects.create(
+            meal=self.meal,
+            ingredient=self.ingredient,
+            quantity=Decimal("0.25"),
+            unit="kg",
+        )
 
-    def test_ingredient_rejects_non_positive_quantity_during_validation(self):
+        meal_ingredient.refresh_from_db()
+
+        self.assertEqual(meal_ingredient.quantity, Decimal("0.25"))
+
+    def test_meal_ingredient_rejects_non_positive_quantity_during_validation(self):
         for quantity in (Decimal("0"), Decimal("-1")):
             with self.subTest(quantity=quantity):
-                ingredient = Ingredient(
+                meal_ingredient = MealIngredient(
                     meal=self.meal,
-                    name="Carrot",
+                    ingredient=self.ingredient,
                     quantity=quantity,
                     unit="piece",
                 )
 
                 with self.assertRaises(ValidationError):
-                    ingredient.full_clean()
+                    meal_ingredient.full_clean()
 
     def test_database_rejects_non_positive_quantity(self):
         with self.assertRaises(IntegrityError), transaction.atomic():
-            Ingredient.objects.create(
+            MealIngredient.objects.create(
                 meal=self.meal,
-                name="Carrot",
+                ingredient=self.ingredient,
                 quantity=Decimal("0"),
                 unit="piece",
             )
 
-    def test_string_representation_is_ingredient_name(self):
-        ingredient = Ingredient(
+    def test_string_representation_contains_ingredient_and_meal_names(self):
+        meal_ingredient = MealIngredient(
             meal=self.meal,
-            name="Carrot",
+            ingredient=self.ingredient,
             quantity=Decimal("2.00"),
             unit="piece",
         )
 
-        self.assertEqual(str(ingredient), "Carrot")
+        self.assertEqual(str(meal_ingredient), "Carrot — Vegetable soup")
 
-    def test_deleting_meal_deletes_ingredients(self):
-        ingredient = Ingredient.objects.create(
+    def test_deleting_meal_deletes_associations_but_keeps_catalog_ingredient(self):
+        meal_ingredient = MealIngredient.objects.create(
             meal=self.meal,
-            name="Carrot",
+            ingredient=self.ingredient,
             quantity=Decimal("2.00"),
             unit="piece",
         )
 
         self.meal.delete()
 
-        self.assertFalse(Ingredient.objects.filter(pk=ingredient.pk).exists())
+        self.assertFalse(MealIngredient.objects.filter(pk=meal_ingredient.pk).exists())
+        self.assertTrue(Ingredient.objects.filter(pk=self.ingredient.pk).exists())
+
+    def test_ingredient_in_use_cannot_be_deleted(self):
+        MealIngredient.objects.create(
+            meal=self.meal,
+            ingredient=self.ingredient,
+            quantity=Decimal("2.00"),
+            unit="piece",
+        )
+
+        with self.assertRaises(RestrictedError):
+            self.ingredient.delete()
+
+    def test_meal_ingredient_rejects_ingredient_from_another_owner(self):
+        other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        other_ingredient = Ingredient.objects.create(
+            owner=other_user,
+            name="Private ingredient",
+        )
+        meal_ingredient = MealIngredient(
+            meal=self.meal,
+            ingredient=other_ingredient,
+            quantity=Decimal("1.00"),
+            unit="piece",
+        )
+
+        with self.assertRaises(ValidationError):
+            meal_ingredient.full_clean()

@@ -1,13 +1,14 @@
 from django.contrib import admin
 from django.db.models import Count
 
-from .models import Ingredient, Meal
+from .models import Ingredient, Meal, MealIngredient
 
 
 class IngredientInline(admin.TabularInline):
-    model = Ingredient
+    model = MealIngredient
     extra = 0
-    fields = ("name", "quantity", "unit")
+    fields = ("ingredient", "quantity", "unit")
+    autocomplete_fields = ("ingredient",)
 
 
 @admin.register(Meal)
@@ -41,8 +42,18 @@ class MealAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
-    list_display = ("name", "meal", "quantity", "unit")
+    list_display = ("name", "owner", "created_at", "updated_at")
+    search_fields = ("name", "owner__email")
+    list_select_related = ("owner",)
+    ordering = ("name",)
+    readonly_fields = ("normalized_name", "created_at", "updated_at")
+
+
+@admin.register(MealIngredient)
+class MealIngredientAdmin(admin.ModelAdmin):
+    list_display = ("ingredient", "meal", "quantity", "unit")
     list_filter = ("meal__source",)
-    search_fields = ("name", "meal__name", "meal__owner__email")
-    list_select_related = ("meal", "meal__owner")
-    ordering = ("meal__name", "name")
+    search_fields = ("ingredient__name", "meal__name", "meal__owner__email")
+    list_select_related = ("ingredient", "meal", "meal__owner")
+    autocomplete_fields = ("ingredient", "meal")
+    ordering = ("meal__name", "ingredient__name")
