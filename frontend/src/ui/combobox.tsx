@@ -2,6 +2,7 @@ import {
   type ChangeEvent,
   type FocusEvent,
   type KeyboardEvent,
+  useCallback,
   useEffect,
   useId,
   useRef,
@@ -58,6 +59,7 @@ export const Combobox = ({
 }: ComboboxProps) => {
   const colors = useColors();
   const inputId = useId();
+  const labelId = useId();
   const listboxId = useId();
   const errorId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
@@ -79,6 +81,14 @@ export const Combobox = ({
     open && menuItems[highlightedIndex]
       ? `${listboxId}-option-${highlightedIndex}`
       : undefined;
+  const selectedLabel = selectedOptions[0]?.label ?? "";
+
+  const dismiss = useCallback(() => {
+    setOpen(false);
+    const dismissedValue = multiple ? "" : selectedLabel;
+    if (inputValue !== dismissedValue) onInputChange(dismissedValue);
+    inputRef.current?.blur();
+  }, [inputValue, multiple, onInputChange, selectedLabel]);
 
   useEffect(() => {
     setHighlightedIndex(0);
@@ -90,16 +100,13 @@ export const Combobox = ({
         return;
       }
 
-      setOpen(false);
-      const dismissedValue = multiple ? "" : (selectedOptions[0]?.label ?? "");
-      if (inputValue !== dismissedValue) onInputChange(dismissedValue);
-      inputRef.current?.blur();
+      dismiss();
     };
 
     document.addEventListener("pointerdown", handleOutsidePointerDown, true);
     return () =>
       document.removeEventListener("pointerdown", handleOutsidePointerDown, true);
-  }, [inputValue, multiple, onInputChange, selectedOptions]);
+  }, [dismiss]);
 
   const chooseItem = (item: MenuItem) => {
     if (item.type === "option") {
@@ -154,10 +161,7 @@ export const Combobox = ({
 
   const handleBlur = (event: FocusEvent<HTMLDivElement>) => {
     if (event.currentTarget.contains(event.relatedTarget)) return;
-
-    setOpen(false);
-    const dismissedValue = multiple ? "" : (selectedOptions[0]?.label ?? "");
-    if (inputValue !== dismissedValue) onInputChange(dismissedValue);
+    dismiss();
   };
 
   const showMenu = open && !disabled;
@@ -166,16 +170,8 @@ export const Combobox = ({
 
   return (
     <div ref={rootRef} onBlur={handleBlur}>
-      <label
-        htmlFor={inputId}
-        onMouseDown={event => {
-          if (!open) return;
-          event.preventDefault();
-          setOpen(false);
-          const dismissedValue = multiple ? "" : (selectedOptions[0]?.label ?? "");
-          if (inputValue !== dismissedValue) onInputChange(dismissedValue);
-          inputRef.current?.blur();
-        }}
+      <span
+        id={labelId}
         css={{
           display: "block",
           marginBottom: 8,
@@ -185,10 +181,16 @@ export const Combobox = ({
         }}
       >
         {label}
-      </label>
+      </span>
 
       <div css={{ position: "relative" }}>
         <div
+          onPointerDown={event => {
+            const target = event.target;
+            if (!(target instanceof Element)) return;
+            if (target.closest("input, button")) return;
+            dismiss();
+          }}
           css={{
             display: "grid",
             gridTemplateColumns:
@@ -280,6 +282,7 @@ export const Combobox = ({
               disabled={disabled}
               autoComplete="off"
               aria-autocomplete="list"
+              aria-labelledby={labelId}
               aria-expanded={showMenu}
               aria-controls={listboxId}
               aria-activedescendant={activeItemId}
