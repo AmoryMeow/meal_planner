@@ -1,20 +1,33 @@
 import React from "react";
 
-import { useColors, hexToRgba } from "@package/ui";
+import { useColors, hexToRgba } from "./colors";
 
-export interface ButtonProps {
+type ButtonBaseProps = {
   variant?: "primary" | "secondary" | "danger" | "success" | "ghost" | "outline";
   size?: "sm" | "md" | "lg";
   type?: "button" | "submit" | "reset";
   disabled?: boolean;
   loading?: boolean;
   fullWidth?: boolean;
-  icon?: React.ReactNode;
   iconPosition?: "left" | "right";
-  children?: React.ReactNode;
+  title?: string;
   onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void;
   className?: string;
-}
+};
+
+type ButtonWithTextProps = {
+  children: React.ReactNode;
+  icon?: React.ReactNode;
+  ariaLabel?: string;
+};
+
+type IconOnlyButtonProps = {
+  children?: undefined;
+  icon: React.ReactNode;
+  ariaLabel: string;
+};
+
+export type ButtonProps = ButtonBaseProps & (ButtonWithTextProps | IconOnlyButtonProps);
 
 export const Button = ({
   variant = "primary",
@@ -26,10 +39,15 @@ export const Button = ({
   icon,
   iconPosition = "left",
   children,
+  ariaLabel,
+  title,
   onClick,
   className,
 }: ButtonProps) => {
   const colors = useColors();
+  const isIconOnly = icon !== undefined && children === undefined;
+  const accessibleLabel =
+    ariaLabel ?? (typeof children === "string" ? children : undefined);
 
   const sizeConfig = {
     sm: {
@@ -221,6 +239,9 @@ export const Button = ({
     <button
       type={type}
       disabled={disabled || loading}
+      aria-busy={loading || undefined}
+      aria-label={isIconOnly || loading ? accessibleLabel : ariaLabel}
+      title={title ?? (isIconOnly ? accessibleLabel : undefined)}
       className={className}
       css={{
         display: "inline-flex",
@@ -228,9 +249,13 @@ export const Button = ({
         justifyContent: "center",
         gap: icon && children ? 8 : 0,
         height: currentSize.height,
-        minWidth: fullWidth ? "100%" : currentSize.minWidth,
-        width: fullWidth ? "100%" : "auto",
-        padding: currentSize.padding,
+        minWidth: fullWidth
+          ? "100%"
+          : isIconOnly
+            ? currentSize.height
+            : currentSize.minWidth,
+        width: fullWidth ? "100%" : isIconOnly ? currentSize.height : "auto",
+        padding: isIconOnly ? 0 : currentSize.padding,
         borderRadius: currentSize.borderRadius,
         fontWeight: 600,
         fontSize: currentSize.fontSize,
@@ -245,14 +270,7 @@ export const Button = ({
       onClick={handleClick}
     >
       {loading && (
-        <LoadingSpinner
-          size={size === "sm" ? 14 : size === "lg" ? 18 : 16}
-          color={
-            variant === "primary" || variant === "danger" || variant === "success"
-              ? "#FFFFFF"
-              : colors.textPrimary
-          }
-        />
+        <LoadingSpinner size={size === "sm" ? 14 : size === "lg" ? 18 : 16} />
       )}
 
       {!loading && icon && iconPosition === "left" && (
@@ -268,8 +286,9 @@ export const Button = ({
   );
 };
 
-const LoadingSpinner = ({ size, color }: { size: number; color: string }) => (
+const LoadingSpinner = ({ size }: { size: number }) => (
   <svg
+    aria-hidden="true"
     width={size}
     height={size}
     viewBox="0 0 24 24"
@@ -280,12 +299,22 @@ const LoadingSpinner = ({ size, color }: { size: number; color: string }) => (
         "0%": { transform: "rotate(0deg)" },
         "100%": { transform: "rotate(360deg)" },
       },
+      "@media (prefers-reduced-motion: reduce)": {
+        animation: "none",
+      },
     }}
   >
-    <circle cx="12" cy="12" r="10" stroke={color} strokeWidth="4" strokeOpacity="0.2" />
+    <circle
+      cx="12"
+      cy="12"
+      r="10"
+      stroke="currentColor"
+      strokeWidth="4"
+      strokeOpacity="0.2"
+    />
     <path
       d="M12 2a10 10 0 0 1 10 10"
-      stroke={color}
+      stroke="currentColor"
       strokeWidth="4"
       strokeLinecap="round"
     />

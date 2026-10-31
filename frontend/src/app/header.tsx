@@ -1,13 +1,15 @@
 import { Link, useNavigate } from "react-router-dom";
 
 import { useAuthSession } from "@package/auth";
-import { ThemeToggle, useColors, useIsMobile, hexToRgba } from "@package/ui";
+import { Button, ThemeToggle, useColors, useIsMobile, hexToRgba } from "@package/ui";
 
 export const Header = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
   const { isAuthenticated, isSigningOut, signOut, status } = useAuthSession();
+
+  const handleSignIn = () => navigate("/login");
 
   const handleSignOut = () => {
     void signOut()
@@ -86,11 +88,18 @@ export const Header = () => {
         <div css={{ display: "flex", alignItems: "center", gap: 8 }}>
           <ThemeToggle compact={isMobile} />
           {!isAuthenticated && status !== "loading" && (
-            <SignInLink compact={isMobile} />
+            <Button
+              ariaLabel="Sign in"
+              icon={<SignInIcon />}
+              size={isMobile ? "sm" : "md"}
+              onClick={handleSignIn}
+            />
           )}
           {isAuthenticated && (
-            <SignOutButton
-              compact={isMobile}
+            <Button
+              ariaLabel="Sign out"
+              icon={<SignOutIcon />}
+              size={isMobile ? "sm" : "md"}
               loading={isSigningOut}
               onClick={handleSignOut}
             />
@@ -99,80 +108,6 @@ export const Header = () => {
       </div>
     </header>
   );
-};
-
-const SignInLink = ({ compact }: { compact: boolean }) => {
-  const actionStyles = useHeaderActionStyles(compact);
-
-  return (
-    <Link to="/login" aria-label="Sign in" title="Sign in" css={actionStyles}>
-      <SignInIcon />
-    </Link>
-  );
-};
-
-const SignOutButton = ({
-  compact,
-  loading,
-  onClick,
-}: {
-  compact: boolean;
-  loading: boolean;
-  onClick: () => void;
-}) => {
-  const actionStyles = useHeaderActionStyles(compact, loading);
-
-  return (
-    <button
-      type="button"
-      aria-busy={loading}
-      aria-label="Sign out"
-      title="Sign out"
-      disabled={loading}
-      onClick={onClick}
-      css={actionStyles}
-    >
-      {loading ? <SignOutSpinner /> : <SignOutIcon />}
-    </button>
-  );
-};
-
-const useHeaderActionStyles = (compact: boolean, disabled = false) => {
-  const colors = useColors();
-  const size = compact ? 36 : 40;
-
-  return {
-    display: "inline-flex",
-    alignItems: "center",
-    justifyContent: "center",
-    width: size,
-    height: size,
-    flex: "0 0 auto",
-    padding: 0,
-    borderRadius: 12,
-    border: "1px solid transparent",
-    background: colors.primary,
-    color: colors.onPrimary,
-    lineHeight: 1,
-    textDecoration: "none",
-    cursor: disabled ? "not-allowed" : "pointer",
-    opacity: disabled ? 0.7 : 1,
-    boxShadow: `0 1px 0 ${hexToRgba(colors.border, 0.25)}`,
-    transition: "background-color .15s ease, box-shadow .15s ease, transform .05s ease",
-    "&:hover:not(:disabled)": {
-      background: colors.primaryHover,
-      boxShadow: `0 2px 6px ${hexToRgba(colors.border, 0.35)}`,
-    },
-    "&:active:not(:disabled)": {
-      background: colors.primaryActive,
-      transform: "translateY(0.5px)",
-      boxShadow: `0 1px 2px ${hexToRgba(colors.border, 0.3)}`,
-    },
-    "&:focus-visible": {
-      outline: "none",
-      boxShadow: `0 0 0 3px ${colors.focus}`,
-    },
-  };
 };
 
 const SignInIcon = () => (
@@ -207,41 +142,6 @@ const SignOutIcon = () => (
     <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
     <path d="m16 17 5-5-5-5" />
     <path d="M21 12H9" />
-  </svg>
-);
-
-const SignOutSpinner = () => (
-  <svg
-    aria-hidden="true"
-    width="20"
-    height="20"
-    viewBox="0 0 24 24"
-    fill="none"
-    css={{
-      animation: "sign-out-spin 0.8s linear infinite",
-      "@keyframes sign-out-spin": {
-        from: { transform: "rotate(0deg)" },
-        to: { transform: "rotate(360deg)" },
-      },
-      "@media (prefers-reduced-motion: reduce)": {
-        animation: "none",
-      },
-    }}
-  >
-    <circle
-      cx="12"
-      cy="12"
-      r="9"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeOpacity="0.25"
-    />
-    <path
-      d="M12 3a9 9 0 0 1 9 9"
-      stroke="currentColor"
-      strokeWidth="3"
-      strokeLinecap="round"
-    />
   </svg>
 );
 
