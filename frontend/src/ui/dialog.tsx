@@ -95,6 +95,7 @@ export const Dialog = ({
       css={{
         width: `min(${typeof width === "number" ? `${width}px` : width}, calc(100% - 32px))`,
         boxSizing: "border-box",
+        overflow: "visible",
         padding: 0,
         border: `1px solid ${colors.border}`,
         borderRadius: 16,
