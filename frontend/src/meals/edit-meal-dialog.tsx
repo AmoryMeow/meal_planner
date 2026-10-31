@@ -9,6 +9,10 @@ import {
   MealForm,
   type MealFormErrors,
 } from "./meal-form";
+import {
+  MealIngredientsEditor,
+  useMealIngredientsEditor,
+} from "./meal-ingredients-editor";
 import { useUpdateMealMutation } from "./queries";
 
 type EditMealDialogProps = {
@@ -22,8 +26,10 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
   const [formData, setFormData] = useState(() => getMealFormData(meal));
   const [formErrors, setFormErrors] = useState<MealFormErrors>({});
   const update = useUpdateMealMutation();
+  const ingredientsEditor = useMealIngredientsEditor(meal.id);
+  const isSaving = update.isPending || ingredientsEditor.creation.isPending;
 
-  const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     update.reset();
 
@@ -32,12 +38,16 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
       setFormErrors({ name: "Enter a meal name." });
       return;
     }
+    if (!ingredientsEditor.validate()) return;
 
     setFormErrors({});
-    update.mutate(
-      { mealId: meal.id, input },
-      { onSuccess: () => dialogRef.current?.close() }
-    );
+    try {
+      await update.mutateAsync({ mealId: meal.id, input });
+      const ingredientsSaved = await ingredientsEditor.save();
+      if (ingredientsSaved) dialogRef.current?.close();
+    } catch {
+      // Mutation errors are rendered by their corresponding form sections.
+    }
   };
 
   return (
@@ -46,21 +56,21 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
       title="Edit meal"
       onClose={onClose}
       onCancel={event => {
-        if (update.isPending) event.preventDefault();
+        if (isSaving) event.preventDefault();
       }}
       onSubmit={handleSubmit}
-      closeDisabled={update.isPending}
+      closeDisabled={isSaving}
       actions={
         <>
           <Button
             variant="secondary"
             size="sm"
-            disabled={update.isPending}
+            disabled={isSaving}
             onClick={() => dialogRef.current?.close()}
           >
             Cancel
           </Button>
-          <Button type="submit" size="sm" loading={update.isPending}>
+          <Button type="submit" size="sm" loading={isSaving}>
             Save
           </Button>
         </>
@@ -69,13 +79,15 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
       <MealForm
         data={formData}
         errors={{ ...update.apiFieldErrors, ...formErrors }}
-        disabled={update.isPending}
+        disabled={isSaving}
         onChange={data => {
           setFormData(data);
           setFormErrors({});
           update.reset();
         }}
       />
+
+      <MealIngredientsEditor editor={ingredientsEditor} disabled={isSaving} />
 
       {update.submitError ? (
         <div
