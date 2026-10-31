@@ -9,6 +9,14 @@ export type Ingredient = {
   unit: string;
 };
 
+export type CreateIngredientInput = {
+  name: string;
+  quantity: string;
+  unit: string;
+};
+
+export type UpdateIngredientInput = Partial<CreateIngredientInput>;
+
 export type Meal = {
   id: number;
   name: string;
@@ -58,5 +66,44 @@ export const updateMeal = (
 
 export const deleteMeal = (request: AuthenticatedRequest, mealId: number) =>
   request<void>(`/meals/${mealId}/`, {
+    method: "DELETE",
+  });
+
+export const getIngredients = (request: AuthenticatedRequest, mealId: number) =>
+  request<PaginatedResponse<Ingredient>>(`/meals/${mealId}/ingredients/`);
+
+export const getIngredient = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  ingredientId: number
+) => request<Ingredient>(`/meals/${mealId}/ingredients/${ingredientId}/`);
+
+export const createIngredient = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  input: CreateIngredientInput
+) =>
+  request<Ingredient>(`/meals/${mealId}/ingredients/`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const updateIngredient = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  ingredientId: number,
+  input: UpdateIngredientInput
+) =>
+  request<Ingredient>(`/meals/${mealId}/ingredients/${ingredientId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+export const deleteIngredient = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  ingredientId: number
+) =>
+  request<void>(`/meals/${mealId}/ingredients/${ingredientId}/`, {
     method: "DELETE",
   });
