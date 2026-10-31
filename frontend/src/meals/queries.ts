@@ -1,5 +1,6 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
+import { ApiError } from "@package/api";
 import { useAuthSession } from "@package/auth";
 
 import {
@@ -45,13 +46,20 @@ export const useCreateMealMutation = () => {
   const queryClient = useQueryClient();
   const userId = user?.id ?? null;
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: (input: CreateMealInput) => createMeal(request, input),
     onSuccess: meal => {
       queryClient.setQueryData(mealQueryKeys.detail(userId, meal.id), meal);
       return queryClient.invalidateQueries({ queryKey: mealQueryKeys.lists(userId) });
     },
   });
+  const apiFieldErrors = getCreateMealApiFieldErrors(mutation.error);
+
+  return {
+    ...mutation,
+    apiFieldErrors,
+    submitError: getCreateMealSubmitError(mutation.error, apiFieldErrors),
+  };
 };
 
 type UpdateMealVariables = {
@@ -88,4 +96,31 @@ export const useDeleteMealMutation = () => {
       return queryClient.invalidateQueries({ queryKey: mealQueryKeys.lists(userId) });
     },
   });
+};
+
+type CreateMealApiFieldErrors = Partial<Record<keyof CreateMealInput, string>>;
+
+const getCreateMealApiFieldErrors = (error: Error | null): CreateMealApiFieldErrors => {
+  if (!(error instanceof ApiError)) return {};
+
+  return {
+    name: getFirstError(error.body?.name),
+    source: getFirstError(error.body?.source),
+    tags: getFirstError(error.body?.tags),
+  };
+};
+
+const getCreateMealSubmitError = (
+  error: Error | null,
+  apiFieldErrors: CreateMealApiFieldErrors
+): string => {
+  if (!error || Object.values(apiFieldErrors).some(Boolean)) return "";
+  if (error instanceof ApiError) return error.message;
+  return "Unable to connect to the server. Please try again.";
+};
+
+const getFirstError = (value: unknown): string | undefined => {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+  return undefined;
 };

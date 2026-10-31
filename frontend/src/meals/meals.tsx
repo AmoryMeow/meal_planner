@@ -1,6 +1,9 @@
+import { useRef } from "react";
+
 import { Button, useColors, useIsMobile } from "@package/ui";
 
 import { type Meal, type MealSource } from "./api";
+import { CreateMealDialog } from "./create-meal-dialog";
 import { useMealsQuery } from "./queries";
 
 const sourceLabels: Record<MealSource, string> = {
@@ -13,6 +16,7 @@ export const Meals = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
   const mealsQuery = useMealsQuery();
+  const createMealDialogRef = useRef<HTMLDialogElement>(null);
 
   return (
     <main
@@ -60,10 +64,16 @@ export const Meals = () => {
           </p>
         </div>
 
-        <Button size="sm" icon={<PlusIcon />}>
+        <Button
+          size="sm"
+          icon={<PlusIcon />}
+          onClick={() => createMealDialogRef.current?.showModal()}
+        >
           Add meal
         </Button>
       </header>
+
+      <CreateMealDialog dialogRef={createMealDialogRef} />
 
       {mealsQuery.isPending ? <MealsLoading /> : null}
       {mealsQuery.isError ? (
