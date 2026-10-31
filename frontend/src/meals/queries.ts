@@ -53,12 +53,12 @@ export const useCreateMealMutation = () => {
       return queryClient.invalidateQueries({ queryKey: mealQueryKeys.lists(userId) });
     },
   });
-  const apiFieldErrors = getCreateMealApiFieldErrors(mutation.error);
+  const apiFieldErrors = getMealApiFieldErrors(mutation.error);
 
   return {
     ...mutation,
     apiFieldErrors,
-    submitError: getCreateMealSubmitError(mutation.error, apiFieldErrors),
+    submitError: getMealSubmitError(mutation.error, apiFieldErrors),
   };
 };
 
@@ -72,7 +72,7 @@ export const useUpdateMealMutation = () => {
   const queryClient = useQueryClient();
   const userId = user?.id ?? null;
 
-  return useMutation({
+  const mutation = useMutation({
     mutationFn: ({ mealId, input }: UpdateMealVariables) =>
       updateMeal(request, mealId, input),
     onSuccess: meal => {
@@ -80,6 +80,13 @@ export const useUpdateMealMutation = () => {
       return queryClient.invalidateQueries({ queryKey: mealQueryKeys.lists(userId) });
     },
   });
+  const apiFieldErrors = getMealApiFieldErrors(mutation.error);
+
+  return {
+    ...mutation,
+    apiFieldErrors,
+    submitError: getMealSubmitError(mutation.error, apiFieldErrors),
+  };
 };
 
 export const useDeleteMealMutation = () => {
@@ -98,9 +105,9 @@ export const useDeleteMealMutation = () => {
   });
 };
 
-type CreateMealApiFieldErrors = Partial<Record<keyof CreateMealInput, string>>;
+type MealApiFieldErrors = Partial<Record<keyof CreateMealInput, string>>;
 
-const getCreateMealApiFieldErrors = (error: Error | null): CreateMealApiFieldErrors => {
+const getMealApiFieldErrors = (error: Error | null): MealApiFieldErrors => {
   if (!(error instanceof ApiError)) return {};
 
   return {
@@ -110,9 +117,9 @@ const getCreateMealApiFieldErrors = (error: Error | null): CreateMealApiFieldErr
   };
 };
 
-const getCreateMealSubmitError = (
+const getMealSubmitError = (
   error: Error | null,
-  apiFieldErrors: CreateMealApiFieldErrors
+  apiFieldErrors: MealApiFieldErrors
 ): string => {
   if (!error || Object.values(apiFieldErrors).some(Boolean)) return "";
   if (error instanceof ApiError) return error.message;

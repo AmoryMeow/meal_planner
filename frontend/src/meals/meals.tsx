@@ -1,9 +1,10 @@
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { Button, useColors, useIsMobile } from "@package/ui";
 
 import { type Meal, type MealSource } from "./api";
 import { CreateMealDialog } from "./create-meal-dialog";
+import { EditMealDialog } from "./edit-meal-dialog";
 import { useMealsQuery } from "./queries";
 
 const sourceLabels: Record<MealSource, string> = {
@@ -17,6 +18,13 @@ export const Meals = () => {
   const isMobile = useIsMobile();
   const mealsQuery = useMealsQuery();
   const createMealDialogRef = useRef<HTMLDialogElement>(null);
+  const editMealDialogRef = useRef<HTMLDialogElement>(null);
+  const [mealToEdit, setMealToEdit] = useState<Meal | null>(null);
+
+  useEffect(() => {
+    const dialog = editMealDialogRef.current;
+    if (mealToEdit && dialog && !dialog.open) dialog.showModal();
+  }, [mealToEdit]);
 
   return (
     <main
@@ -74,6 +82,13 @@ export const Meals = () => {
       </header>
 
       <CreateMealDialog dialogRef={createMealDialogRef} />
+      {mealToEdit ? (
+        <EditMealDialog
+          dialogRef={editMealDialogRef}
+          meal={mealToEdit}
+          onClose={() => setMealToEdit(null)}
+        />
+      ) : null}
 
       {mealsQuery.isPending ? <MealsLoading /> : null}
       {mealsQuery.isError ? (
@@ -92,7 +107,7 @@ export const Meals = () => {
             }}
           >
             {mealsQuery.data.results.map(meal => (
-              <MealCard key={meal.id} meal={meal} />
+              <MealCard key={meal.id} meal={meal} onEdit={setMealToEdit} />
             ))}
           </div>
         </section>
@@ -116,7 +131,7 @@ const PlusIcon = () => (
   </svg>
 );
 
-const MealCard = ({ meal }: { meal: Meal }) => {
+const MealCard = ({ meal, onEdit }: { meal: Meal; onEdit: (meal: Meal) => void }) => {
   const colors = useColors();
   const ingredientCount = meal.ingredients.length;
 
@@ -131,8 +146,38 @@ const MealCard = ({ meal }: { meal: Meal }) => {
         display: "flex",
         flexDirection: "column",
         gap: 14,
+        position: "relative",
+        transition: "border-color 0.15s ease, transform 0.15s ease",
+        "&:hover": {
+          borderColor: colors.primary,
+          transform: "translateY(-1px)",
+        },
       }}
     >
+      <button
+        type="button"
+        aria-label={`Edit ${meal.name}`}
+        onClick={() => onEdit(meal)}
+        css={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 1,
+          width: "100%",
+          padding: 0,
+          border: 0,
+          borderRadius: "inherit",
+          background: "transparent",
+          cursor: "pointer",
+          "&:focus": {
+            outline: "none",
+          },
+          "&:focus-visible": {
+            outline: `3px solid ${colors.focus}`,
+            outlineOffset: 2,
+          },
+        }}
+      />
+
       <div
         css={{
           display: "flex",
