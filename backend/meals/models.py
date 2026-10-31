@@ -25,3 +25,25 @@ class Meal(models.Model):
 
     def __str__(self):
         return self.name
+
+
+class Ingredient(models.Model):
+    meal = models.ForeignKey(
+        Meal,
+        on_delete=models.CASCADE,
+        related_name="ingredients",
+    )
+    name = models.CharField(max_length=255)
+    quantity = models.DecimalField(max_digits=10, decimal_places=2)
+    unit = models.CharField(max_length=32)
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(quantity__gt=0),
+                name="meals_ingredient_quantity_gt_zero",
+            ),
+        ]
+
+    def __str__(self):
+        return self.name

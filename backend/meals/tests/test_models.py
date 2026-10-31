@@ -1,8 +1,11 @@
+from decimal import Decimal
+
 from django.core.exceptions import ValidationError
+from django.db import IntegrityError, transaction
 from django.test import TestCase
 
 from accounts.models import User
-from meals.models import Meal
+from meals.models import Ingredient, Meal
 
 
 class MealModelTests(TestCase):
@@ -59,3 +62,83 @@ class MealModelTests(TestCase):
         self.user.delete()
 
         self.assertFalse(Meal.objects.filter(pk=meal.pk).exists())
+
+
+class IngredientModelTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.meal = Meal.objects.create(owner=self.user, name="Vegetable soup")
+
+    def test_meal_can_have_no_ingredients(self):
+        self.assertFalse(self.meal.ingredients.exists())
+
+    def test_ingredient_belongs_to_meal(self):
+        ingredient = Ingredient.objects.create(
+            meal=self.meal,
+            name="Carrot",
+            quantity=Decimal("2.00"),
+            unit="piece",
+        )
+
+        self.assertQuerySetEqual(self.meal.ingredients.all(), [ingredient])
+        self.assertEqual(ingredient.quantity, Decimal("2.00"))
+        self.assertEqual(ingredient.unit, "piece")
+
+    def test_ingredient_accepts_fractional_quantity(self):
+        ingredient = Ingredient.objects.create(
+            meal=self.meal,
+            name="Olive oil",
+            quantity=Decimal("0.25"),
+            unit="l",
+        )
+
+        ingredient.refresh_from_db()
+
+        self.assertEqual(ingredient.quantity, Decimal("0.25"))
+
+    def test_ingredient_rejects_non_positive_quantity_during_validation(self):
+        for quantity in (Decimal("0"), Decimal("-1")):
+            with self.subTest(quantity=quantity):
+                ingredient = Ingredient(
+                    meal=self.meal,
+                    name="Carrot",
+                    quantity=quantity,
+                    unit="piece",
+                )
+
+                with self.assertRaises(ValidationError):
+                    ingredient.full_clean()
+
+    def test_database_rejects_non_positive_quantity(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Ingredient.objects.create(
+                meal=self.meal,
+                name="Carrot",
+                quantity=Decimal("0"),
+                unit="piece",
+            )
+
+    def test_string_representation_is_ingredient_name(self):
+        ingredient = Ingredient(
+            meal=self.meal,
+            name="Carrot",
+            quantity=Decimal("2.00"),
+            unit="piece",
+        )
+
+        self.assertEqual(str(ingredient), "Carrot")
+
+    def test_deleting_meal_deletes_ingredients(self):
+        ingredient = Ingredient.objects.create(
+            meal=self.meal,
+            name="Carrot",
+            quantity=Decimal("2.00"),
+            unit="piece",
+        )
+
+        self.meal.delete()
+
+        self.assertFalse(Ingredient.objects.filter(pk=ingredient.pk).exists())
