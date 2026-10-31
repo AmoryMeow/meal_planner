@@ -82,7 +82,6 @@ export const ThemeToggle = ({ compact = true }: { compact?: boolean }) => {
   const label = theme === "dark" ? "Switch to light theme" : "Switch to dark theme";
 
   const size = compact ? 36 : 40;
-  const padX = compact ? 10 : 12;
 
   return (
     <button
@@ -91,9 +90,10 @@ export const ThemeToggle = ({ compact = true }: { compact?: boolean }) => {
         alignItems: "center",
         justifyContent: "center",
         gap: 8,
+        width: size,
         height: size,
         minWidth: size,
-        padding: `0 ${padX}px`,
+        padding: 0,
         borderRadius: 12,
         border: "1px solid transparent",
         background: colors.primary,
