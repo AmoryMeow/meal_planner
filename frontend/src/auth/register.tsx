@@ -5,11 +5,13 @@ import { useColors, Input, Button } from "@package/ui";
 
 import { AuthCard } from "./auth-card";
 import { useRegistrationMutation } from "./queries";
+import { useAuthSession } from "./session";
 
 export const Register = () => {
   const colors = useColors();
   const navigate = useNavigate();
   const registration = useRegistrationMutation();
+  const { signIn } = useAuthSession();
   const [formData, setFormData] = useState({
     firstName: "",
     lastName: "",
@@ -37,7 +39,12 @@ export const Register = () => {
         password: formData.password,
         password_confirm: formData.confirmPassword,
       },
-      { onSuccess: () => navigate("/login", { replace: true }) }
+      {
+        onSuccess: session => {
+          signIn(session);
+          navigate("/plan", { replace: true });
+        },
+      }
     );
   };
 
