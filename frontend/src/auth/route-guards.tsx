@@ -2,7 +2,7 @@ import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 import { useColors } from "@package/ui";
 
-import { useAuthSession } from "./session";
+import { useAuthSession } from "./session-context";
 
 export const ProtectedRoute = () => {
   const location = useLocation();

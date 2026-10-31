@@ -12,6 +12,11 @@ export type AccessTokenResponse = {
   access: string;
 };
 
+export type AuthenticatedRequest = <T>(
+  path: string,
+  options?: RequestInit
+) => Promise<T>;
+
 export type RegistrationResponse = AccessTokenResponse & {
   user: User;
 };
@@ -60,5 +65,4 @@ export const logout = () =>
     body: JSON.stringify({}),
   });
 
-export const getProfile = (accessToken: string) =>
-  apiRequest<User>("/me/", { accessToken });
+export const getProfile = (request: AuthenticatedRequest) => request<User>("/me/");

@@ -5,7 +5,7 @@ import { useColors, Input, Button } from "@package/ui";
 
 import { AuthCard } from "./auth-card";
 import { useLoginMutation } from "./queries";
-import { useAuthSession } from "./session";
+import { useAuthSession } from "./session-context";
 
 export const Login = () => {
   const colors = useColors();

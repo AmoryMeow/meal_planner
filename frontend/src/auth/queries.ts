@@ -8,6 +8,7 @@ import {
   logout,
   refreshToken,
   register,
+  type AuthenticatedRequest,
   type RegistrationInput,
 } from "./api";
 
@@ -42,10 +43,13 @@ export const useRefreshTokenMutation = () => useMutation({ mutationFn: refreshTo
 
 export const useLogoutMutation = () => useMutation({ mutationFn: logout });
 
-export const useProfileQuery = (accessToken: string | null) =>
+export const useProfileQuery = (
+  accessToken: string | null,
+  request: AuthenticatedRequest
+) =>
   useQuery({
     queryKey: authQueryKeys.profile(),
-    queryFn: () => getProfile(accessToken as string),
+    queryFn: () => getProfile(request),
     enabled: Boolean(accessToken),
     retry: false,
   });

@@ -5,6 +5,7 @@ export {
   refreshToken,
   register,
   type AccessTokenResponse,
+  type AuthenticatedRequest,
   type LoginInput,
   type RegistrationInput,
   type RegistrationResponse,
@@ -21,4 +22,5 @@ export {
 } from "./queries";
 export { Register } from "./register";
 export { GuestRoute, ProtectedRoute } from "./route-guards";
-export { AuthSessionProvider, useAuthSession, type AuthStatus } from "./session";
+export { AuthSessionProvider } from "./session";
+export { useAuthSession, type AuthStatus } from "./session-context";
