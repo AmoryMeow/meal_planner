@@ -5,24 +5,38 @@ export type MealSource = "home" | "restaurant" | "delivery";
 export type Ingredient = {
   id: number;
   name: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MealIngredient = {
+  id: number;
+  ingredient_id: number;
+  name: string;
   quantity: string;
   unit: string;
 };
 
 export type CreateIngredientInput = {
   name: string;
+};
+
+export type UpdateIngredientInput = Partial<CreateIngredientInput>;
+
+export type CreateMealIngredientInput = {
+  ingredient_id: number;
   quantity: string;
   unit: string;
 };
 
-export type UpdateIngredientInput = Partial<CreateIngredientInput>;
+export type UpdateMealIngredientInput = Partial<CreateMealIngredientInput>;
 
 export type Meal = {
   id: number;
   name: string;
   source: MealSource;
   tags: string[];
-  ingredients: Ingredient[];
+  ingredients: MealIngredient[];
   created_at: string;
   updated_at: string;
 };
@@ -69,41 +83,71 @@ export const deleteMeal = (request: AuthenticatedRequest, mealId: number) =>
     method: "DELETE",
   });
 
-export const getIngredients = (request: AuthenticatedRequest, mealId: number) =>
-  request<PaginatedResponse<Ingredient>>(`/meals/${mealId}/ingredients/`);
+export const getIngredientCatalog = (request: AuthenticatedRequest, search = "") => {
+  const query = new URLSearchParams();
+  if (search) query.set("search", search);
+  const suffix = query.size ? `?${query.toString()}` : "";
 
-export const getIngredient = (
-  request: AuthenticatedRequest,
-  mealId: number,
-  ingredientId: number
-) => request<Ingredient>(`/meals/${mealId}/ingredients/${ingredientId}/`);
+  return request<PaginatedResponse<Ingredient>>(`/ingredients/${suffix}`);
+};
+
+export const getIngredient = (request: AuthenticatedRequest, ingredientId: number) =>
+  request<Ingredient>(`/ingredients/${ingredientId}/`);
 
 export const createIngredient = (
   request: AuthenticatedRequest,
-  mealId: number,
   input: CreateIngredientInput
 ) =>
-  request<Ingredient>(`/meals/${mealId}/ingredients/`, {
+  request<Ingredient>("/ingredients/", {
     method: "POST",
     body: JSON.stringify(input),
   });
 
 export const updateIngredient = (
   request: AuthenticatedRequest,
-  mealId: number,
   ingredientId: number,
   input: UpdateIngredientInput
 ) =>
-  request<Ingredient>(`/meals/${mealId}/ingredients/${ingredientId}/`, {
+  request<Ingredient>(`/ingredients/${ingredientId}/`, {
     method: "PATCH",
     body: JSON.stringify(input),
   });
 
-export const deleteIngredient = (
+export const getMealIngredients = (request: AuthenticatedRequest, mealId: number) =>
+  request<PaginatedResponse<MealIngredient>>(`/meals/${mealId}/ingredients/`);
+
+export const getMealIngredient = (
   request: AuthenticatedRequest,
   mealId: number,
-  ingredientId: number
+  mealIngredientId: number
+) => request<MealIngredient>(`/meals/${mealId}/ingredients/${mealIngredientId}/`);
+
+export const createMealIngredient = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  input: CreateMealIngredientInput
 ) =>
-  request<void>(`/meals/${mealId}/ingredients/${ingredientId}/`, {
+  request<MealIngredient>(`/meals/${mealId}/ingredients/`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const updateMealIngredient = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  mealIngredientId: number,
+  input: UpdateMealIngredientInput
+) =>
+  request<MealIngredient>(`/meals/${mealId}/ingredients/${mealIngredientId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+export const deleteMealIngredient = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  mealIngredientId: number
+) =>
+  request<void>(`/meals/${mealId}/ingredients/${mealIngredientId}/`, {
     method: "DELETE",
   });
