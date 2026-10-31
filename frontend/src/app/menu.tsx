@@ -12,8 +12,8 @@ type MenuType = {
 const config: MenuType[] = [
   { link: "/plan", label: "Home", icon: <span aria-hidden>📅</span> },
   {
-    link: "/plan/dishes",
-    label: "Dishes",
+    link: "/meals",
+    label: "Meals",
     icon: <span aria-hidden>🍽️</span>,
   },
   { link: "/plan/list", label: "List", icon: <span aria-hidden>🛒</span> },
@@ -91,6 +91,7 @@ export const Menu = ({ variant }: Props) => {
             <Link
               key={item.link}
               to={item.link}
+              aria-label={item.label}
               css={{
                 flex: isTopDesktop ? "0 1 auto" : 1,
                 display: "flex",

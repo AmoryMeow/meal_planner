@@ -7,6 +7,7 @@ import {
   ProtectedRoute,
   Register,
 } from "@package/auth";
+import { Meals } from "@package/meals";
 import { Plan } from "@package/plan";
 import { ThemeProvider, useColors } from "@package/ui";
 
@@ -49,9 +50,9 @@ const AppContent = () => {
         </Route>
 
         <Route element={<ProtectedRoute />}>
-          <Route path="/plan" element={<AuthenticatedLayout />}>
-            <Route index element={<Plan />} />
-            <Route path="*" element={<Plan />} />
+          <Route element={<AuthenticatedLayout />}>
+            <Route path="/plan" element={<Plan />} />
+            <Route path="/meals" element={<Meals />} />
           </Route>
         </Route>
 

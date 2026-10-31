@@ -19,3 +19,4 @@ export {
   useMealsQuery,
   useUpdateMealMutation,
 } from "./queries";
+export { Meals } from "./meals";
