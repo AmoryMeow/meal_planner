@@ -11,3 +11,11 @@ export {
   type PaginatedResponse,
   type UpdateMealInput,
 } from "./api";
+export {
+  mealQueryKeys,
+  useCreateMealMutation,
+  useDeleteMealMutation,
+  useMealQuery,
+  useMealsQuery,
+  useUpdateMealMutation,
+} from "./queries";
