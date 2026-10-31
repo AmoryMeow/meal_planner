@@ -1,10 +1,29 @@
 from django.shortcuts import get_object_or_404
 
-from rest_framework import generics, viewsets
+from rest_framework import filters, generics, mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Meal, MealIngredient
-from .serializers import MealIngredientSerializer, MealSerializer
+from .models import Ingredient, Meal, MealIngredient
+from .serializers import IngredientSerializer, MealIngredientSerializer, MealSerializer
+
+
+class IngredientCatalogViewSet(
+    mixins.ListModelMixin,
+    mixins.CreateModelMixin,
+    mixins.RetrieveModelMixin,
+    mixins.UpdateModelMixin,
+    viewsets.GenericViewSet,
+):
+    serializer_class = IngredientSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["name"]
+
+    def get_queryset(self):
+        return Ingredient.objects.filter(owner=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
 class MealViewSet(viewsets.ModelViewSet):

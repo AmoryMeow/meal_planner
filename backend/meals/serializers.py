@@ -2,7 +2,7 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import Ingredient, Meal, MealIngredient
+from .models import Ingredient, Meal, MealIngredient, normalize_ingredient_name
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -10,6 +10,22 @@ class IngredientSerializer(serializers.ModelSerializer):
         model = Ingredient
         fields = ("id", "name", "created_at", "updated_at")
         read_only_fields = ("id", "created_at", "updated_at")
+
+    def validate_name(self, value):
+        name = " ".join(value.split())
+        request = self.context.get("request")
+        if not request:
+            return name
+
+        ingredients = Ingredient.objects.filter(
+            owner=request.user,
+            normalized_name=normalize_ingredient_name(name),
+        )
+        if self.instance:
+            ingredients = ingredients.exclude(pk=self.instance.pk)
+        if ingredients.exists():
+            raise serializers.ValidationError("Ingredient already exists.")
+        return name
 
 
 class MealIngredientSerializer(serializers.ModelSerializer):

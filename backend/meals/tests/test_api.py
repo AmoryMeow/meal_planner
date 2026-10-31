@@ -100,6 +100,116 @@ class MealApiTests(APITestCase):
         self.assertEqual(meal.name, "Private meal")
 
 
+class IngredientCatalogApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.ingredient = Ingredient.objects.create(
+            owner=self.user,
+            name="Carrot",
+        )
+        Ingredient.objects.create(owner=self.user, name="Rice")
+        self.other_ingredient = Ingredient.objects.create(
+            owner=self.other_user,
+            name="Private ingredient",
+        )
+
+    def test_list_requires_authentication(self):
+        response = self.client.get(reverse("ingredient-catalog-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_contains_only_current_users_ingredients(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(reverse("ingredient-catalog-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 2)
+        self.assertNotIn(
+            self.other_ingredient.id,
+            [ingredient["id"] for ingredient in response.data["results"]],
+        )
+
+    def test_list_can_be_searched_by_name(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            reverse("ingredient-catalog-list"),
+            {"search": "carr"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], self.ingredient.id)
+
+    def test_create_assigns_current_user_and_normalizes_name(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            reverse("ingredient-catalog-list"),
+            {"name": "  Green   Onion  "},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ingredient = Ingredient.objects.get(pk=response.data["id"])
+        self.assertEqual(ingredient.owner, self.user)
+        self.assertEqual(ingredient.name, "Green Onion")
+        self.assertEqual(ingredient.normalized_name, "green onion")
+
+    def test_create_rejects_duplicate_normalized_name(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            reverse("ingredient-catalog-list"),
+            {"name": "  CARROT "},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", response.data)
+
+    def test_user_can_update_own_ingredient(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("ingredient-catalog-detail", args=[self.ingredient.id]),
+            {"name": "Baby carrot"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.ingredient.refresh_from_db()
+        self.assertEqual(self.ingredient.name, "Baby carrot")
+        self.assertEqual(self.ingredient.normalized_name, "baby carrot")
+
+    def test_user_cannot_access_another_users_ingredient(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            reverse("ingredient-catalog-detail", args=[self.other_ingredient.id])
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_catalog_ingredient_cannot_be_deleted_through_api(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.delete(
+            reverse("ingredient-catalog-detail", args=[self.ingredient.id])
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+        self.assertTrue(Ingredient.objects.filter(pk=self.ingredient.id).exists())
+
+
 class IngredientApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
