@@ -4,17 +4,17 @@ import { Button, getContentContainerStyles, useColors, useIsMobile } from "@pack
 
 import { AddPlanItemDialog } from "./add-plan-item-dialog";
 import { type PlanItem } from "./api";
-import { DeletePlanItemDialog } from "./delete-plan-item-dialog";
 import { EditPlanItemDialog } from "./edit-plan-item-dialog";
 import { usePlanItemsQuery } from "./queries";
+import { RemovePlanItemDialog } from "./remove-plan-item-dialog";
 import { DEFAULT_MEAL_TYPES, type MealType } from "./types";
 import { getDateKey, getStartOfWeek, WeekCalendar } from "./week-calendar";
 import { WeekNavigation } from "./week-navigation";
 
 export {
   createPlanItem,
-  deletePlanItem,
   getPlanItems,
+  removePlanItem,
   updatePlanItem,
   type CreatePlanItemInput,
   type MealSnapshot,
@@ -26,8 +26,8 @@ export {
 export {
   planItemQueryKeys,
   useCreatePlanItemMutation,
-  useDeletePlanItemMutation,
   usePlanItemsQuery,
+  useRemovePlanItemMutation,
   useUpdatePlanItemMutation,
 } from "./queries";
 export { type MealType } from "./types";
@@ -36,13 +36,13 @@ export const Plan = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
   const addPlanItemDialogRef = useRef<HTMLDialogElement>(null);
-  const deletePlanItemDialogRef = useRef<HTMLDialogElement>(null);
+  const removePlanItemDialogRef = useRef<HTMLDialogElement>(null);
   const editPlanItemDialogRef = useRef<HTMLDialogElement>(null);
   const [addTarget, setAddTarget] = useState<{
     date: Date;
     mealType: MealType;
   } | null>(null);
-  const [deleteTarget, setDeleteTarget] = useState<PlanItem | null>(null);
+  const [removeTarget, setRemoveTarget] = useState<PlanItem | null>(null);
   const [editTarget, setEditTarget] = useState<PlanItem | null>(null);
   const [weekStart, setWeekStart] = useState(() => getStartOfWeek(new Date()));
   const currentWeekStart = getStartOfWeek(new Date());
@@ -63,9 +63,9 @@ export const Plan = () => {
   }, [addTarget]);
 
   useEffect(() => {
-    const dialog = deletePlanItemDialogRef.current;
-    if (deleteTarget && dialog && !dialog.open) dialog.showModal();
-  }, [deleteTarget]);
+    const dialog = removePlanItemDialogRef.current;
+    if (removeTarget && dialog && !dialog.open) dialog.showModal();
+  }, [removeTarget]);
 
   useEffect(() => {
     const dialog = editPlanItemDialogRef.current;
@@ -122,11 +122,12 @@ export const Plan = () => {
         />
       ) : null}
 
-      {deleteTarget ? (
-        <DeletePlanItemDialog
-          dialogRef={deletePlanItemDialogRef}
-          planItem={deleteTarget}
-          onClose={() => setDeleteTarget(null)}
+      {removeTarget ? (
+        <RemovePlanItemDialog
+          dialogRef={removePlanItemDialogRef}
+          planItem={removeTarget}
+          onClose={() => setRemoveTarget(null)}
+          onRemoved={() => editPlanItemDialogRef.current?.close()}
         />
       ) : null}
 
@@ -135,6 +136,7 @@ export const Plan = () => {
           dialogRef={editPlanItemDialogRef}
           planItem={editTarget}
           onClose={() => setEditTarget(null)}
+          onRemove={() => setRemoveTarget(editTarget)}
         />
       ) : null}
 
@@ -150,7 +152,6 @@ export const Plan = () => {
           isMobile={isMobile}
           onAddMeal={(date, mealType) => setAddTarget({ date, mealType })}
           onEditPlanItem={setEditTarget}
-          onRemovePlanItem={setDeleteTarget}
         />
       ) : null}
     </main>

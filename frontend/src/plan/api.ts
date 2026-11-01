@@ -67,7 +67,7 @@ export const createPlanItem = (
     body: JSON.stringify(input),
   });
 
-export const deletePlanItem = (request: AuthenticatedRequest, planItemId: number) =>
+export const removePlanItem = (request: AuthenticatedRequest, planItemId: number) =>
   request<void>(`/plan-items/${planItemId}/`, {
     method: "DELETE",
   });

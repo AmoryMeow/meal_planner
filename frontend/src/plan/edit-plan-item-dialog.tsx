@@ -17,6 +17,7 @@ type EditPlanItemDialogProps = {
   dialogRef: RefObject<HTMLDialogElement>;
   planItem: PlanItem;
   onClose: () => void;
+  onRemove: () => void;
 };
 
 type PlanItemFormData = {
@@ -39,6 +40,7 @@ export const EditPlanItemDialog = ({
   dialogRef,
   planItem,
   onClose,
+  onRemove,
 }: EditPlanItemDialogProps) => {
   const colors = useColors();
   const mealTypeId = useId();
@@ -120,19 +122,38 @@ export const EditPlanItemDialog = ({
       onSubmit={handleSubmit}
       closeDisabled={update.isPending}
       actions={
-        <>
+        <div
+          css={{
+            display: "flex",
+            flex: "1 1 auto",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 10,
+          }}
+        >
           <Button
-            variant="secondary"
+            variant="danger"
             size="sm"
             disabled={update.isPending}
-            onClick={() => dialogRef.current?.close()}
+            onClick={onRemove}
           >
-            Cancel
+            Remove
           </Button>
-          <Button type="submit" size="sm" loading={update.isPending}>
-            Save
-          </Button>
-        </>
+          <div css={{ display: "flex", gap: 10, marginLeft: "auto" }}>
+            <Button
+              variant="secondary"
+              size="sm"
+              disabled={update.isPending}
+              onClick={() => dialogRef.current?.close()}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" size="sm" loading={update.isPending}>
+              Save
+            </Button>
+          </div>
+        </div>
       }
     >
       <MealCombobox

@@ -3,30 +3,35 @@ import { type RefObject } from "react";
 import { Button, Dialog, useColors } from "@package/ui";
 
 import { type PlanItem } from "./api";
-import { useDeletePlanItemMutation } from "./queries";
+import { useRemovePlanItemMutation } from "./queries";
 
-type DeletePlanItemDialogProps = {
+type RemovePlanItemDialogProps = {
   dialogRef: RefObject<HTMLDialogElement>;
   planItem: PlanItem;
   onClose: () => void;
+  onRemoved: () => void;
 };
 
-export const DeletePlanItemDialog = ({
+export const RemovePlanItemDialog = ({
   dialogRef,
   planItem,
   onClose,
-}: DeletePlanItemDialogProps) => {
+  onRemoved,
+}: RemovePlanItemDialogProps) => {
   const colors = useColors();
-  const deletion = useDeletePlanItemMutation();
+  const removal = useRemovePlanItemMutation();
 
   const handleClose = () => {
-    deletion.reset();
+    removal.reset();
     onClose();
   };
 
-  const handleDelete = () => {
-    deletion.mutate(planItem.id, {
-      onSuccess: () => dialogRef.current?.close(),
+  const handleRemove = () => {
+    removal.mutate(planItem.id, {
+      onSuccess: () => {
+        dialogRef.current?.close();
+        onRemoved();
+      },
     });
   };
 
@@ -36,15 +41,15 @@ export const DeletePlanItemDialog = ({
       title="Remove from plan"
       onClose={handleClose}
       onCancel={event => {
-        if (deletion.isPending) event.preventDefault();
+        if (removal.isPending) event.preventDefault();
       }}
-      closeDisabled={deletion.isPending}
+      closeDisabled={removal.isPending}
       actions={
         <>
           <Button
             variant="secondary"
             size="sm"
-            disabled={deletion.isPending}
+            disabled={removal.isPending}
             onClick={() => dialogRef.current?.close()}
           >
             Cancel
@@ -52,8 +57,8 @@ export const DeletePlanItemDialog = ({
           <Button
             variant="danger"
             size="sm"
-            loading={deletion.isPending}
-            onClick={handleDelete}
+            loading={removal.isPending}
+            onClick={handleRemove}
           >
             Remove
           </Button>
@@ -67,7 +72,7 @@ export const DeletePlanItemDialog = ({
         The meal will remain in your library.
       </p>
 
-      {deletion.submitError ? (
+      {removal.submitError ? (
         <div
           role="alert"
           css={{
@@ -78,7 +83,7 @@ export const DeletePlanItemDialog = ({
             fontSize: 14,
           }}
         >
-          {deletion.submitError}
+          {removal.submitError}
         </div>
       ) : null}
     </Dialog>
