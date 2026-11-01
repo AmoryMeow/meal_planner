@@ -1,15 +1,10 @@
-import {
-  type ChangeEvent,
-  type FormEvent,
-  type RefObject,
-  useId,
-  useState,
-} from "react";
+import { type ChangeEvent, type FormEvent, type RefObject, useState } from "react";
 
 import { MealCombobox, type MealOption } from "@package/meals";
-import { Button, Dialog, hexToRgba, Input, Textarea, useColors } from "@package/ui";
+import { Button, Dialog, Input, Textarea, useColors } from "@package/ui";
 
 import { type PlanItem } from "./api";
+import { MealTypeSelect } from "./meal-type-select";
 import { useUpdatePlanItemMutation } from "./queries";
 import { type MealType } from "./types";
 
@@ -43,8 +38,6 @@ export const EditPlanItemDialog = ({
   onRemove,
 }: EditPlanItemDialogProps) => {
   const colors = useColors();
-  const mealTypeId = useId();
-  const mealTypeErrorId = useId();
   const [selectedMeal, setSelectedMeal] = useState<MealOption | null>(() => ({
     id: planItem.meal_id,
     label: planItem.meal_snapshot.name,
@@ -178,66 +171,15 @@ export const EditPlanItemDialog = ({
         required
       />
 
-      <div>
-        <label
-          htmlFor={mealTypeId}
-          css={{
-            display: "block",
-            marginBottom: 8,
-            color: colors.textPrimary,
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          Meal type
-        </label>
-        <select
-          id={mealTypeId}
-          value={formData.mealType}
-          disabled={update.isPending}
-          aria-invalid={Boolean(update.apiFieldErrors.meal_type)}
-          aria-describedby={
-            update.apiFieldErrors.meal_type ? mealTypeErrorId : undefined
-          }
-          onChange={event => {
-            setFormData(current => ({
-              ...current,
-              mealType: event.target.value as MealType,
-            }));
-            update.reset();
-          }}
-          css={{
-            width: "100%",
-            height: 44,
-            boxSizing: "border-box",
-            padding: "0 12px",
-            border: update.apiFieldErrors.meal_type
-              ? `1px solid ${colors.danger}`
-              : `1px solid ${colors.border}`,
-            borderRadius: 8,
-            background: update.isPending ? colors.surfaceAlt : colors.background,
-            color: colors.textPrimary,
-            font: "inherit",
-            "&:focus-visible": {
-              outline: `3px solid ${hexToRgba(colors.focus, 0.35)}`,
-              borderColor: colors.focus,
-            },
-          }}
-        >
-          <option value="breakfast">Breakfast</option>
-          <option value="lunch">Lunch</option>
-          <option value="dinner">Dinner</option>
-        </select>
-        {update.apiFieldErrors.meal_type ? (
-          <div
-            id={mealTypeErrorId}
-            role="alert"
-            css={{ marginTop: 6, color: colors.danger, fontSize: 12 }}
-          >
-            {update.apiFieldErrors.meal_type}
-          </div>
-        ) : null}
-      </div>
+      <MealTypeSelect
+        value={formData.mealType}
+        disabled={update.isPending}
+        error={update.apiFieldErrors.meal_type}
+        onChange={value => {
+          setFormData(current => ({ ...current, mealType: value }));
+          update.reset();
+        }}
+      />
 
       <Input
         label="Servings"

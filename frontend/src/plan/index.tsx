@@ -4,12 +4,23 @@ import { Button, getContentContainerStyles, useColors, useIsMobile } from "@pack
 
 import { AddPlanItemDialog } from "./add-plan-item-dialog";
 import { type PlanItem } from "./api";
+import { CalendarNavigation } from "./calendar-navigation";
+import { CalendarViewToggle } from "./calendar-view-toggle";
+import {
+  addDays,
+  addMonths,
+  addWeeks,
+  getDateKey,
+  getMonthGridDays,
+  getStartOfMonth,
+  getStartOfWeek,
+} from "./date-utils";
 import { EditPlanItemDialog } from "./edit-plan-item-dialog";
+import { MonthCalendar } from "./month-calendar";
 import { usePlanItemsQuery } from "./queries";
 import { RemovePlanItemDialog } from "./remove-plan-item-dialog";
-import { DEFAULT_MEAL_TYPES, type MealType } from "./types";
-import { getDateKey, getStartOfWeek, WeekCalendar } from "./week-calendar";
-import { WeekNavigation } from "./week-navigation";
+import { type CalendarView, DEFAULT_MEAL_TYPES, type MealType } from "./types";
+import { WeekCalendar } from "./week-calendar";
 
 export {
   createPlanItem,
@@ -30,7 +41,27 @@ export {
   useRemovePlanItemMutation,
   useUpdatePlanItemMutation,
 } from "./queries";
-export { type MealType } from "./types";
+export { type CalendarView, type MealType } from "./types";
+
+const currentYearWeekFormatter = new Intl.DateTimeFormat(undefined, {
+  day: "numeric",
+  month: "short",
+});
+
+const otherYearWeekFormatter = new Intl.DateTimeFormat(undefined, {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+});
+
+const currentYearMonthFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "long",
+});
+
+const otherYearMonthFormatter = new Intl.DateTimeFormat(undefined, {
+  month: "long",
+  year: "numeric",
+});
 
 export const Plan = () => {
   const colors = useColors();
@@ -44,18 +75,34 @@ export const Plan = () => {
   } | null>(null);
   const [removeTarget, setRemoveTarget] = useState<PlanItem | null>(null);
   const [editTarget, setEditTarget] = useState<PlanItem | null>(null);
-  const [weekStart, setWeekStart] = useState(() => getStartOfWeek(new Date()));
-  const currentWeekStart = getStartOfWeek(new Date());
-  const weekRange = useMemo(() => {
-    const weekEnd = new Date(weekStart);
-    weekEnd.setDate(weekEnd.getDate() + 6);
+  const [calendarView, setCalendarView] = useState<CalendarView>("week");
+  const [visibleDate, setVisibleDate] = useState(() => new Date());
+  const weekStart = getStartOfWeek(visibleDate);
+  const monthStart = getStartOfMonth(visibleDate);
+  const visibleRange = useMemo(() => {
+    if (calendarView === "week") {
+      const start = getStartOfWeek(visibleDate);
+      return {
+        dateFrom: getDateKey(start),
+        dateTo: getDateKey(addDays(start, 6)),
+      };
+    }
 
+    const days = getMonthGridDays(getStartOfMonth(visibleDate));
     return {
-      dateFrom: getDateKey(weekStart),
-      dateTo: getDateKey(weekEnd),
+      dateFrom: getDateKey(days[0] ?? visibleDate),
+      dateTo: getDateKey(days.at(-1) ?? visibleDate),
     };
-  }, [weekStart]);
-  const planItemsQuery = usePlanItemsQuery(weekRange);
+  }, [calendarView, visibleDate]);
+  const planItemsQuery = usePlanItemsQuery(visibleRange);
+  const isCurrentPeriod =
+    calendarView === "week"
+      ? getDateKey(weekStart) === getDateKey(getStartOfWeek(new Date()))
+      : getDateKey(monthStart) === getDateKey(getStartOfMonth(new Date()));
+  const navigationLabel =
+    calendarView === "week"
+      ? formatWeekRange(weekStart, addDays(weekStart, 6))
+      : formatMonth(monthStart);
 
   useEffect(() => {
     const dialog = addPlanItemDialogRef.current;
@@ -92,24 +139,49 @@ export const Plan = () => {
           marginBottom: 16,
         }}
       >
-        <h1
+        <div
           css={{
-            margin: 0,
-            color: colors.textPrimary,
-            fontSize: 24,
-            lineHeight: 1.25,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+            width: isMobile ? "100%" : "auto",
           }}
         >
-          Meal plan
-        </h1>
+          <h1
+            css={{
+              margin: 0,
+              color: colors.textPrimary,
+              fontSize: 24,
+              lineHeight: 1.25,
+            }}
+          >
+            Meal plan
+          </h1>
+          <CalendarViewToggle value={calendarView} onChange={setCalendarView} />
+        </div>
 
-        <WeekNavigation
-          weekStart={weekStart}
-          isCurrentWeek={getDateKey(weekStart) === getDateKey(currentWeekStart)}
+        <CalendarNavigation
+          label={navigationLabel}
+          periodLabel={calendarView}
+          isCurrentPeriod={isCurrentPeriod}
           isMobile={isMobile}
-          onPrevious={() => setWeekStart(current => addWeeks(current, -1))}
-          onToday={() => setWeekStart(getStartOfWeek(new Date()))}
-          onNext={() => setWeekStart(current => addWeeks(current, 1))}
+          onPrevious={() =>
+            setVisibleDate(current =>
+              calendarView === "week"
+                ? addWeeks(getStartOfWeek(current), -1)
+                : addMonths(getStartOfMonth(current), -1)
+            )
+          }
+          onToday={() => setVisibleDate(new Date())}
+          onNext={() =>
+            setVisibleDate(current =>
+              calendarView === "week"
+                ? addWeeks(getStartOfWeek(current), 1)
+                : addMonths(getStartOfMonth(current), 1)
+            )
+          }
         />
       </header>
 
@@ -144,9 +216,19 @@ export const Plan = () => {
       {planItemsQuery.isError ? (
         <PlanError onRetry={() => void planItemsQuery.refetch()} />
       ) : null}
-      {planItemsQuery.isSuccess ? (
+      {planItemsQuery.isSuccess && calendarView === "week" ? (
         <WeekCalendar
           weekStart={weekStart}
+          mealTypes={DEFAULT_MEAL_TYPES}
+          planItems={planItemsQuery.data}
+          isMobile={isMobile}
+          onAddMeal={(date, mealType) => setAddTarget({ date, mealType })}
+          onEditPlanItem={setEditTarget}
+        />
+      ) : null}
+      {planItemsQuery.isSuccess && calendarView === "month" ? (
+        <MonthCalendar
+          monthStart={monthStart}
           mealTypes={DEFAULT_MEAL_TYPES}
           planItems={planItemsQuery.data}
           isMobile={isMobile}
@@ -158,10 +240,21 @@ export const Plan = () => {
   );
 };
 
-const addWeeks = (date: Date, amount: number): Date => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + amount * 7);
-  return result;
+const formatWeekRange = (weekStart: Date, weekEnd: Date): string => {
+  const currentYear = new Date().getFullYear();
+  const isCurrentYear =
+    weekStart.getFullYear() === currentYear && weekEnd.getFullYear() === currentYear;
+  const formatter = isCurrentYear ? currentYearWeekFormatter : otherYearWeekFormatter;
+
+  return formatter.formatRange(weekStart, weekEnd);
+};
+
+const formatMonth = (monthStart: Date): string => {
+  const formatter =
+    monthStart.getFullYear() === new Date().getFullYear()
+      ? currentYearMonthFormatter
+      : otherYearMonthFormatter;
+  return formatter.format(monthStart);
 };
 
 const PlanStatus = ({ children }: { children: ReactNode }) => {

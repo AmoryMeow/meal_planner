@@ -20,6 +20,7 @@ import { useEffect, useState } from "react";
 import { Button, hexToRgba, useColors } from "@package/ui";
 
 import { type PlanItem } from "./api";
+import { addDays, getDateKey, isSameDay } from "./date-utils";
 import { useUpdatePlanItemMutation } from "./queries";
 import { type MealType } from "./types";
 
@@ -760,33 +761,6 @@ const PlusIcon = () => (
     <path d="M12 5v14M5 12h14" />
   </svg>
 );
-
-export const getStartOfWeek = (date: Date): Date => {
-  const start = new Date(date);
-  const day = start.getDay();
-  const mondayOffset = day === 0 ? -6 : 1 - day;
-  start.setDate(start.getDate() + mondayOffset);
-  start.setHours(0, 0, 0, 0);
-  return start;
-};
-
-const addDays = (date: Date, amount: number): Date => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + amount);
-  return result;
-};
-
-const isSameDay = (first: Date, second: Date): boolean =>
-  first.getFullYear() === second.getFullYear() &&
-  first.getMonth() === second.getMonth() &&
-  first.getDate() === second.getDate();
-
-export const getDateKey = (date: Date): string =>
-  [
-    date.getFullYear(),
-    String(date.getMonth() + 1).padStart(2, "0"),
-    String(date.getDate()).padStart(2, "0"),
-  ].join("-");
 
 const getPlanItemDragData = (value: unknown): PlanItemDragData | null => {
   if (!value || typeof value !== "object" || !("kind" in value)) return null;

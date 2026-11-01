@@ -1,39 +1,29 @@
 import { Button, useColors } from "@package/ui";
 
-type WeekNavigationProps = {
-  weekStart: Date;
-  isCurrentWeek: boolean;
+type CalendarNavigationProps = {
+  label: string;
+  periodLabel: "week" | "month";
+  isCurrentPeriod: boolean;
   isMobile: boolean;
   onPrevious: () => void;
   onToday: () => void;
   onNext: () => void;
 };
 
-const currentYearWeekFormatter = new Intl.DateTimeFormat(undefined, {
-  day: "numeric",
-  month: "short",
-});
-
-const otherYearWeekFormatter = new Intl.DateTimeFormat(undefined, {
-  day: "numeric",
-  month: "short",
-  year: "numeric",
-});
-
-export const WeekNavigation = ({
-  weekStart,
-  isCurrentWeek,
+export const CalendarNavigation = ({
+  label,
+  periodLabel,
+  isCurrentPeriod,
   isMobile,
   onPrevious,
   onToday,
   onNext,
-}: WeekNavigationProps) => {
+}: CalendarNavigationProps) => {
   const colors = useColors();
-  const weekEnd = addDays(weekStart, 6);
 
   return (
     <nav
-      aria-label="Week navigation"
+      aria-label={`${periodLabel === "week" ? "Week" : "Month"} navigation`}
       css={{
         display: "flex",
         alignItems: "center",
@@ -52,7 +42,7 @@ export const WeekNavigation = ({
           whiteSpace: "nowrap",
         }}
       >
-        {formatWeekRange(weekStart, weekEnd)}
+        {label}
       </strong>
 
       <div css={{ display: "flex", alignItems: "center", gap: 8 }}>
@@ -60,13 +50,13 @@ export const WeekNavigation = ({
           variant="secondary"
           size="sm"
           icon={<PreviousIcon />}
-          ariaLabel="Previous week"
+          ariaLabel={`Previous ${periodLabel}`}
           onClick={onPrevious}
         />
         <Button
           variant="secondary"
           size="sm"
-          disabled={isCurrentWeek}
+          disabled={isCurrentPeriod}
           onClick={onToday}
         >
           Today
@@ -75,7 +65,7 @@ export const WeekNavigation = ({
           variant="secondary"
           size="sm"
           icon={<NextIcon />}
-          ariaLabel="Next week"
+          ariaLabel={`Next ${periodLabel}`}
           onClick={onNext}
         />
       </div>
@@ -114,18 +104,3 @@ const NextIcon = () => (
     <path d="m9 18 6-6-6-6" />
   </svg>
 );
-
-const addDays = (date: Date, amount: number): Date => {
-  const result = new Date(date);
-  result.setDate(result.getDate() + amount);
-  return result;
-};
-
-const formatWeekRange = (weekStart: Date, weekEnd: Date): string => {
-  const currentYear = new Date().getFullYear();
-  const isCurrentYear =
-    weekStart.getFullYear() === currentYear && weekEnd.getFullYear() === currentYear;
-  const formatter = isCurrentYear ? currentYearWeekFormatter : otherYearWeekFormatter;
-
-  return formatter.formatRange(weekStart, weekEnd);
-};

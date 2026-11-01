@@ -3,21 +3,16 @@ import { type FormEvent, type RefObject, useState } from "react";
 import { MealCombobox, type MealOption } from "@package/meals";
 import { Button, Dialog, Input, Textarea, useColors } from "@package/ui";
 
+import { getDateKey } from "./date-utils";
+import { MealTypeSelect } from "./meal-type-select";
 import { useCreatePlanItemMutation } from "./queries";
 import { type MealType } from "./types";
-import { getDateKey } from "./week-calendar";
 
 type AddPlanItemDialogProps = {
   dialogRef: RefObject<HTMLDialogElement>;
   date: Date;
   mealType: MealType;
   onClose: () => void;
-};
-
-const mealTypeLabels: Record<MealType, string> = {
-  breakfast: "breakfast",
-  lunch: "lunch",
-  dinner: "dinner",
 };
 
 const dateFormatter = new Intl.DateTimeFormat(undefined, {
@@ -35,6 +30,7 @@ export const AddPlanItemDialog = ({
   const colors = useColors();
   const creation = useCreatePlanItemMutation();
   const [selectedMeal, setSelectedMeal] = useState<MealOption | null>(null);
+  const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [selectionError, setSelectionError] = useState("");
   const [servings, setServings] = useState("1");
   const [servingsError, setServingsError] = useState("");
@@ -42,6 +38,7 @@ export const AddPlanItemDialog = ({
 
   const resetForm = () => {
     setSelectedMeal(null);
+    setSelectedMealType(mealType);
     setSelectionError("");
     setServings("1");
     setServingsError("");
@@ -75,7 +72,7 @@ export const AddPlanItemDialog = ({
     creation.mutate(
       {
         date: getDateKey(date),
-        meal_type: mealType,
+        meal_type: selectedMealType,
         meal_id: selectedMeal.id,
         servings: servingsValue,
         note: note.trim(),
@@ -87,7 +84,7 @@ export const AddPlanItemDialog = ({
   return (
     <Dialog
       dialogRef={dialogRef}
-      title={`Add ${mealTypeLabels[mealType]}`}
+      title="Add meal"
       onClose={handleClose}
       onCancel={event => {
         if (creation.isPending) event.preventDefault();
@@ -121,6 +118,16 @@ export const AddPlanItemDialog = ({
         onChange={meal => {
           setSelectedMeal(meal);
           setSelectionError("");
+          creation.reset();
+        }}
+      />
+
+      <MealTypeSelect
+        value={selectedMealType}
+        disabled={creation.isPending}
+        error={creation.apiFieldErrors.meal_type}
+        onChange={value => {
+          setSelectedMealType(value);
           creation.reset();
         }}
       />
