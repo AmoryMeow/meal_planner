@@ -11,6 +11,7 @@ type WeekCalendarProps = {
   planItems: PlanItem[];
   isMobile: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
+  onEditPlanItem: (planItem: PlanItem) => void;
   onRemovePlanItem: (planItem: PlanItem) => void;
 };
 
@@ -42,6 +43,7 @@ export const WeekCalendar = ({
   planItems,
   isMobile,
   onAddMeal,
+  onEditPlanItem,
   onRemovePlanItem,
 }: WeekCalendarProps) => {
   const colors = useColors();
@@ -74,6 +76,7 @@ export const WeekCalendar = ({
         mealTypes={mealTypes}
         planItems={planItems}
         onAddMeal={onAddMeal}
+        onEditPlanItem={onEditPlanItem}
         onRemovePlanItem={onRemovePlanItem}
       />
     );
@@ -99,6 +102,7 @@ export const WeekCalendar = ({
               planItems={planItems}
               isToday={isSameDay(day, new Date())}
               onAddMeal={onAddMeal}
+              onEditPlanItem={onEditPlanItem}
               onRemovePlanItem={onRemovePlanItem}
             />
           ))}
@@ -113,12 +117,14 @@ const MobileWeekCalendar = ({
   mealTypes,
   planItems,
   onAddMeal,
+  onEditPlanItem,
   onRemovePlanItem,
 }: {
   days: Date[];
   mealTypes: readonly MealType[];
   planItems: PlanItem[];
   onAddMeal: (date: Date, mealType: MealType) => void;
+  onEditPlanItem: (planItem: PlanItem) => void;
   onRemovePlanItem: (planItem: PlanItem) => void;
 }) => {
   const colors = useColors();
@@ -206,6 +212,7 @@ const MobileWeekCalendar = ({
           planItems={planItems}
           isToday={isSameDay(selectedDay, new Date())}
           onAddMeal={onAddMeal}
+          onEditPlanItem={onEditPlanItem}
           onRemovePlanItem={onRemovePlanItem}
         />
       </div>
@@ -219,6 +226,7 @@ const DayColumn = ({
   planItems,
   isToday,
   onAddMeal,
+  onEditPlanItem,
   onRemovePlanItem,
 }: {
   day: Date;
@@ -226,6 +234,7 @@ const DayColumn = ({
   planItems: PlanItem[];
   isToday: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
+  onEditPlanItem: (planItem: PlanItem) => void;
   onRemovePlanItem: (planItem: PlanItem) => void;
 }) => {
   const colors = useColors();
@@ -315,6 +324,7 @@ const DayColumn = ({
             mealType={mealType}
             planItems={dayPlanItems.filter(item => item.meal_type === mealType)}
             onAddMeal={onAddMeal}
+            onEditPlanItem={onEditPlanItem}
             onRemovePlanItem={onRemovePlanItem}
           />
         ))}
@@ -328,12 +338,14 @@ const MealSection = ({
   mealType,
   planItems,
   onAddMeal,
+  onEditPlanItem,
   onRemovePlanItem,
 }: {
   date: Date;
   mealType: MealType;
   planItems: PlanItem[];
   onAddMeal: (date: Date, mealType: MealType) => void;
+  onEditPlanItem: (planItem: PlanItem) => void;
   onRemovePlanItem: (planItem: PlanItem) => void;
 }) => {
   const colors = useColors();
@@ -383,6 +395,7 @@ const MealSection = ({
             <li key={planItem.id}>
               <PlanItemCard
                 planItem={planItem}
+                onEdit={() => onEditPlanItem(planItem)}
                 onRemove={() => onRemovePlanItem(planItem)}
               />
             </li>
@@ -416,9 +429,11 @@ const MealSection = ({
 
 const PlanItemCard = ({
   planItem,
+  onEdit,
   onRemove,
 }: {
   planItem: PlanItem;
+  onEdit: () => void;
   onRemove: () => void;
 }) => {
   const colors = useColors();
@@ -430,17 +445,45 @@ const PlanItemCard = ({
         gridTemplateColumns: "minmax(0, 1fr) auto",
         alignItems: "center",
         gap: 4,
+        position: "relative",
         minWidth: 0,
         padding: "4px 4px 4px 9px",
         border: `1px solid ${colors.border}`,
         borderLeft: `3px solid ${colors.primary}`,
         borderRadius: 8,
         background: colors.surface,
+        transition: "border-color 0.15s ease",
+        "&:hover": {
+          borderColor: colors.primary,
+          borderLeftColor: colors.primary,
+        },
         "&:hover [data-plan-item-action], &:focus-within [data-plan-item-action]": {
           opacity: 1,
         },
       }}
     >
+      <button
+        type="button"
+        aria-label={`Edit ${planItem.meal_snapshot.name} in meal plan`}
+        onClick={onEdit}
+        css={{
+          position: "absolute",
+          inset: 0,
+          zIndex: 1,
+          width: "100%",
+          padding: 0,
+          border: 0,
+          borderRadius: "inherit",
+          background: "transparent",
+          cursor: "pointer",
+          "&:focus": { outline: "none" },
+          "&:focus-visible": {
+            outline: `2px solid ${colors.focus}`,
+            outlineOffset: 2,
+          },
+        }}
+      />
+
       <h4
         css={{
           margin: 0,
@@ -448,6 +491,7 @@ const PlanItemCard = ({
           color: colors.textPrimary,
           fontSize: 13,
           lineHeight: 1.3,
+          pointerEvents: "none",
         }}
       >
         {planItem.meal_snapshot.name}
@@ -457,6 +501,8 @@ const PlanItemCard = ({
         data-plan-item-action
         css={{
           color: colors.danger,
+          position: "relative",
+          zIndex: 2,
           "& > button": { color: "inherit" },
           "@media (hover: hover) and (pointer: fine)": {
             opacity: 0,

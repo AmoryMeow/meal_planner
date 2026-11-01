@@ -4,7 +4,7 @@ import { useColors, hexToRgba } from "@package/ui";
 
 export interface InputProps {
   label?: string;
-  type?: "text" | "email" | "password" | "tel" | "url" | "search";
+  type?: "text" | "email" | "password" | "tel" | "url" | "search" | "date" | "number";
   name?: string;
   value: string;
   onChange: (event: ChangeEvent<HTMLInputElement>) => void;
@@ -14,6 +14,9 @@ export interface InputProps {
   error?: string;
   className?: string;
   flex?: boolean;
+  min?: number | string;
+  max?: number | string;
+  step?: number | string;
 }
 
 export const Input = ({
@@ -28,6 +31,9 @@ export const Input = ({
   error,
   className,
   flex = false,
+  min,
+  max,
+  step,
 }: InputProps) => {
   const colors = useColors();
   const generatedId = useId();
@@ -60,6 +66,9 @@ export const Input = ({
         placeholder={placeholder}
         required={required}
         disabled={disabled}
+        min={min}
+        max={max}
+        step={step}
         css={{
           width: "100%",
           height: 44,
