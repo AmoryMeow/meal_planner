@@ -1,27 +1,14 @@
-import {
-  closestCenter,
-  DndContext,
-  DragOverlay,
-  KeyboardCode,
-  KeyboardSensor,
-  MouseSensor,
-  TouchSensor,
-  type Announcements,
-  type DragEndEvent,
-  type DragStartEvent,
-  type KeyboardCoordinateGetter,
-  useDraggable,
-  useDroppable,
-  useSensor,
-  useSensors,
-} from "@dnd-kit/core";
 import { useEffect, useState } from "react";
 
 import { Button, hexToRgba, useColors } from "@package/ui";
 
 import { type PlanItem } from "./api";
 import { addDays, getDateKey, isSameDay } from "./date-utils";
-import { useUpdatePlanItemMutation } from "./queries";
+import {
+  PlanDragAndDropProvider,
+  usePlanDropTarget,
+  usePlanItemDraggable,
+} from "./plan-drag-and-drop";
 import { type MealType } from "./types";
 
 type WeekCalendarProps = {
@@ -55,101 +42,6 @@ const fullDateFormatter = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
 });
 
-type PlanItemDragData = {
-  kind: "plan-item";
-  planItem: PlanItem;
-};
-
-type PlanSlotDropData = {
-  kind: "plan-slot";
-  date: string;
-  mealType: MealType;
-};
-
-type DayTabDropData = {
-  kind: "day-tab";
-  date: string;
-};
-
-const screenReaderInstructions = {
-  draggable:
-    "Press enter to edit this planned meal. To move it, press space, use the arrow keys to choose another meal section, then press space again to drop. Press escape to cancel.",
-};
-
-const announcements: Announcements = {
-  onDragStart({ active }) {
-    const planItem = getPlanItemDragData(active.data.current)?.planItem;
-    return planItem ? `Picked up ${planItem.meal_snapshot.name}.` : undefined;
-  },
-  onDragOver({ active, over }) {
-    const planItem = getPlanItemDragData(active.data.current)?.planItem;
-    const slot = getPlanSlotDropData(over?.data.current);
-    const dayTab = getDayTabDropData(over?.data.current);
-    if (!planItem) return undefined;
-    if (dayTab) {
-      return `${planItem.meal_snapshot.name} is over ${formatDateKey(dayTab.date)}.`;
-    }
-    if (!slot) return `${planItem.meal_snapshot.name} is not over a meal section.`;
-    return `${planItem.meal_snapshot.name} is over ${getSlotLabel(slot)}.`;
-  },
-  onDragEnd({ active, over }) {
-    const planItem = getPlanItemDragData(active.data.current)?.planItem;
-    const slot = getPlanSlotDropData(over?.data.current);
-    if (!planItem) return undefined;
-    return slot
-      ? `${planItem.meal_snapshot.name} was moved to ${getSlotLabel(slot)}.`
-      : `${planItem.meal_snapshot.name} was not moved.`;
-  },
-  onDragCancel({ active }) {
-    const planItem = getPlanItemDragData(active.data.current)?.planItem;
-    return planItem
-      ? `Moving ${planItem.meal_snapshot.name} was cancelled.`
-      : undefined;
-  },
-};
-
-const planKeyboardCoordinates: KeyboardCoordinateGetter = (
-  event,
-  { context, currentCoordinates }
-) => {
-  const direction = getKeyboardDirection(event.code);
-  const activeRect = context.collisionRect;
-  if (!direction || !activeRect) return undefined;
-
-  const activeCenter = {
-    x: activeRect.left + activeRect.width / 2,
-    y: activeRect.top + activeRect.height / 2,
-  };
-  const candidates = context.droppableContainers
-    .getEnabled()
-    .map(container => {
-      const rect = context.droppableRects.get(container.id);
-      if (!rect) return null;
-      return {
-        center: {
-          x: rect.left + rect.width / 2,
-          y: rect.top + rect.height / 2,
-        },
-      };
-    })
-    .filter((candidate): candidate is NonNullable<typeof candidate> =>
-      Boolean(candidate)
-    )
-    .filter(({ center }) => isInDirection(center, activeCenter, direction))
-    .sort(
-      (first, second) =>
-        getDirectionalDistance(first.center, activeCenter, direction) -
-        getDirectionalDistance(second.center, activeCenter, direction)
-    );
-  const target = candidates[0];
-  if (!target) return undefined;
-
-  return {
-    x: currentCoordinates.x + target.center.x - activeCenter.x,
-    y: currentCoordinates.y + target.center.y - activeCenter.y,
-  };
-};
-
 export const WeekCalendar = ({
   weekStart,
   mealTypes,
@@ -160,52 +52,6 @@ export const WeekCalendar = ({
 }: WeekCalendarProps) => {
   const colors = useColors();
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
-  const [activePlanItem, setActivePlanItem] = useState<PlanItem | null>(null);
-  const movePlanItem = useUpdatePlanItemMutation();
-  const sensors = useSensors(
-    useSensor(MouseSensor, {
-      activationConstraint: { distance: 6 },
-    }),
-    useSensor(TouchSensor, {
-      activationConstraint: { delay: 200, tolerance: 6 },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: planKeyboardCoordinates,
-      keyboardCodes: {
-        start: [KeyboardCode.Space],
-        cancel: [KeyboardCode.Esc],
-        end: [KeyboardCode.Space],
-      },
-    })
-  );
-
-  const handleDragStart = ({ active }: DragStartEvent) => {
-    movePlanItem.reset();
-    setActivePlanItem(getPlanItemDragData(active.data.current)?.planItem ?? null);
-  };
-
-  const handleDragEnd = ({ active, over }: DragEndEvent) => {
-    const planItem = getPlanItemDragData(active.data.current)?.planItem;
-    const slot = getPlanSlotDropData(over?.data.current);
-    if (!planItem || !slot) {
-      setActivePlanItem(null);
-      return;
-    }
-    if (planItem.date === slot.date && planItem.meal_type === slot.mealType) {
-      setActivePlanItem(null);
-      return;
-    }
-
-    movePlanItem.mutate({
-      planItemId: planItem.id,
-      input: {
-        date: slot.date,
-        meal_type: slot.mealType,
-      },
-      optimisticPlanItem: planItem,
-    });
-    setActivePlanItem(null);
-  };
 
   if (mealTypes.length === 0) {
     return (
@@ -232,7 +78,6 @@ export const WeekCalendar = ({
       days={days}
       mealTypes={mealTypes}
       planItems={planItems}
-      dragDisabled={movePlanItem.isPending}
       onAddMeal={onAddMeal}
       onEditPlanItem={onEditPlanItem}
     />
@@ -254,7 +99,6 @@ export const WeekCalendar = ({
               day={day}
               mealTypes={mealTypes}
               planItems={planItems}
-              dragDisabled={movePlanItem.isPending}
               isToday={isSameDay(day, new Date())}
               onAddMeal={onAddMeal}
               onEditPlanItem={onEditPlanItem}
@@ -265,53 +109,19 @@ export const WeekCalendar = ({
     </section>
   );
 
-  return (
-    <>
-      {movePlanItem.submitError ? (
-        <div
-          role="alert"
-          css={{
-            marginBottom: 10,
-            padding: "10px 12px",
-            border: `1px solid ${colors.danger}`,
-            borderRadius: 8,
-            color: colors.danger,
-            fontSize: 14,
-          }}
-        >
-          {movePlanItem.submitError}
-        </div>
-      ) : null}
-
-      <DndContext
-        sensors={sensors}
-        collisionDetection={closestCenter}
-        accessibility={{ announcements, screenReaderInstructions }}
-        onDragStart={handleDragStart}
-        onDragCancel={() => setActivePlanItem(null)}
-        onDragEnd={handleDragEnd}
-      >
-        {calendar}
-        <DragOverlay dropAnimation={null}>
-          {activePlanItem ? <PlanItemDragPreview planItem={activePlanItem} /> : null}
-        </DragOverlay>
-      </DndContext>
-    </>
-  );
+  return <PlanDragAndDropProvider>{calendar}</PlanDragAndDropProvider>;
 };
 
 const MobileWeekCalendar = ({
   days,
   mealTypes,
   planItems,
-  dragDisabled,
   onAddMeal,
   onEditPlanItem,
 }: {
   days: Date[];
   mealTypes: readonly MealType[];
   planItems: PlanItem[];
-  dragDisabled: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
   onEditPlanItem: (planItem: PlanItem) => void;
 }) => {
@@ -353,7 +163,6 @@ const MobileWeekCalendar = ({
           day={selectedDay}
           mealTypes={mealTypes}
           planItems={planItems}
-          dragDisabled={dragDisabled}
           isToday={isSameDay(selectedDay, new Date())}
           onAddMeal={onAddMeal}
           onEditPlanItem={onEditPlanItem}
@@ -375,9 +184,9 @@ const MobileDayTab = ({
   const colors = useColors();
   const dateKey = getDateKey(day);
   const isToday = isSameDay(day, new Date());
-  const { isOver, setNodeRef } = useDroppable({
+  const { isOver, setNodeRef } = usePlanDropTarget({
     id: `plan-day-tab:${dateKey}`,
-    data: { kind: "day-tab", date: dateKey } satisfies DayTabDropData,
+    date: dateKey,
   });
 
   useEffect(() => {
@@ -435,7 +244,6 @@ const DayColumn = ({
   day,
   mealTypes,
   planItems,
-  dragDisabled,
   isToday,
   onAddMeal,
   onEditPlanItem,
@@ -443,7 +251,6 @@ const DayColumn = ({
   day: Date;
   mealTypes: readonly MealType[];
   planItems: PlanItem[];
-  dragDisabled: boolean;
   isToday: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
   onEditPlanItem: (planItem: PlanItem) => void;
@@ -534,7 +341,6 @@ const DayColumn = ({
             date={day}
             mealType={mealType}
             planItems={dayPlanItems.filter(item => item.meal_type === mealType)}
-            dragDisabled={dragDisabled}
             onAddMeal={onAddMeal}
             onEditPlanItem={onEditPlanItem}
           />
@@ -548,14 +354,12 @@ const MealSection = ({
   date,
   mealType,
   planItems,
-  dragDisabled,
   onAddMeal,
   onEditPlanItem,
 }: {
   date: Date;
   mealType: MealType;
   planItems: PlanItem[];
-  dragDisabled: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
   onEditPlanItem: (planItem: PlanItem) => void;
 }) => {
@@ -563,13 +367,10 @@ const MealSection = ({
   const label = mealTypeLabels[mealType];
   const dateKey = getDateKey(date);
   const sectionHeadingId = `plan-${dateKey}-${mealType}`;
-  const { isOver, setNodeRef } = useDroppable({
+  const { isOver, setNodeRef } = usePlanDropTarget({
     id: `plan-slot:${dateKey}:${mealType}`,
-    data: {
-      kind: "plan-slot",
-      date: dateKey,
-      mealType,
-    } satisfies PlanSlotDropData,
+    date: dateKey,
+    mealType,
   });
 
   return (
@@ -620,7 +421,6 @@ const MealSection = ({
             <li key={planItem.id}>
               <PlanItemCard
                 planItem={planItem}
-                dragDisabled={dragDisabled}
                 onEdit={() => onEditPlanItem(planItem)}
               />
             </li>
@@ -654,19 +454,14 @@ const MealSection = ({
 
 const PlanItemCard = ({
   planItem,
-  dragDisabled,
   onEdit,
 }: {
   planItem: PlanItem;
-  dragDisabled: boolean;
   onEdit: () => void;
 }) => {
   const colors = useColors();
-  const { attributes, isDragging, listeners, setNodeRef } = useDraggable({
-    id: `plan-item:${planItem.id}`,
-    data: { kind: "plan-item", planItem } satisfies PlanItemDragData,
-    disabled: dragDisabled,
-  });
+  const { attributes, dragDisabled, isDragging, listeners, setNodeRef } =
+    usePlanItemDraggable(planItem);
 
   return (
     <button
@@ -721,32 +516,6 @@ const PlanItemCard = ({
   );
 };
 
-const PlanItemDragPreview = ({ planItem }: { planItem: PlanItem }) => {
-  const colors = useColors();
-
-  return (
-    <div
-      css={{
-        maxWidth: 220,
-        padding: "9px 12px",
-        border: `1px solid ${colors.primary}`,
-        borderLeft: `3px solid ${colors.primary}`,
-        borderRadius: 8,
-        background: colors.surface,
-        color: colors.textPrimary,
-        boxShadow: `0 12px 28px ${hexToRgba(colors.textPrimary, 0.22)}`,
-        fontSize: 13,
-        fontWeight: 700,
-        lineHeight: 1.3,
-        overflowWrap: "anywhere",
-        pointerEvents: "none",
-      }}
-    >
-      {planItem.meal_snapshot.name}
-    </div>
-  );
-};
-
 const PlusIcon = () => (
   <svg
     aria-hidden="true"
@@ -761,77 +530,3 @@ const PlusIcon = () => (
     <path d="M12 5v14M5 12h14" />
   </svg>
 );
-
-const getPlanItemDragData = (value: unknown): PlanItemDragData | null => {
-  if (!value || typeof value !== "object" || !("kind" in value)) return null;
-  return value.kind === "plan-item" ? (value as PlanItemDragData) : null;
-};
-
-const getPlanSlotDropData = (value: unknown): PlanSlotDropData | null => {
-  if (!value || typeof value !== "object" || !("kind" in value)) return null;
-  return value.kind === "plan-slot" ? (value as PlanSlotDropData) : null;
-};
-
-const getDayTabDropData = (value: unknown): DayTabDropData | null => {
-  if (!value || typeof value !== "object" || !("kind" in value)) return null;
-  return value.kind === "day-tab" ? (value as DayTabDropData) : null;
-};
-
-const getSlotLabel = ({ date, mealType }: PlanSlotDropData): string => {
-  const parsedDate = new Date(`${date}T00:00:00`);
-  return `${mealTypeLabels[mealType].toLowerCase()} on ${fullDateFormatter.format(parsedDate)}`;
-};
-
-const formatDateKey = (date: string): string =>
-  fullDateFormatter.format(new Date(`${date}T00:00:00`));
-
-type KeyboardDirection = "up" | "right" | "down" | "left";
-
-type Point = {
-  x: number;
-  y: number;
-};
-
-const getKeyboardDirection = (code: string): KeyboardDirection | null => {
-  switch (code) {
-    case KeyboardCode.Up:
-      return "up";
-    case KeyboardCode.Right:
-      return "right";
-    case KeyboardCode.Down:
-      return "down";
-    case KeyboardCode.Left:
-      return "left";
-    default:
-      return null;
-  }
-};
-
-const isInDirection = (
-  candidate: Point,
-  active: Point,
-  direction: KeyboardDirection
-): boolean => {
-  switch (direction) {
-    case "up":
-      return candidate.y < active.y - 1;
-    case "right":
-      return candidate.x > active.x + 1;
-    case "down":
-      return candidate.y > active.y + 1;
-    case "left":
-      return candidate.x < active.x - 1;
-  }
-};
-
-const getDirectionalDistance = (
-  candidate: Point,
-  active: Point,
-  direction: KeyboardDirection
-): number => {
-  const horizontalDistance = Math.abs(candidate.x - active.x);
-  const verticalDistance = Math.abs(candidate.y - active.y);
-  return direction === "left" || direction === "right"
-    ? horizontalDistance + verticalDistance * 2
-    : verticalDistance + horizontalDistance * 2;
-};
