@@ -10,6 +10,7 @@ type WeekCalendarProps = {
   mealTypes: readonly MealType[];
   planItems: PlanItem[];
   isMobile: boolean;
+  onAddMeal: (date: Date, mealType: MealType) => void;
 };
 
 const mealTypeLabels: Record<MealType, string> = {
@@ -39,6 +40,7 @@ export const WeekCalendar = ({
   mealTypes,
   planItems,
   isMobile,
+  onAddMeal,
 }: WeekCalendarProps) => {
   const colors = useColors();
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
@@ -69,6 +71,7 @@ export const WeekCalendar = ({
         days={days}
         mealTypes={mealTypes}
         planItems={planItems}
+        onAddMeal={onAddMeal}
       />
     );
   }
@@ -92,6 +95,7 @@ export const WeekCalendar = ({
               mealTypes={mealTypes}
               planItems={planItems}
               isToday={isSameDay(day, new Date())}
+              onAddMeal={onAddMeal}
             />
           ))}
         </div>
@@ -104,10 +108,12 @@ const MobileWeekCalendar = ({
   days,
   mealTypes,
   planItems,
+  onAddMeal,
 }: {
   days: Date[];
   mealTypes: readonly MealType[];
   planItems: PlanItem[];
+  onAddMeal: (date: Date, mealType: MealType) => void;
 }) => {
   const colors = useColors();
   const todayIndex = days.findIndex(day => isSameDay(day, new Date()));
@@ -193,6 +199,7 @@ const MobileWeekCalendar = ({
           mealTypes={mealTypes}
           planItems={planItems}
           isToday={isSameDay(selectedDay, new Date())}
+          onAddMeal={onAddMeal}
         />
       </div>
     </section>
@@ -204,11 +211,13 @@ const DayColumn = ({
   mealTypes,
   planItems,
   isToday,
+  onAddMeal,
 }: {
   day: Date;
   mealTypes: readonly MealType[];
   planItems: PlanItem[];
   isToday: boolean;
+  onAddMeal: (date: Date, mealType: MealType) => void;
 }) => {
   const colors = useColors();
   const dateKey = getDateKey(day);
@@ -296,6 +305,7 @@ const DayColumn = ({
             date={day}
             mealType={mealType}
             planItems={dayPlanItems.filter(item => item.meal_type === mealType)}
+            onAddMeal={onAddMeal}
           />
         ))}
       </div>
@@ -307,10 +317,12 @@ const MealSection = ({
   date,
   mealType,
   planItems,
+  onAddMeal,
 }: {
   date: Date;
   mealType: MealType;
   planItems: PlanItem[];
+  onAddMeal: (date: Date, mealType: MealType) => void;
 }) => {
   const colors = useColors();
   const label = mealTypeLabels[mealType];
@@ -378,6 +390,7 @@ const MealSection = ({
           fullWidth
           icon={<PlusIcon />}
           ariaLabel={`Add meal to ${label.toLowerCase()} on ${fullDateFormatter.format(date)}`}
+          onClick={() => onAddMeal(date, mealType)}
         >
           Add
         </Button>
@@ -411,16 +424,6 @@ const PlanItemCard = ({ planItem }: { planItem: PlanItem }) => {
       >
         {planItem.meal_snapshot.name}
       </h4>
-      <p
-        css={{
-          margin: "4px 0 0",
-          color: colors.textSecondary,
-          fontSize: 11,
-          lineHeight: 1.3,
-        }}
-      >
-        {planItem.servings} {planItem.servings === 1 ? "serving" : "servings"}
-      </p>
     </article>
   );
 };
