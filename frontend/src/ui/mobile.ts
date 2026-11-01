@@ -1,30 +1,21 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export const useIsMobile = () => {
-  const [isMobile, setIsMobile] = useState(false);
+  const [isMobile, setIsMobile] = useState(() =>
+    typeof window === "undefined"
+      ? false
+      : window.matchMedia("(max-width: 767px)").matches
+  );
 
   useEffect(() => {
-    const handleDeviceDetection = () => {
-      const userAgent = window.navigator.userAgent.toLowerCase();
-      const isMobile = /iphone|ipad|ipod|android|blackberry|windows phone/g.test(
-        userAgent
-      );
-      const isTablet = /(ipad|tablet|playbook|silk)|(android(?!.*mobile))/g.test(
-        userAgent
-      );
+    const mediaQuery = window.matchMedia("(max-width: 767px)");
+    const handleChange = (event: MediaQueryListEvent) => setIsMobile(event.matches);
 
-      if (isMobile || isTablet) {
-        setIsMobile(true);
-      } else {
-        setIsMobile(false);
-      }
-    };
-
-    handleDeviceDetection();
-    window.addEventListener("resize", handleDeviceDetection);
+    setIsMobile(mediaQuery.matches);
+    mediaQuery.addEventListener("change", handleChange);
 
     return () => {
-      window.removeEventListener("resize", handleDeviceDetection);
+      mediaQuery.removeEventListener("change", handleChange);
     };
   }, []);
 
