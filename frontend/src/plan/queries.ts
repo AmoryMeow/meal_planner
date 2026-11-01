@@ -5,6 +5,7 @@ import { useAuthSession } from "@package/auth";
 
 import {
   createPlanItem,
+  deletePlanItem,
   getPlanItems,
   type CreatePlanItemInput,
   type PlanItemRange,
@@ -47,6 +48,25 @@ export const useCreatePlanItemMutation = () => {
     ...mutation,
     apiFieldErrors,
     submitError: getPlanItemSubmitError(mutation.error, apiFieldErrors),
+  };
+};
+
+export const useDeletePlanItemMutation = () => {
+  const { request, user } = useAuthSession();
+  const queryClient = useQueryClient();
+  const userId = user?.id ?? null;
+
+  const mutation = useMutation({
+    mutationFn: (planItemId: number) => deletePlanItem(request, planItemId),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: planItemQueryKeys.ranges(userId),
+      }),
+  });
+
+  return {
+    ...mutation,
+    submitError: getPlanItemSubmitError(mutation.error, {}),
   };
 };
 

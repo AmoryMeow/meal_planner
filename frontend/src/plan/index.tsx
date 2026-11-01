@@ -10,6 +10,7 @@ import { WeekNavigation } from "./week-navigation";
 
 export {
   createPlanItem,
+  deletePlanItem,
   getPlanItems,
   type CreatePlanItemInput,
   type MealSnapshot,
@@ -20,6 +21,7 @@ export {
 export {
   planItemQueryKeys,
   useCreatePlanItemMutation,
+  useDeletePlanItemMutation,
   usePlanItemsQuery,
 } from "./queries";
 export { type MealType } from "./types";
