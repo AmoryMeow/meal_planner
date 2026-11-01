@@ -14,6 +14,11 @@ export {
   type PlanItem,
   type PlanItemRange,
 } from "./api";
+export {
+  planItemQueryKeys,
+  useCreatePlanItemMutation,
+  usePlanItemsQuery,
+} from "./queries";
 export { type MealType } from "./types";
 
 export const Plan = () => {
