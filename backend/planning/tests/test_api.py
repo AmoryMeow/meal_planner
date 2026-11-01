@@ -269,3 +269,39 @@ class PlanItemApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("meal_id", response.data)
+
+    def test_delete_removes_only_requested_plan_item(self):
+        item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        remaining_item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.delete(reverse("plan-item-detail", args=(item.id,)))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(PlanItem.objects.filter(pk=item.id).exists())
+        self.assertTrue(PlanItem.objects.filter(pk=remaining_item.id).exists())
+        self.assertTrue(Meal.objects.filter(pk=self.meal.id).exists())
+
+    def test_delete_is_not_available_to_another_user(self):
+        item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.delete(reverse("plan-item-detail", args=(item.id,)))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(PlanItem.objects.filter(pk=item.id).exists())

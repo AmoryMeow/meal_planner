@@ -50,7 +50,7 @@ class PlanItemListCreateView(generics.ListCreateAPIView):
         serializer.save(plan=self.get_plan(create=True))
 
 
-class PlanItemDetailView(generics.RetrieveUpdateAPIView):
+class PlanItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PlanItemSerializer
     permission_classes = [IsAuthenticated]
 
