@@ -6,5 +6,10 @@ export { Button, type ButtonProps } from "./button";
 export { Combobox, type ComboboxOption, type ComboboxProps } from "./combobox";
 export { Dialog, type DialogProps } from "./dialog";
 export { Input, type InputProps } from "./input";
+export {
+  SegmentedControl,
+  type SegmentedControlOption,
+  type SegmentedControlProps,
+} from "./segmented-control";
 export { Textarea, type TextareaProps } from "./textarea";
 export { CONTENT_MAX_WIDTH, getContentContainerStyles } from "./layout";
