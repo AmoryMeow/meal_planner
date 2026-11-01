@@ -168,3 +168,104 @@ class PlanItemApiTests(APITestCase):
 
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("meal_id", response.data)
+
+    def test_detail_requires_authentication(self):
+        item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+
+        response = self.client.get(reverse("plan-item-detail", args=(item.id,)))
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_detail_is_available_only_to_plan_owner(self):
+        item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        url = reverse("plan-item-detail", args=(item.id,))
+
+        self.client.force_authenticate(user=self.user)
+        owner_response = self.client.get(url)
+        self.client.force_authenticate(user=self.other_user)
+        other_response = self.client.get(url)
+
+        self.assertEqual(owner_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(owner_response.data["id"], item.id)
+        self.assertEqual(other_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_patch_updates_plan_item_without_replacing_snapshot(self):
+        item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        original_snapshot = item.meal_snapshot.copy()
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("plan-item-detail", args=(item.id,)),
+            {
+                "date": "2026-11-03",
+                "meal_type": "dinner",
+                "servings": 3,
+                "note": "Invite friends",
+                "plan_id": self.other_plan.id,
+                "meal_snapshot": {"name": "Spoofed meal"},
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item.refresh_from_db()
+        self.assertEqual(item.plan, self.plan)
+        self.assertEqual(item.date, date(2026, 11, 3))
+        self.assertEqual(item.meal_type, PlanItem.MealType.DINNER)
+        self.assertEqual(item.servings, 3)
+        self.assertEqual(item.note, "Invite friends")
+        self.assertEqual(item.meal_snapshot, original_snapshot)
+
+    def test_patch_replaces_snapshot_when_meal_changes(self):
+        item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        replacement = Meal.objects.create(owner=self.user, name="Pasta")
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("plan-item-detail", args=(item.id,)),
+            {"meal_id": replacement.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item.refresh_from_db()
+        self.assertEqual(item.meal, replacement)
+        self.assertEqual(item.meal_snapshot["name"], "Pasta")
+
+    def test_patch_rejects_another_users_meal(self):
+        item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("plan-item-detail", args=(item.id,)),
+            {"meal_id": self.other_meal.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("meal_id", response.data)

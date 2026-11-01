@@ -3,7 +3,7 @@ from rest_framework import serializers
 from meals.models import Meal
 
 from .models import PlanItem
-from .services import create_plan_item
+from .services import build_meal_snapshot, create_plan_item
 
 
 class PlanItemRangeSerializer(serializers.Serializer):
@@ -61,3 +61,10 @@ class PlanItemSerializer(serializers.ModelSerializer):
             meal_type=validated_data.pop("meal_type"),
             **validated_data,
         )
+
+    def update(self, instance, validated_data):
+        meal = validated_data.get("meal")
+        if meal is not None and meal.pk != instance.meal_id:
+            validated_data["meal_snapshot"] = build_meal_snapshot(meal)
+
+        return super().update(instance, validated_data)

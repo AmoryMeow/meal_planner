@@ -48,3 +48,14 @@ class PlanItemListCreateView(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(plan=self.get_plan(create=True))
+
+
+class PlanItemDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = PlanItemSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return PlanItem.objects.filter(plan__owner=self.request.user).select_related(
+            "plan",
+            "meal",
+        )
