@@ -1,7 +1,7 @@
-import { type FormEvent, type RefObject, useMemo, useState } from "react";
+import { type FormEvent, type RefObject, useState } from "react";
 
-import { type Meal, useMealsQuery } from "@package/meals";
-import { Button, Combobox, Dialog, Input, Textarea, useColors } from "@package/ui";
+import { MealCombobox, type MealOption } from "@package/meals";
+import { Button, Dialog, Input, Textarea, useColors } from "@package/ui";
 
 import { useCreatePlanItemMutation } from "./queries";
 import { type MealType } from "./types";
@@ -33,26 +33,14 @@ export const AddPlanItemDialog = ({
   onClose,
 }: AddPlanItemDialogProps) => {
   const colors = useColors();
-  const mealsQuery = useMealsQuery();
   const creation = useCreatePlanItemMutation();
-  const [inputValue, setInputValue] = useState("");
-  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<MealOption | null>(null);
   const [selectionError, setSelectionError] = useState("");
   const [servings, setServings] = useState("1");
   const [servingsError, setServingsError] = useState("");
   const [note, setNote] = useState("");
-  const meals = useMemo(() => mealsQuery.data?.results ?? [], [mealsQuery.data]);
-  const normalizedInput =
-    inputValue === selectedMeal?.name ? "" : inputValue.trim().toLocaleLowerCase();
-  const options = meals
-    .filter(meal => meal.name.toLocaleLowerCase().includes(normalizedInput))
-    .map(meal => ({ id: meal.id, label: meal.name }));
-  const selectedOptions = selectedMeal
-    ? [{ id: selectedMeal.id, label: selectedMeal.name }]
-    : [];
 
   const resetForm = () => {
-    setInputValue("");
     setSelectedMeal(null);
     setSelectionError("");
     setServings("1");
@@ -126,32 +114,12 @@ export const AddPlanItemDialog = ({
         {dateFormatter.format(date)}
       </p>
 
-      <Combobox
-        label="Meal"
-        inputValue={inputValue}
-        options={options}
-        selectedOptions={selectedOptions}
-        placeholder="Search meals"
-        loading={mealsQuery.isPending}
+      <MealCombobox
+        value={selectedMeal}
         disabled={creation.isPending}
         error={selectionError || creation.apiFieldErrors.meal_id}
-        emptyMessage={
-          mealsQuery.isError
-            ? "Unable to load meals."
-            : meals.length === 0
-              ? "No meals available."
-              : "No matching meals."
-        }
-        onInputChange={value => {
-          setInputValue(value);
-          if (value !== selectedMeal?.name) setSelectedMeal(null);
-          setSelectionError("");
-          creation.reset();
-        }}
-        onSelect={option => {
-          const meal = meals.find(item => item.id === option.id) ?? null;
+        onChange={meal => {
           setSelectedMeal(meal);
-          setInputValue(meal?.name ?? "");
           setSelectionError("");
           creation.reset();
         }}
@@ -186,29 +154,6 @@ export const AddPlanItemDialog = ({
         disabled={creation.isPending}
         placeholder="Optional details"
       />
-
-      {mealsQuery.isError ? (
-        <div
-          role="alert"
-          css={{
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            gap: 12,
-            color: colors.danger,
-            fontSize: 14,
-          }}
-        >
-          <span>Meals could not be loaded.</span>
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => void mealsQuery.refetch()}
-          >
-            Try again
-          </Button>
-        </div>
-      ) : null}
 
       {creation.submitError ? (
         <div

@@ -47,3 +47,4 @@ export {
   useUpdateMealMutation,
 } from "./queries";
 export { Meals } from "./meals";
+export { MealCombobox, type MealOption } from "./meal-combobox";

@@ -6,6 +6,7 @@ import {
   useState,
 } from "react";
 
+import { MealCombobox, type MealOption } from "@package/meals";
 import { Button, Dialog, hexToRgba, Input, Textarea, useColors } from "@package/ui";
 
 import { type PlanItem } from "./api";
@@ -42,11 +43,21 @@ export const EditPlanItemDialog = ({
   const colors = useColors();
   const mealTypeId = useId();
   const mealTypeErrorId = useId();
+  const [selectedMeal, setSelectedMeal] = useState<MealOption | null>(() => ({
+    id: planItem.meal_id,
+    label: planItem.meal_snapshot.name,
+  }));
+  const [mealError, setMealError] = useState("");
   const [formData, setFormData] = useState(() => getInitialFormData(planItem));
   const [formErrors, setFormErrors] = useState<PlanItemFormErrors>({});
   const update = useUpdatePlanItemMutation();
 
   const resetForm = () => {
+    setSelectedMeal({
+      id: planItem.meal_id,
+      label: planItem.meal_snapshot.name,
+    });
+    setMealError("");
     setFormData(getInitialFormData(planItem));
     setFormErrors({});
     update.reset();
@@ -70,13 +81,14 @@ export const EditPlanItemDialog = ({
 
     const servings = Number(formData.servings);
     const errors: PlanItemFormErrors = {};
+    if (!selectedMeal) setMealError("Required");
     if (!formData.date) errors.date = "Required";
     if (!formData.servings) errors.servings = "Required";
     else if (!Number.isInteger(servings) || servings < 1) {
       errors.servings = "Enter a whole number greater than zero.";
     }
 
-    if (Object.keys(errors).length > 0) {
+    if (!selectedMeal || Object.keys(errors).length > 0) {
       setFormErrors(errors);
       return;
     }
@@ -88,6 +100,7 @@ export const EditPlanItemDialog = ({
         input: {
           date: formData.date,
           meal_type: formData.mealType,
+          meal_id: Number(selectedMeal.id),
           servings,
           note: formData.note.trim(),
         },
@@ -99,7 +112,7 @@ export const EditPlanItemDialog = ({
   return (
     <Dialog
       dialogRef={dialogRef}
-      title={`Edit ${planItem.meal_snapshot.name}`}
+      title="Edit planned meal"
       onClose={handleClose}
       onCancel={event => {
         if (update.isPending) event.preventDefault();
@@ -122,6 +135,17 @@ export const EditPlanItemDialog = ({
         </>
       }
     >
+      <MealCombobox
+        value={selectedMeal}
+        disabled={update.isPending}
+        error={mealError || update.apiFieldErrors.meal_id}
+        onChange={meal => {
+          setSelectedMeal(meal);
+          setMealError("");
+          update.reset();
+        }}
+      />
+
       <Input
         label="Date"
         type="date"
