@@ -27,7 +27,7 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
   const [formErrors, setFormErrors] = useState<MealFormErrors>({});
   const update = useUpdateMealMutation();
   const ingredientsEditor = useMealIngredientsEditor(meal.id);
-  const isSaving = update.isPending || ingredientsEditor.creation.isPending;
+  const isSaving = update.isPending || ingredientsEditor.isPending;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
