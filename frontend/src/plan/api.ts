@@ -44,6 +44,8 @@ export type CreatePlanItemInput = {
   note?: string;
 };
 
+export type UpdatePlanItemInput = Partial<CreatePlanItemInput>;
+
 export const getPlanItems = (
   request: AuthenticatedRequest,
   { dateFrom, dateTo }: PlanItemRange
@@ -68,4 +70,14 @@ export const createPlanItem = (
 export const deletePlanItem = (request: AuthenticatedRequest, planItemId: number) =>
   request<void>(`/plan-items/${planItemId}/`, {
     method: "DELETE",
+  });
+
+export const updatePlanItem = (
+  request: AuthenticatedRequest,
+  planItemId: number,
+  input: UpdatePlanItemInput
+) =>
+  request<PlanItem>(`/plan-items/${planItemId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
   });

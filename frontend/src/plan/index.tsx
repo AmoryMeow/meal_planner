@@ -14,17 +14,20 @@ export {
   createPlanItem,
   deletePlanItem,
   getPlanItems,
+  updatePlanItem,
   type CreatePlanItemInput,
   type MealSnapshot,
   type MealSnapshotIngredient,
   type PlanItem,
   type PlanItemRange,
+  type UpdatePlanItemInput,
 } from "./api";
 export {
   planItemQueryKeys,
   useCreatePlanItemMutation,
   useDeletePlanItemMutation,
   usePlanItemsQuery,
+  useUpdatePlanItemMutation,
 } from "./queries";
 export { type MealType } from "./types";
 

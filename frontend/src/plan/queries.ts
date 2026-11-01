@@ -7,8 +7,10 @@ import {
   createPlanItem,
   deletePlanItem,
   getPlanItems,
+  updatePlanItem,
   type CreatePlanItemInput,
   type PlanItemRange,
+  type UpdatePlanItemInput,
 } from "./api";
 
 export const planItemQueryKeys = {
@@ -67,6 +69,33 @@ export const useDeletePlanItemMutation = () => {
   return {
     ...mutation,
     submitError: getPlanItemSubmitError(mutation.error, {}),
+  };
+};
+
+type UpdatePlanItemVariables = {
+  planItemId: number;
+  input: UpdatePlanItemInput;
+};
+
+export const useUpdatePlanItemMutation = () => {
+  const { request, user } = useAuthSession();
+  const queryClient = useQueryClient();
+  const userId = user?.id ?? null;
+
+  const mutation = useMutation({
+    mutationFn: ({ planItemId, input }: UpdatePlanItemVariables) =>
+      updatePlanItem(request, planItemId, input),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: planItemQueryKeys.ranges(userId),
+      }),
+  });
+  const apiFieldErrors = getPlanItemApiFieldErrors(mutation.error);
+
+  return {
+    ...mutation,
+    apiFieldErrors,
+    submitError: getPlanItemSubmitError(mutation.error, apiFieldErrors),
   };
 };
 
