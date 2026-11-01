@@ -6,6 +6,18 @@ from .models import PlanItem
 from .services import create_plan_item
 
 
+class PlanItemRangeSerializer(serializers.Serializer):
+    date_from = serializers.DateField()
+    date_to = serializers.DateField()
+
+    def validate(self, attrs):
+        if attrs["date_from"] > attrs["date_to"]:
+            raise serializers.ValidationError(
+                "date_from must be earlier than or equal to date_to."
+            )
+        return attrs
+
+
 class PlanItemSerializer(serializers.ModelSerializer):
     plan_id = serializers.IntegerField(read_only=True)
     meal_id = serializers.PrimaryKeyRelatedField(
