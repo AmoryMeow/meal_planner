@@ -5,6 +5,17 @@ import { getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
 import { DEFAULT_MEAL_TYPES } from "./types";
 import { getStartOfWeek, WeekCalendar } from "./week-calendar";
 
+export {
+  createPlanItem,
+  getPlanItems,
+  type CreatePlanItemInput,
+  type MealSnapshot,
+  type MealSnapshotIngredient,
+  type PlanItem,
+  type PlanItemRange,
+} from "./api";
+export { type MealType } from "./types";
+
 export const Plan = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
