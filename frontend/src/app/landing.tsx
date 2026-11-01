@@ -1,6 +1,12 @@
 import { useNavigate } from "react-router-dom";
 
-import { useColors, hexToRgba, useIsMobile, Button } from "@package/ui";
+import {
+  Button,
+  getContentContainerStyles,
+  hexToRgba,
+  useColors,
+  useIsMobile,
+} from "@package/ui";
 
 const FeatureCard = ({
   icon,
@@ -94,12 +100,13 @@ export const Landing = () => {
 
   return (
     <div css={{ display: "flex", justifyContent: "center" }}>
-      <div
+      <main
         css={{
-          maxWidth: "1200px",
+          ...getContentContainerStyles(isMobile),
           display: "grid",
-          rowGap: "32px",
-          margin: "32px 16px",
+          rowGap: 32,
+          paddingTop: 32,
+          paddingBottom: 32,
         }}
       >
         <section
@@ -205,7 +212,7 @@ export const Landing = () => {
             </Button>
           </div>
         </section>
-      </div>
+      </main>
     </div>
   );
 };

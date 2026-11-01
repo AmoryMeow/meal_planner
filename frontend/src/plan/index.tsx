@@ -1,6 +1,6 @@
 import { useMemo } from "react";
 
-import { useColors, useIsMobile } from "@package/ui";
+import { getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
 
 import { DEFAULT_MEAL_TYPES } from "./types";
 import { getStartOfWeek, WeekCalendar } from "./week-calendar";
@@ -13,11 +13,8 @@ export const Plan = () => {
   return (
     <main
       css={{
-        width: "100%",
-        maxWidth: 1200,
-        boxSizing: "border-box",
-        margin: "0 auto",
-        padding: isMobile ? "20px 16px" : "32px 24px",
+        ...getContentContainerStyles(isMobile),
+        paddingTop: isMobile ? 20 : 32,
         paddingBottom: isMobile
           ? "calc(24px + var(--nav-h) + var(--safe-bottom))"
           : "48px",

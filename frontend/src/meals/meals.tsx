@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Button, useColors, useIsMobile } from "@package/ui";
+import { Button, getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
 
 import { type Meal, type MealSource } from "./api";
 import { CreateMealDialog } from "./create-meal-dialog";
@@ -29,11 +29,8 @@ export const Meals = () => {
   return (
     <main
       css={{
-        width: "100%",
-        maxWidth: 1200,
-        boxSizing: "border-box",
-        margin: "0 auto",
-        padding: isMobile ? "20px 16px" : "32px 24px",
+        ...getContentContainerStyles(isMobile),
+        paddingTop: isMobile ? 20 : 32,
         paddingBottom: isMobile
           ? "calc(24px + var(--nav-h) + var(--safe-bottom))"
           : "48px",

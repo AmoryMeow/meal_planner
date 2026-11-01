@@ -1,7 +1,12 @@
 import { ReactNode } from "react";
 import { useLocation, Link } from "react-router-dom";
 
-import { useColors, hexToRgba, useIsMobile } from "@package/ui";
+import {
+  getContentContainerStyles,
+  useColors,
+  hexToRgba,
+  useIsMobile,
+} from "@package/ui";
 
 type MenuType = {
   label: string;
@@ -71,14 +76,13 @@ export const Menu = ({ variant }: Props) => {
     >
       <div
         css={{
-          maxWidth: isTopDesktop ? 1200 : "none",
-          margin: "0 auto",
+          ...getContentContainerStyles(isMobile),
           display: "flex",
           alignItems: "center",
           justifyContent: isTopDesktop ? "center" : "space-around",
-          padding: isTopDesktop ? "4px 20px" : "2px 8px",
+          paddingTop: isTopDesktop ? 4 : 2,
+          paddingBottom: isTopDesktop ? 4 : 2,
           gap: isTopDesktop ? 12 : 0,
-          width: isTopDesktop ? "auto" : "100%",
         }}
       >
         {config.map(item => {
