@@ -3,6 +3,8 @@ import { type ReactNode, useEffect, useMemo, useRef, useState } from "react";
 import { Button, getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
 
 import { AddPlanItemDialog } from "./add-plan-item-dialog";
+import { type PlanItem } from "./api";
+import { DeletePlanItemDialog } from "./delete-plan-item-dialog";
 import { usePlanItemsQuery } from "./queries";
 import { DEFAULT_MEAL_TYPES, type MealType } from "./types";
 import { getDateKey, getStartOfWeek, WeekCalendar } from "./week-calendar";
@@ -30,10 +32,12 @@ export const Plan = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
   const addPlanItemDialogRef = useRef<HTMLDialogElement>(null);
+  const deletePlanItemDialogRef = useRef<HTMLDialogElement>(null);
   const [addTarget, setAddTarget] = useState<{
     date: Date;
     mealType: MealType;
   } | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<PlanItem | null>(null);
   const [weekStart, setWeekStart] = useState(() => getStartOfWeek(new Date()));
   const currentWeekStart = getStartOfWeek(new Date());
   const weekRange = useMemo(() => {
@@ -51,6 +55,11 @@ export const Plan = () => {
     const dialog = addPlanItemDialogRef.current;
     if (addTarget && dialog && !dialog.open) dialog.showModal();
   }, [addTarget]);
+
+  useEffect(() => {
+    const dialog = deletePlanItemDialogRef.current;
+    if (deleteTarget && dialog && !dialog.open) dialog.showModal();
+  }, [deleteTarget]);
 
   return (
     <main
@@ -102,6 +111,14 @@ export const Plan = () => {
         />
       ) : null}
 
+      {deleteTarget ? (
+        <DeletePlanItemDialog
+          dialogRef={deletePlanItemDialogRef}
+          planItem={deleteTarget}
+          onClose={() => setDeleteTarget(null)}
+        />
+      ) : null}
+
       {planItemsQuery.isPending ? <PlanStatus>Loading meal plan…</PlanStatus> : null}
       {planItemsQuery.isError ? (
         <PlanError onRetry={() => void planItemsQuery.refetch()} />
@@ -113,6 +130,7 @@ export const Plan = () => {
           planItems={planItemsQuery.data}
           isMobile={isMobile}
           onAddMeal={(date, mealType) => setAddTarget({ date, mealType })}
+          onRemovePlanItem={setDeleteTarget}
         />
       ) : null}
     </main>

@@ -11,6 +11,7 @@ type WeekCalendarProps = {
   planItems: PlanItem[];
   isMobile: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
+  onRemovePlanItem: (planItem: PlanItem) => void;
 };
 
 const mealTypeLabels: Record<MealType, string> = {
@@ -41,6 +42,7 @@ export const WeekCalendar = ({
   planItems,
   isMobile,
   onAddMeal,
+  onRemovePlanItem,
 }: WeekCalendarProps) => {
   const colors = useColors();
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
@@ -72,6 +74,7 @@ export const WeekCalendar = ({
         mealTypes={mealTypes}
         planItems={planItems}
         onAddMeal={onAddMeal}
+        onRemovePlanItem={onRemovePlanItem}
       />
     );
   }
@@ -96,6 +99,7 @@ export const WeekCalendar = ({
               planItems={planItems}
               isToday={isSameDay(day, new Date())}
               onAddMeal={onAddMeal}
+              onRemovePlanItem={onRemovePlanItem}
             />
           ))}
         </div>
@@ -109,11 +113,13 @@ const MobileWeekCalendar = ({
   mealTypes,
   planItems,
   onAddMeal,
+  onRemovePlanItem,
 }: {
   days: Date[];
   mealTypes: readonly MealType[];
   planItems: PlanItem[];
   onAddMeal: (date: Date, mealType: MealType) => void;
+  onRemovePlanItem: (planItem: PlanItem) => void;
 }) => {
   const colors = useColors();
   const todayIndex = days.findIndex(day => isSameDay(day, new Date()));
@@ -200,6 +206,7 @@ const MobileWeekCalendar = ({
           planItems={planItems}
           isToday={isSameDay(selectedDay, new Date())}
           onAddMeal={onAddMeal}
+          onRemovePlanItem={onRemovePlanItem}
         />
       </div>
     </section>
@@ -212,12 +219,14 @@ const DayColumn = ({
   planItems,
   isToday,
   onAddMeal,
+  onRemovePlanItem,
 }: {
   day: Date;
   mealTypes: readonly MealType[];
   planItems: PlanItem[];
   isToday: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
+  onRemovePlanItem: (planItem: PlanItem) => void;
 }) => {
   const colors = useColors();
   const dateKey = getDateKey(day);
@@ -306,6 +315,7 @@ const DayColumn = ({
             mealType={mealType}
             planItems={dayPlanItems.filter(item => item.meal_type === mealType)}
             onAddMeal={onAddMeal}
+            onRemovePlanItem={onRemovePlanItem}
           />
         ))}
       </div>
@@ -318,11 +328,13 @@ const MealSection = ({
   mealType,
   planItems,
   onAddMeal,
+  onRemovePlanItem,
 }: {
   date: Date;
   mealType: MealType;
   planItems: PlanItem[];
   onAddMeal: (date: Date, mealType: MealType) => void;
+  onRemovePlanItem: (planItem: PlanItem) => void;
 }) => {
   const colors = useColors();
   const label = mealTypeLabels[mealType];
@@ -369,7 +381,10 @@ const MealSection = ({
         >
           {planItems.map(planItem => (
             <li key={planItem.id}>
-              <PlanItemCard planItem={planItem} />
+              <PlanItemCard
+                planItem={planItem}
+                onRemove={() => onRemovePlanItem(planItem)}
+              />
             </li>
           ))}
         </ul>
@@ -399,18 +414,31 @@ const MealSection = ({
   );
 };
 
-const PlanItemCard = ({ planItem }: { planItem: PlanItem }) => {
+const PlanItemCard = ({
+  planItem,
+  onRemove,
+}: {
+  planItem: PlanItem;
+  onRemove: () => void;
+}) => {
   const colors = useColors();
 
   return (
     <article
       css={{
+        display: "grid",
+        gridTemplateColumns: "minmax(0, 1fr) auto",
+        alignItems: "center",
+        gap: 4,
         minWidth: 0,
-        padding: "8px 9px",
+        padding: "4px 4px 4px 9px",
         border: `1px solid ${colors.border}`,
         borderLeft: `3px solid ${colors.primary}`,
         borderRadius: 8,
         background: colors.surface,
+        "&:hover [data-plan-item-action], &:focus-within [data-plan-item-action]": {
+          opacity: 1,
+        },
       }}
     >
       <h4
@@ -424,9 +452,48 @@ const PlanItemCard = ({ planItem }: { planItem: PlanItem }) => {
       >
         {planItem.meal_snapshot.name}
       </h4>
+
+      <div
+        data-plan-item-action
+        css={{
+          color: colors.danger,
+          "& > button": { color: "inherit" },
+          "@media (hover: hover) and (pointer: fine)": {
+            opacity: 0,
+            transition: "opacity 0.15s ease",
+          },
+        }}
+      >
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<TrashIcon />}
+          ariaLabel={`Remove ${planItem.meal_snapshot.name} from plan`}
+          onClick={onRemove}
+        />
+      </div>
     </article>
   );
 };
+
+const TrashIcon = () => (
+  <svg
+    aria-hidden="true"
+    width="15"
+    height="15"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 6h18" />
+    <path d="M8 6V4h8v2" />
+    <path d="m19 6-1 14H6L5 6" />
+    <path d="M10 11v5M14 11v5" />
+  </svg>
+);
 
 const PlusIcon = () => (
   <svg
