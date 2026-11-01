@@ -6,6 +6,7 @@ import { AddPlanItemDialog } from "./add-plan-item-dialog";
 import { usePlanItemsQuery } from "./queries";
 import { DEFAULT_MEAL_TYPES, type MealType } from "./types";
 import { getDateKey, getStartOfWeek, WeekCalendar } from "./week-calendar";
+import { WeekNavigation } from "./week-navigation";
 
 export {
   createPlanItem,
@@ -31,7 +32,8 @@ export const Plan = () => {
     date: Date;
     mealType: MealType;
   } | null>(null);
-  const weekStart = useMemo(() => getStartOfWeek(new Date()), []);
+  const [weekStart, setWeekStart] = useState(() => getStartOfWeek(new Date()));
+  const currentWeekStart = getStartOfWeek(new Date());
   const weekRange = useMemo(() => {
     const weekEnd = new Date(weekStart);
     weekEnd.setDate(weekEnd.getDate() + 6);
@@ -58,7 +60,16 @@ export const Plan = () => {
           : "48px",
       }}
     >
-      <header css={{ marginBottom: 16 }}>
+      <header
+        css={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
         <h1
           css={{
             margin: 0,
@@ -69,6 +80,15 @@ export const Plan = () => {
         >
           Meal plan
         </h1>
+
+        <WeekNavigation
+          weekStart={weekStart}
+          isCurrentWeek={getDateKey(weekStart) === getDateKey(currentWeekStart)}
+          isMobile={isMobile}
+          onPrevious={() => setWeekStart(current => addWeeks(current, -1))}
+          onToday={() => setWeekStart(getStartOfWeek(new Date()))}
+          onNext={() => setWeekStart(current => addWeeks(current, 1))}
+        />
       </header>
 
       {addTarget ? (
@@ -95,6 +115,12 @@ export const Plan = () => {
       ) : null}
     </main>
   );
+};
+
+const addWeeks = (date: Date, amount: number): Date => {
+  const result = new Date(date);
+  result.setDate(result.getDate() + amount * 7);
+  return result;
 };
 
 const PlanStatus = ({ children }: { children: ReactNode }) => {
