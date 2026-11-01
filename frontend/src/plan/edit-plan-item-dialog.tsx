@@ -6,7 +6,7 @@ import {
   useState,
 } from "react";
 
-import { Button, Dialog, hexToRgba, Input, useColors } from "@package/ui";
+import { Button, Dialog, hexToRgba, Input, Textarea, useColors } from "@package/ui";
 
 import { type PlanItem } from "./api";
 import { useUpdatePlanItemMutation } from "./queries";
@@ -42,8 +42,6 @@ export const EditPlanItemDialog = ({
   const colors = useColors();
   const mealTypeId = useId();
   const mealTypeErrorId = useId();
-  const noteId = useId();
-  const noteErrorId = useId();
   const [formData, setFormData] = useState(() => getInitialFormData(planItem));
   const [formErrors, setFormErrors] = useState<PlanItemFormErrors>({});
   const update = useUpdatePlanItemMutation();
@@ -209,59 +207,17 @@ export const EditPlanItemDialog = ({
         required
       />
 
-      <div>
-        <label
-          htmlFor={noteId}
-          css={{
-            display: "block",
-            marginBottom: 8,
-            color: colors.textPrimary,
-            fontSize: 14,
-            fontWeight: 600,
-          }}
-        >
-          Note
-        </label>
-        <textarea
-          id={noteId}
-          value={formData.note}
-          disabled={update.isPending}
-          aria-invalid={Boolean(update.apiFieldErrors.note)}
-          aria-describedby={update.apiFieldErrors.note ? noteErrorId : undefined}
-          onChange={event => {
-            setFormData(current => ({ ...current, note: event.target.value }));
-            update.reset();
-          }}
-          rows={3}
-          css={{
-            width: "100%",
-            minHeight: 88,
-            boxSizing: "border-box",
-            resize: "vertical",
-            padding: "10px 12px",
-            border: update.apiFieldErrors.note
-              ? `1px solid ${colors.danger}`
-              : `1px solid ${colors.border}`,
-            borderRadius: 8,
-            background: update.isPending ? colors.surfaceAlt : colors.background,
-            color: colors.textPrimary,
-            font: "inherit",
-            "&:focus-visible": {
-              outline: `3px solid ${hexToRgba(colors.focus, 0.35)}`,
-              borderColor: colors.focus,
-            },
-          }}
-        />
-        {update.apiFieldErrors.note ? (
-          <div
-            id={noteErrorId}
-            role="alert"
-            css={{ marginTop: 6, color: colors.danger, fontSize: 12 }}
-          >
-            {update.apiFieldErrors.note}
-          </div>
-        ) : null}
-      </div>
+      <Textarea
+        label="Note"
+        name="note"
+        value={formData.note}
+        onChange={event => {
+          setFormData(current => ({ ...current, note: event.target.value }));
+          update.reset();
+        }}
+        error={update.apiFieldErrors.note}
+        disabled={update.isPending}
+      />
 
       {update.submitError ? (
         <div

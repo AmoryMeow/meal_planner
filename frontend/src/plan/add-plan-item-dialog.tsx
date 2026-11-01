@@ -1,7 +1,7 @@
 import { type FormEvent, type RefObject, useMemo, useState } from "react";
 
 import { type Meal, useMealsQuery } from "@package/meals";
-import { Button, Combobox, Dialog, useColors } from "@package/ui";
+import { Button, Combobox, Dialog, Input, Textarea, useColors } from "@package/ui";
 
 import { useCreatePlanItemMutation } from "./queries";
 import { type MealType } from "./types";
@@ -38,6 +38,9 @@ export const AddPlanItemDialog = ({
   const [inputValue, setInputValue] = useState("");
   const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
   const [selectionError, setSelectionError] = useState("");
+  const [servings, setServings] = useState("1");
+  const [servingsError, setServingsError] = useState("");
+  const [note, setNote] = useState("");
   const meals = useMemo(() => mealsQuery.data?.results ?? [], [mealsQuery.data]);
   const normalizedInput =
     inputValue === selectedMeal?.name ? "" : inputValue.trim().toLocaleLowerCase();
@@ -52,6 +55,9 @@ export const AddPlanItemDialog = ({
     setInputValue("");
     setSelectedMeal(null);
     setSelectionError("");
+    setServings("1");
+    setServingsError("");
+    setNote("");
     creation.reset();
   };
 
@@ -64,17 +70,27 @@ export const AddPlanItemDialog = ({
     event.preventDefault();
     creation.reset();
 
-    if (!selectedMeal) {
-      setSelectionError("Required");
+    const servingsValue = Number(servings);
+    const hasMealError = !selectedMeal;
+    const servingsValidationError = !servings
+      ? "Required"
+      : !Number.isInteger(servingsValue) || servingsValue < 1
+        ? "Enter a whole number greater than zero."
+        : "";
+
+    setSelectionError(hasMealError ? "Required" : "");
+    setServingsError(servingsValidationError);
+    if (!selectedMeal || servingsValidationError) {
       return;
     }
 
-    setSelectionError("");
     creation.mutate(
       {
         date: getDateKey(date),
         meal_type: mealType,
         meal_id: selectedMeal.id,
+        servings: servingsValue,
+        note: note.trim(),
       },
       { onSuccess: () => dialogRef.current?.close() }
     );
@@ -139,6 +155,36 @@ export const AddPlanItemDialog = ({
           setSelectionError("");
           creation.reset();
         }}
+      />
+
+      <Input
+        label="Servings"
+        type="number"
+        name="servings"
+        value={servings}
+        onChange={event => {
+          setServings(event.target.value);
+          setServingsError("");
+          creation.reset();
+        }}
+        error={creation.apiFieldErrors.servings || servingsError}
+        disabled={creation.isPending}
+        min={1}
+        step={1}
+        required
+      />
+
+      <Textarea
+        label="Note"
+        name="note"
+        value={note}
+        onChange={event => {
+          setNote(event.target.value);
+          creation.reset();
+        }}
+        error={creation.apiFieldErrors.note}
+        disabled={creation.isPending}
+        placeholder="Optional details"
       />
 
       {mealsQuery.isError ? (
