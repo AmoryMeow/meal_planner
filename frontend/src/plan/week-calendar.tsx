@@ -2,11 +2,13 @@ import { useState } from "react";
 
 import { Button, hexToRgba, useColors } from "@package/ui";
 
+import { type PlanItem } from "./api";
 import { type MealType } from "./types";
 
 type WeekCalendarProps = {
   weekStart: Date;
   mealTypes: readonly MealType[];
+  planItems: PlanItem[];
   isMobile: boolean;
 };
 
@@ -32,7 +34,12 @@ const fullDateFormatter = new Intl.DateTimeFormat(undefined, {
   year: "numeric",
 });
 
-export const WeekCalendar = ({ weekStart, mealTypes, isMobile }: WeekCalendarProps) => {
+export const WeekCalendar = ({
+  weekStart,
+  mealTypes,
+  planItems,
+  isMobile,
+}: WeekCalendarProps) => {
   const colors = useColors();
   const days = Array.from({ length: 7 }, (_, index) => addDays(weekStart, index));
 
@@ -61,6 +68,7 @@ export const WeekCalendar = ({ weekStart, mealTypes, isMobile }: WeekCalendarPro
         key={getDateKey(weekStart)}
         days={days}
         mealTypes={mealTypes}
+        planItems={planItems}
       />
     );
   }
@@ -82,6 +90,7 @@ export const WeekCalendar = ({ weekStart, mealTypes, isMobile }: WeekCalendarPro
               key={getDateKey(day)}
               day={day}
               mealTypes={mealTypes}
+              planItems={planItems}
               isToday={isSameDay(day, new Date())}
             />
           ))}
@@ -94,9 +103,11 @@ export const WeekCalendar = ({ weekStart, mealTypes, isMobile }: WeekCalendarPro
 const MobileWeekCalendar = ({
   days,
   mealTypes,
+  planItems,
 }: {
   days: Date[];
   mealTypes: readonly MealType[];
+  planItems: PlanItem[];
 }) => {
   const colors = useColors();
   const todayIndex = days.findIndex(day => isSameDay(day, new Date()));
@@ -180,6 +191,7 @@ const MobileWeekCalendar = ({
         <DayColumn
           day={selectedDay}
           mealTypes={mealTypes}
+          planItems={planItems}
           isToday={isSameDay(selectedDay, new Date())}
         />
       </div>
@@ -190,14 +202,18 @@ const MobileWeekCalendar = ({
 const DayColumn = ({
   day,
   mealTypes,
+  planItems,
   isToday,
 }: {
   day: Date;
   mealTypes: readonly MealType[];
+  planItems: PlanItem[];
   isToday: boolean;
 }) => {
   const colors = useColors();
-  const dayHeadingId = `plan-day-${getDateKey(day)}`;
+  const dateKey = getDateKey(day);
+  const dayHeadingId = `plan-day-${dateKey}`;
+  const dayPlanItems = planItems.filter(item => item.date === dateKey);
 
   return (
     <article
@@ -275,14 +291,27 @@ const DayColumn = ({
         }}
       >
         {mealTypes.map(mealType => (
-          <MealSection key={mealType} date={day} mealType={mealType} />
+          <MealSection
+            key={mealType}
+            date={day}
+            mealType={mealType}
+            planItems={dayPlanItems.filter(item => item.meal_type === mealType)}
+          />
         ))}
       </div>
     </article>
   );
 };
 
-const MealSection = ({ date, mealType }: { date: Date; mealType: MealType }) => {
+const MealSection = ({
+  date,
+  mealType,
+  planItems,
+}: {
+  date: Date;
+  mealType: MealType;
+  planItems: PlanItem[];
+}) => {
   const colors = useColors();
   const label = mealTypeLabels[mealType];
   const sectionHeadingId = `plan-${getDateKey(date)}-${mealType}`;
@@ -314,6 +343,26 @@ const MealSection = ({ date, mealType }: { date: Date; mealType: MealType }) => 
         {label}
       </h3>
 
+      {planItems.length > 0 ? (
+        <ul
+          aria-label={`${label} meals`}
+          css={{
+            display: "flex",
+            flexDirection: "column",
+            gap: 6,
+            margin: "0 0 8px",
+            padding: 0,
+            listStyle: "none",
+          }}
+        >
+          {planItems.map(planItem => (
+            <li key={planItem.id}>
+              <PlanItemCard planItem={planItem} />
+            </li>
+          ))}
+        </ul>
+      ) : null}
+
       <div
         css={{
           marginTop: "auto",
@@ -334,6 +383,45 @@ const MealSection = ({ date, mealType }: { date: Date; mealType: MealType }) => 
         </Button>
       </div>
     </section>
+  );
+};
+
+const PlanItemCard = ({ planItem }: { planItem: PlanItem }) => {
+  const colors = useColors();
+
+  return (
+    <article
+      css={{
+        minWidth: 0,
+        padding: "8px 9px",
+        border: `1px solid ${colors.border}`,
+        borderLeft: `3px solid ${colors.primary}`,
+        borderRadius: 8,
+        background: colors.surface,
+      }}
+    >
+      <h4
+        css={{
+          margin: 0,
+          overflowWrap: "anywhere",
+          color: colors.textPrimary,
+          fontSize: 13,
+          lineHeight: 1.3,
+        }}
+      >
+        {planItem.meal_snapshot.name}
+      </h4>
+      <p
+        css={{
+          margin: "4px 0 0",
+          color: colors.textSecondary,
+          fontSize: 11,
+          lineHeight: 1.3,
+        }}
+      >
+        {planItem.servings} {planItem.servings === 1 ? "serving" : "servings"}
+      </p>
+    </article>
   );
 };
 
@@ -372,7 +460,7 @@ const isSameDay = (first: Date, second: Date): boolean =>
   first.getMonth() === second.getMonth() &&
   first.getDate() === second.getDate();
 
-const getDateKey = (date: Date): string =>
+export const getDateKey = (date: Date): string =>
   [
     date.getFullYear(),
     String(date.getMonth() + 1).padStart(2, "0"),

@@ -1,9 +1,10 @@
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 
-import { getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
+import { Button, getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
 
+import { usePlanItemsQuery } from "./queries";
 import { DEFAULT_MEAL_TYPES } from "./types";
-import { getStartOfWeek, WeekCalendar } from "./week-calendar";
+import { getDateKey, getStartOfWeek, WeekCalendar } from "./week-calendar";
 
 export {
   createPlanItem,
@@ -25,6 +26,16 @@ export const Plan = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
   const weekStart = useMemo(() => getStartOfWeek(new Date()), []);
+  const weekRange = useMemo(() => {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekEnd.getDate() + 6);
+
+    return {
+      dateFrom: getDateKey(weekStart),
+      dateTo: getDateKey(weekEnd),
+    };
+  }, [weekStart]);
+  const planItemsQuery = usePlanItemsQuery(weekRange);
 
   return (
     <main
@@ -49,11 +60,66 @@ export const Plan = () => {
         </h1>
       </header>
 
-      <WeekCalendar
-        weekStart={weekStart}
-        mealTypes={DEFAULT_MEAL_TYPES}
-        isMobile={isMobile}
-      />
+      {planItemsQuery.isPending ? <PlanStatus>Loading meal plan…</PlanStatus> : null}
+      {planItemsQuery.isError ? (
+        <PlanError onRetry={() => void planItemsQuery.refetch()} />
+      ) : null}
+      {planItemsQuery.isSuccess ? (
+        <WeekCalendar
+          weekStart={weekStart}
+          mealTypes={DEFAULT_MEAL_TYPES}
+          planItems={planItemsQuery.data}
+          isMobile={isMobile}
+        />
+      ) : null}
     </main>
+  );
+};
+
+const PlanStatus = ({ children }: { children: ReactNode }) => {
+  const colors = useColors();
+
+  return (
+    <p
+      role="status"
+      css={{
+        margin: 0,
+        padding: 20,
+        border: `1px solid ${colors.border}`,
+        borderRadius: 12,
+        background: colors.surface,
+        color: colors.textSecondary,
+        textAlign: "center",
+      }}
+    >
+      {children}
+    </p>
+  );
+};
+
+const PlanError = ({ onRetry }: { onRetry: () => void }) => {
+  const colors = useColors();
+
+  return (
+    <div
+      role="alert"
+      css={{
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexWrap: "wrap",
+        gap: 12,
+        padding: 20,
+        border: `1px solid ${colors.danger}`,
+        borderRadius: 12,
+        background: colors.surface,
+        color: colors.textPrimary,
+      }}
+    >
+      <span>Unable to load the meal plan.</span>
+      <Button variant="secondary" size="sm" onClick={onRetry}>
+        Try again
+      </Button>
+    </div>
   );
 };
