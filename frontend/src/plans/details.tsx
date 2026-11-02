@@ -1,19 +1,9 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 
-import { type MealType, usePlanQuery } from "@package/plan";
-import {
-  Button,
-  getContentContainerStyles,
-  hexToRgba,
-  useColors,
-  useIsMobile,
-} from "@package/ui";
+import { usePlanQuery } from "@package/plan";
+import { Button, getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
 
-const mealTypeLabels: Record<MealType, string> = {
-  breakfast: "Breakfast",
-  lunch: "Lunch",
-  dinner: "Dinner",
-};
+import { PlanSettingsForm } from "./plan-settings-form";
 
 export const PlanDetails = () => {
   const { planId: planIdParam } = useParams();
@@ -95,46 +85,7 @@ export const PlanDetails = () => {
       {planQuery.isError ? (
         <PlanDetailsError onRetry={() => void planQuery.refetch()} />
       ) : null}
-      {planQuery.isSuccess ? (
-        <section
-          aria-label="Plan details"
-          css={{
-            padding: 20,
-            border: `1px solid ${colors.border}`,
-            borderLeft: `5px solid ${planQuery.data.color}`,
-            borderRadius: 14,
-            background: `linear-gradient(90deg, ${hexToRgba(planQuery.data.color, 0.08)}, ${colors.surface} 45%)`,
-          }}
-        >
-          <h2 css={{ margin: "0 0 12px", fontSize: 16 }}>Meal sections</h2>
-          <ul
-            css={{
-              display: "flex",
-              flexWrap: "wrap",
-              gap: 6,
-              margin: 0,
-              padding: 0,
-              listStyle: "none",
-            }}
-          >
-            {planQuery.data.enabled_meal_types.map(mealType => (
-              <li
-                key={mealType}
-                css={{
-                  padding: "5px 9px",
-                  borderRadius: 999,
-                  background: colors.chip,
-                  color: colors.textSecondary,
-                  fontSize: 13,
-                  fontWeight: 600,
-                }}
-              >
-                {mealTypeLabels[mealType]}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      {planQuery.isSuccess ? <PlanSettingsForm plan={planQuery.data} /> : null}
     </main>
   );
 };
