@@ -23,9 +23,9 @@ const config: MenuType[] = [
   },
   { link: "/plan/list", label: "List", icon: <span aria-hidden>🛒</span> },
   {
-    link: "/plan/groups",
-    label: "Groups",
-    icon: <span aria-hidden>👥</span>,
+    link: "/plans",
+    label: "Plans",
+    icon: <span aria-hidden>🗂️</span>,
   },
   {
     link: "/plan/profile",

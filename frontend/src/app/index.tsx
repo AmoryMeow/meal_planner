@@ -9,6 +9,7 @@ import {
 } from "@package/auth";
 import { Meals } from "@package/meals";
 import { Plan } from "@package/plan";
+import { PlanDetails, Plans } from "@package/plans";
 import { ThemeProvider, useColors } from "@package/ui";
 
 import { Header } from "./header";
@@ -52,6 +53,8 @@ const AppContent = () => {
         <Route element={<ProtectedRoute />}>
           <Route element={<AuthenticatedLayout />}>
             <Route path="/plan" element={<Plan />} />
+            <Route path="/plans" element={<Plans />} />
+            <Route path="/plans/:planId" element={<PlanDetails />} />
             <Route path="/meals" element={<Meals />} />
           </Route>
         </Route>
