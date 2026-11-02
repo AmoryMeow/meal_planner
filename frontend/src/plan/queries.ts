@@ -19,6 +19,7 @@ import {
   type CreatePlanItemInput,
   type MealPlan,
   type PlanItem,
+  type PlanItemQuery,
   type PlanItemRange,
   type UpdatePlanInput,
   type UpdatePlanItemInput,
@@ -85,17 +86,18 @@ export const planItemQueryKeys = {
   byUser: (userId: number | null) => [...planItemQueryKeys.all, userId] as const,
   ranges: (userId: number | null) =>
     [...planItemQueryKeys.byUser(userId), "range"] as const,
-  range: (userId: number | null, { dateFrom, dateTo }: PlanItemRange) =>
-    [...planItemQueryKeys.ranges(userId), dateFrom, dateTo] as const,
+  range: (userId: number | null, { dateFrom, dateTo, planIds }: PlanItemQuery) =>
+    [...planItemQueryKeys.ranges(userId), dateFrom, dateTo, planIds] as const,
 };
 
-export const usePlanItemsQuery = (range: PlanItemRange) => {
+export const usePlanItemsQuery = (range: PlanItemRange, planIds: number[]) => {
   const { request, user } = useAuthSession();
+  const query = { ...range, planIds };
 
   return useQuery({
-    queryKey: planItemQueryKeys.range(user?.id ?? null, range),
-    queryFn: () => getPlanItems(request, range),
-    enabled: Boolean(user && range.dateFrom && range.dateTo),
+    queryKey: planItemQueryKeys.range(user?.id ?? null, query),
+    queryFn: () => getPlanItems(request, query),
+    enabled: Boolean(user && range.dateFrom && range.dateTo && planIds.length),
   });
 };
 
@@ -172,10 +174,21 @@ export const useUpdatePlanItemMutation = () => {
 
         const dateFrom = queryKey[3];
         const dateTo = queryKey[4];
-        if (typeof dateFrom !== "string" || typeof dateTo !== "string") return;
+        const planIds = queryKey[5];
+        if (
+          typeof dateFrom !== "string" ||
+          typeof dateTo !== "string" ||
+          !Array.isArray(planIds)
+        ) {
+          return;
+        }
 
         const nextItems = items.filter(item => item.id !== updatedPlanItem.id);
-        if (updatedPlanItem.date >= dateFrom && updatedPlanItem.date <= dateTo) {
+        if (
+          planIds.includes(updatedPlanItem.plan_id) &&
+          updatedPlanItem.date >= dateFrom &&
+          updatedPlanItem.date <= dateTo
+        ) {
           nextItems.push(updatedPlanItem);
           nextItems.sort(comparePlanItems);
         }
@@ -243,6 +256,7 @@ const getPlanItemApiFieldErrors = (error: Error | null): PlanItemApiFieldErrors 
   if (!(error instanceof ApiError)) return {};
 
   return {
+    plan_id: getFirstError(error.body?.plan_id),
     date: getFirstError(error.body?.date),
     meal_type: getFirstError(error.body?.meal_type),
     meal_id: getFirstError(error.body?.meal_id),

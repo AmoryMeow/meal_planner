@@ -54,7 +54,12 @@ export type PlanItemRange = {
   dateTo: string;
 };
 
+export type PlanItemQuery = PlanItemRange & {
+  planIds: number[];
+};
+
 export type CreatePlanItemInput = {
+  plan_id?: number;
   date: string;
   meal_type: MealType;
   meal_id: number;
@@ -62,7 +67,7 @@ export type CreatePlanItemInput = {
   note?: string;
 };
 
-export type UpdatePlanItemInput = Partial<CreatePlanItemInput>;
+export type UpdatePlanItemInput = Partial<Omit<CreatePlanItemInput, "plan_id">>;
 
 export const getPlans = (request: AuthenticatedRequest) =>
   request<MealPlan[]>("/plans/");
@@ -82,11 +87,12 @@ export const updatePlan = (
 
 export const getPlanItems = (
   request: AuthenticatedRequest,
-  { dateFrom, dateTo }: PlanItemRange
+  { dateFrom, dateTo, planIds }: PlanItemQuery
 ) => {
   const query = new URLSearchParams({
     date_from: dateFrom,
     date_to: dateTo,
+    plan_ids: planIds.join(","),
   });
 
   return request<PlanItem[]>(`/plan-items/?${query.toString()}`);

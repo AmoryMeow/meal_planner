@@ -17,9 +17,15 @@ import {
 } from "./date-utils";
 import { EditPlanItemDialog } from "./edit-plan-item-dialog";
 import { MonthCalendar } from "./month-calendar";
+import { PlanSelector } from "./plan-selector";
 import { usePlanItemsQuery, usePlansQuery } from "./queries";
 import { RemovePlanItemDialog } from "./remove-plan-item-dialog";
-import { type CalendarView, type MealType, type PlanColorMap } from "./types";
+import {
+  type CalendarView,
+  DEFAULT_MEAL_TYPES,
+  type MealType,
+  type PlanColorMap,
+} from "./types";
 import { WeekCalendar } from "./week-calendar";
 
 export {
@@ -35,6 +41,7 @@ export {
   type MealSnapshot,
   type MealSnapshotIngredient,
   type PlanItem,
+  type PlanItemQuery,
   type PlanItemRange,
   type PlanScope,
   type UpdatePlanInput,
@@ -87,6 +94,7 @@ export const Plan = () => {
   const [editTarget, setEditTarget] = useState<PlanItem | null>(null);
   const [calendarView, setCalendarView] = useState<CalendarView>("week");
   const [visibleDate, setVisibleDate] = useState(() => new Date());
+  const [selectedPlanIds, setSelectedPlanIds] = useState<number[]>([]);
   const weekStart = getStartOfWeek(visibleDate);
   const monthStart = getStartOfMonth(visibleDate);
   const visibleRange = useMemo(() => {
@@ -105,18 +113,28 @@ export const Plan = () => {
     };
   }, [calendarView, visibleDate]);
   const plansQuery = usePlansQuery();
-  const planItemsQuery = usePlanItemsQuery(visibleRange);
-  const activePlan = plansQuery.data?.[0];
-  const mealTypes = activePlan?.enabled_meal_types ?? [];
+  const planItemsQuery = usePlanItemsQuery(visibleRange, selectedPlanIds);
+  const selectedPlans = useMemo(
+    () => plansQuery.data?.filter(plan => selectedPlanIds.includes(plan.id)) ?? [],
+    [plansQuery.data, selectedPlanIds]
+  );
+  const mealTypes = DEFAULT_MEAL_TYPES.filter(mealType =>
+    selectedPlans.some(plan => plan.enabled_meal_types.includes(mealType))
+  );
   const planColors: PlanColorMap = useMemo(
-    () => new Map(plansQuery.data?.map(plan => [plan.id, plan.color]) ?? []),
-    [plansQuery.data]
+    () => new Map(selectedPlans.map(plan => [plan.id, plan.color])),
+    [selectedPlans]
   );
   const visiblePlanItems =
     planItemsQuery.data?.filter(planItem => mealTypes.includes(planItem.meal_type)) ??
     [];
-  const isPlanPending = plansQuery.isPending || planItemsQuery.isPending;
-  const isPlanError = plansQuery.isError || planItemsQuery.isError;
+  const hasPlanSelection = selectedPlanIds.length > 0;
+  const isPlanPending =
+    plansQuery.isPending ||
+    (plansQuery.isSuccess && plansQuery.data.length > 0 && !hasPlanSelection) ||
+    (hasPlanSelection && planItemsQuery.isPending);
+  const isPlanError =
+    plansQuery.isError || (hasPlanSelection && planItemsQuery.isError);
   const isCurrentPeriod =
     calendarView === "week"
       ? getDateKey(weekStart) === getDateKey(getStartOfWeek(new Date()))
@@ -125,6 +143,22 @@ export const Plan = () => {
     calendarView === "week"
       ? formatWeekRange(weekStart, addDays(weekStart, 6))
       : formatMonth(monthStart);
+
+  useEffect(() => {
+    if (!plansQuery.data?.length) return;
+
+    setSelectedPlanIds(current => {
+      const availableSelection = plansQuery.data
+        .filter(plan => current.includes(plan.id))
+        .map(plan => plan.id);
+      const personalPlan = plansQuery.data.find(plan => plan.scope === "personal");
+      const nextSelection = availableSelection.length
+        ? availableSelection
+        : [personalPlan?.id ?? plansQuery.data[0]!.id];
+
+      return areNumberArraysEqual(current, nextSelection) ? current : nextSelection;
+    });
+  }, [plansQuery.data]);
 
   useEffect(() => {
     const dialog = addPlanItemDialogRef.current;
@@ -212,6 +246,9 @@ export const Plan = () => {
           dialogRef={addPlanItemDialogRef}
           date={addTarget.date}
           mealType={addTarget.mealType}
+          plans={selectedPlans.filter(plan =>
+            plan.enabled_meal_types.includes(addTarget.mealType)
+          )}
           onClose={() => setAddTarget(null)}
         />
       ) : null}
@@ -231,6 +268,14 @@ export const Plan = () => {
           planItem={editTarget}
           onClose={() => setEditTarget(null)}
           onRemove={() => setRemoveTarget(editTarget)}
+        />
+      ) : null}
+
+      {plansQuery.isSuccess && plansQuery.data.length > 1 && hasPlanSelection ? (
+        <PlanSelector
+          plans={plansQuery.data}
+          selectedPlanIds={selectedPlanIds}
+          onChange={setSelectedPlanIds}
         />
       ) : null}
 
@@ -267,6 +312,10 @@ export const Plan = () => {
     </main>
   );
 };
+
+const areNumberArraysEqual = (first: number[], second: number[]): boolean =>
+  first.length === second.length &&
+  first.every((value, index) => value === second[index]);
 
 const formatWeekRange = (weekStart: Date, weekEnd: Date): string => {
   const currentYear = new Date().getFullYear();

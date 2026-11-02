@@ -1,8 +1,9 @@
-import { type FormEvent, type RefObject, useState } from "react";
+import { type FormEvent, type RefObject, useId, useState } from "react";
 
 import { MealCombobox, type MealOption } from "@package/meals";
 import { Button, Dialog, Input, Textarea, useColors } from "@package/ui";
 
+import { type MealPlan } from "./api";
 import { getDateKey } from "./date-utils";
 import { MealTypeSelect } from "./meal-type-select";
 import { useCreatePlanItemMutation } from "./queries";
@@ -12,6 +13,7 @@ type AddPlanItemDialogProps = {
   dialogRef: RefObject<HTMLDialogElement>;
   date: Date;
   mealType: MealType;
+  plans: MealPlan[];
   onClose: () => void;
 };
 
@@ -25,11 +27,13 @@ export const AddPlanItemDialog = ({
   dialogRef,
   date,
   mealType,
+  plans,
   onClose,
 }: AddPlanItemDialogProps) => {
   const colors = useColors();
   const creation = useCreatePlanItemMutation();
   const [selectedMeal, setSelectedMeal] = useState<MealOption | null>(null);
+  const [selectedPlanId, setSelectedPlanId] = useState(plans[0]?.id ?? 0);
   const [selectedMealType, setSelectedMealType] = useState(mealType);
   const [selectionError, setSelectionError] = useState("");
   const [servings, setServings] = useState("1");
@@ -38,6 +42,7 @@ export const AddPlanItemDialog = ({
 
   const resetForm = () => {
     setSelectedMeal(null);
+    setSelectedPlanId(plans[0]?.id ?? 0);
     setSelectedMealType(mealType);
     setSelectionError("");
     setServings("1");
@@ -71,6 +76,7 @@ export const AddPlanItemDialog = ({
 
     creation.mutate(
       {
+        plan_id: selectedPlanId,
         date: getDateKey(date),
         meal_type: selectedMealType,
         meal_id: selectedMeal.id,
@@ -110,6 +116,17 @@ export const AddPlanItemDialog = ({
       <p css={{ margin: 0, color: colors.textSecondary, fontSize: 14 }}>
         {dateFormatter.format(date)}
       </p>
+
+      <PlanSelect
+        plans={plans}
+        value={selectedPlanId}
+        disabled={creation.isPending}
+        error={creation.apiFieldErrors.plan_id}
+        onChange={value => {
+          setSelectedPlanId(value);
+          creation.reset();
+        }}
+      />
 
       <MealCombobox
         value={selectedMeal}
@@ -177,5 +194,78 @@ export const AddPlanItemDialog = ({
         </div>
       ) : null}
     </Dialog>
+  );
+};
+
+const PlanSelect = ({
+  plans,
+  value,
+  disabled,
+  error,
+  onChange,
+}: {
+  plans: MealPlan[];
+  value: number;
+  disabled: boolean;
+  error?: string;
+  onChange: (planId: number) => void;
+}) => {
+  const colors = useColors();
+  const selectId = useId();
+  const errorId = useId();
+
+  return (
+    <div>
+      <label
+        htmlFor={selectId}
+        css={{
+          display: "block",
+          marginBottom: 8,
+          color: colors.textPrimary,
+          fontSize: 14,
+          fontWeight: 600,
+        }}
+      >
+        Plan
+      </label>
+      <select
+        id={selectId}
+        value={value}
+        disabled={disabled}
+        aria-invalid={Boolean(error)}
+        aria-describedby={error ? errorId : undefined}
+        onChange={event => onChange(Number(event.target.value))}
+        css={{
+          width: "100%",
+          height: 44,
+          boxSizing: "border-box",
+          padding: "0 12px",
+          border: error ? `1px solid ${colors.danger}` : `1px solid ${colors.border}`,
+          borderRadius: 8,
+          background: disabled ? colors.surfaceAlt : colors.background,
+          color: colors.textPrimary,
+          font: "inherit",
+          "&:focus-visible": {
+            outline: `3px solid ${colors.focus}`,
+            borderColor: colors.focus,
+          },
+        }}
+      >
+        {plans.map(plan => (
+          <option key={plan.id} value={plan.id}>
+            {plan.name} ({plan.scope === "group" ? "Group" : "Personal"})
+          </option>
+        ))}
+      </select>
+      {error ? (
+        <div
+          id={errorId}
+          role="alert"
+          css={{ marginTop: 6, color: colors.danger, fontSize: 12 }}
+        >
+          {error}
+        </div>
+      ) : null}
+    </div>
   );
 };
