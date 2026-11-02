@@ -50,7 +50,7 @@ export const Header = () => {
         }}
       >
         <Link
-          to={isAuthenticated ? "/plan" : "/"}
+          to={isAuthenticated ? "/home" : "/"}
           css={{
             display: "flex",
             alignItems: "center",

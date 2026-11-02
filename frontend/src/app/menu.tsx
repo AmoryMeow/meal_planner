@@ -15,7 +15,7 @@ type MenuType = {
 };
 
 const config: MenuType[] = [
-  { link: "/plan", label: "Home", icon: <span aria-hidden>📅</span> },
+  { link: "/home", label: "Home", icon: <span aria-hidden>📅</span> },
   {
     link: "/meals",
     label: "Meals",
@@ -87,8 +87,8 @@ export const Menu = ({ variant }: Props) => {
       >
         {config.map(item => {
           const active =
-            item.link === "/plan"
-              ? pathname === "/plan"
+            item.link === "/home"
+              ? pathname === "/home"
               : pathname.startsWith(item.link);
 
           return (

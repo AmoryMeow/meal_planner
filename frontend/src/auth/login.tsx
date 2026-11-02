@@ -114,7 +114,7 @@ export const Login = () => {
 };
 
 const getReturnPath = (state: unknown): string => {
-  if (!isRecord(state) || !isRecord(state.from)) return "/plan";
+  if (!isRecord(state) || !isRecord(state.from)) return "/home";
 
   const { pathname, search = "", hash = "" } = state.from;
   if (
@@ -122,7 +122,7 @@ const getReturnPath = (state: unknown): string => {
     !pathname.startsWith("/") ||
     pathname.startsWith("//")
   ) {
-    return "/plan";
+    return "/home";
   }
 
   return `${pathname}${typeof search === "string" ? search : ""}${

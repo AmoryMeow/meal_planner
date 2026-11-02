@@ -35,7 +35,7 @@ export const GuestRoute = () => {
   }
 
   if (status === "authenticated") {
-    return <Navigate to="/plan" replace />;
+    return <Navigate to="/home" replace />;
   }
 
   return <Outlet />;

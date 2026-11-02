@@ -52,7 +52,8 @@ const AppContent = () => {
 
         <Route element={<ProtectedRoute />}>
           <Route element={<AuthenticatedLayout />}>
-            <Route path="/plan" element={<Plan />} />
+            <Route path="/home" element={<Plan />} />
+            <Route path="/plan" element={<Navigate to="/home" replace />} />
             <Route path="/plans" element={<Plans />} />
             <Route path="/plans/:planId" element={<PlanDetails />} />
             <Route path="/meals" element={<Meals />} />

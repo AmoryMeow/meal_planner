@@ -42,7 +42,7 @@ export const Register = () => {
       {
         onSuccess: session => {
           signIn(session);
-          navigate("/plan", { replace: true });
+          navigate("/home", { replace: true });
         },
       }
     );
