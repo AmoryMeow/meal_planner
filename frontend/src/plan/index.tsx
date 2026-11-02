@@ -36,6 +36,7 @@ export {
   type MealSnapshotIngredient,
   type PlanItem,
   type PlanItemRange,
+  type PlanScope,
   type UpdatePlanInput,
   type UpdatePlanItemInput,
 } from "./api";

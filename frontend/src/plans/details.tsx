@@ -4,6 +4,7 @@ import { usePlanQuery } from "@package/plan";
 import { Button, getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
 
 import { PlanSettingsForm } from "./plan-settings-form";
+import { PlanSettingsSummary } from "./plan-settings-summary";
 
 export const PlanDetails = () => {
   const { planId: planIdParam } = useParams();
@@ -85,7 +86,12 @@ export const PlanDetails = () => {
       {planQuery.isError ? (
         <PlanDetailsError onRetry={() => void planQuery.refetch()} />
       ) : null}
-      {planQuery.isSuccess ? <PlanSettingsForm plan={planQuery.data} /> : null}
+      {planQuery.isSuccess && planQuery.data.can_manage ? (
+        <PlanSettingsForm plan={planQuery.data} />
+      ) : null}
+      {planQuery.isSuccess && !planQuery.data.can_manage ? (
+        <PlanSettingsSummary plan={planQuery.data} />
+      ) : null}
     </main>
   );
 };

@@ -133,18 +133,41 @@ const PlanRow = ({ plan, isMobile }: { plan: MealPlan; isMobile: boolean }) => {
             boxShadow: `0 0 0 3px ${hexToRgba(plan.color, 0.18)}`,
           }}
         />
-        <h2
+        <div
           css={{
             minWidth: 0,
-            margin: 0,
-            color: colors.textPrimary,
-            fontSize: 18,
-            lineHeight: 1.3,
-            overflowWrap: "anywhere",
+            display: "flex",
+            alignItems: "center",
+            flexWrap: "wrap",
+            gap: 8,
           }}
         >
-          {plan.name}
-        </h2>
+          <h2
+            css={{
+              minWidth: 0,
+              margin: 0,
+              color: colors.textPrimary,
+              fontSize: 18,
+              lineHeight: 1.3,
+              overflowWrap: "anywhere",
+            }}
+          >
+            {plan.name}
+          </h2>
+          <span
+            css={{
+              padding: "3px 7px",
+              borderRadius: 999,
+              background: plan.scope === "group" ? colors.infoBg : colors.surfaceAlt,
+              color: plan.scope === "group" ? colors.info : colors.textSecondary,
+              fontSize: 11,
+              fontWeight: 700,
+              lineHeight: 1.2,
+            }}
+          >
+            {plan.scope === "group" ? "Group" : "Personal"}
+          </span>
+        </div>
       </div>
 
       <div>

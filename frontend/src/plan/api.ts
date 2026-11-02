@@ -3,8 +3,13 @@ import type { MealSource } from "@package/meals";
 
 import type { MealType } from "./types";
 
+export type PlanScope = "personal" | "group";
+
 export type MealPlan = {
   id: number;
+  scope: PlanScope;
+  group_id: number | null;
+  can_manage: boolean;
   name: string;
   color: string;
   enabled_meal_types: MealType[];
