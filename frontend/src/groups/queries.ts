@@ -4,7 +4,16 @@ import { ApiError } from "@package/api";
 import { useAuthSession } from "@package/auth";
 import { planQueryKeys } from "@package/plan";
 
-import { createGroup, getGroup, type CreateGroupInput } from "./api";
+import {
+  createGroup,
+  createGroupInvite,
+  getGroup,
+  getGroupInvites,
+  revokeGroupInvite,
+  type CreateGroupInput,
+  type CreateGroupInviteInput,
+  type GroupInvite,
+} from "./api";
 
 export const groupQueryKeys = {
   all: ["groups"] as const,
@@ -38,11 +47,73 @@ export const useCreateGroupMutation = () => {
   return {
     ...mutation,
     apiFieldErrors,
-    submitError: getGroupSubmitError(mutation.error, apiFieldErrors),
+    submitError: getSubmitError(mutation.error, apiFieldErrors),
+  };
+};
+
+export const groupInviteQueryKeys = {
+  all: ["group-invites"] as const,
+  byUser: (userId: number | null) => [...groupInviteQueryKeys.all, userId] as const,
+  byGroup: (userId: number | null, groupId: number) =>
+    [...groupInviteQueryKeys.byUser(userId), "group", groupId] as const,
+};
+
+export const useGroupInvitesQuery = (groupId: number) => {
+  const { request, user } = useAuthSession();
+
+  return useQuery({
+    queryKey: groupInviteQueryKeys.byGroup(user?.id ?? null, groupId),
+    queryFn: () => getGroupInvites(request, groupId),
+    enabled: Boolean(user && groupId),
+  });
+};
+
+export const useCreateGroupInviteMutation = (groupId: number) => {
+  const { request, user } = useAuthSession();
+  const queryClient = useQueryClient();
+  const queryKey = groupInviteQueryKeys.byGroup(user?.id ?? null, groupId);
+
+  const mutation = useMutation({
+    mutationFn: (input: CreateGroupInviteInput) =>
+      createGroupInvite(request, groupId, input),
+    onSuccess: invite => {
+      queryClient.setQueryData<GroupInvite[]>(queryKey, current => [
+        invite,
+        ...(current ?? []),
+      ]);
+    },
+  });
+  const apiFieldErrors = getInviteApiFieldErrors(mutation.error);
+
+  return {
+    ...mutation,
+    apiFieldErrors,
+    submitError: getSubmitError(mutation.error, apiFieldErrors),
+  };
+};
+
+export const useRevokeGroupInviteMutation = (groupId: number) => {
+  const { request, user } = useAuthSession();
+  const queryClient = useQueryClient();
+  const queryKey = groupInviteQueryKeys.byGroup(user?.id ?? null, groupId);
+
+  const mutation = useMutation({
+    mutationFn: (inviteId: number) => revokeGroupInvite(request, groupId, inviteId),
+    onSuccess: (_response, inviteId) => {
+      queryClient.setQueryData<GroupInvite[]>(queryKey, current =>
+        current?.filter(invite => invite.id !== inviteId)
+      );
+    },
+  });
+
+  return {
+    ...mutation,
+    submitError: getSubmitError(mutation.error, {}),
   };
 };
 
 type GroupApiFieldErrors = Partial<Record<keyof CreateGroupInput, string>>;
+type InviteApiFieldErrors = Partial<Record<keyof CreateGroupInviteInput, string>>;
 
 const getGroupApiFieldErrors = (error: Error | null): GroupApiFieldErrors => {
   if (!(error instanceof ApiError)) return {};
@@ -53,9 +124,17 @@ const getGroupApiFieldErrors = (error: Error | null): GroupApiFieldErrors => {
   };
 };
 
-const getGroupSubmitError = (
+const getInviteApiFieldErrors = (error: Error | null): InviteApiFieldErrors => {
+  if (!(error instanceof ApiError)) return {};
+
+  return {
+    email: getFirstError(error.body?.email),
+  };
+};
+
+const getSubmitError = (
   error: Error | null,
-  apiFieldErrors: GroupApiFieldErrors
+  apiFieldErrors: Record<string, string | undefined>
 ): string => {
   if (!error || Object.values(apiFieldErrors).some(Boolean)) return "";
   if (error instanceof ApiError) return error.message;

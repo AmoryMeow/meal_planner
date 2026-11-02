@@ -1,6 +1,6 @@
 import { Link, Navigate, useParams } from "react-router-dom";
 
-import { GroupMembers, useGroupQuery } from "@package/groups";
+import { GroupInvitations, GroupMembers, useGroupQuery } from "@package/groups";
 import { usePlanQuery } from "@package/plan";
 import { Button, getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
 
@@ -115,7 +115,14 @@ const GroupMembersSection = ({
   if (groupQuery.isError) {
     return <GroupMembersError onRetry={() => void groupQuery.refetch()} />;
   }
-  return <GroupMembers color={color} group={groupQuery.data} />;
+  return (
+    <>
+      <GroupMembers color={color} group={groupQuery.data} />
+      {groupQuery.data.role === "owner" ? (
+        <GroupInvitations groupId={groupQuery.data.id} />
+      ) : null}
+    </>
+  );
 };
 
 const GroupMembersStatus = () => {

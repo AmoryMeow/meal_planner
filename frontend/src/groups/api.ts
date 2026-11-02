@@ -27,7 +27,20 @@ export type GroupDetails = MealGroup & {
   members: GroupMember[];
 };
 
+export type GroupInviteStatus = "pending" | "accepted" | "revoked";
+
+export type GroupInvite = {
+  id: number;
+  email: string;
+  token: string;
+  status: GroupInviteStatus;
+  is_expired: boolean;
+  expires_at: string;
+  created_at: string;
+};
+
 export type CreateGroupInput = Pick<MealGroup, "name" | "color">;
+export type CreateGroupInviteInput = Pick<GroupInvite, "email">;
 
 export const getGroup = (request: AuthenticatedRequest, groupId: number) =>
   request<GroupDetails>(`/groups/${groupId}/`);
@@ -36,4 +49,26 @@ export const createGroup = (request: AuthenticatedRequest, input: CreateGroupInp
   request<MealGroup>("/groups/", {
     method: "POST",
     body: JSON.stringify(input),
+  });
+
+export const getGroupInvites = (request: AuthenticatedRequest, groupId: number) =>
+  request<GroupInvite[]>(`/groups/${groupId}/invites/`);
+
+export const createGroupInvite = (
+  request: AuthenticatedRequest,
+  groupId: number,
+  input: CreateGroupInviteInput
+) =>
+  request<GroupInvite>(`/groups/${groupId}/invites/`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const revokeGroupInvite = (
+  request: AuthenticatedRequest,
+  groupId: number,
+  inviteId: number
+) =>
+  request<void>(`/groups/${groupId}/invites/${inviteId}/`, {
+    method: "DELETE",
   });
