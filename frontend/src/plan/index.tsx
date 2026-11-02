@@ -215,6 +215,13 @@ export const Plan = () => {
           >
             Meal plan
           </h1>
+          {plansQuery.isSuccess && plansQuery.data.length > 1 && hasPlanSelection ? (
+            <PlanSelector
+              plans={plansQuery.data}
+              selectedPlanIds={selectedPlanIds}
+              onChange={setSelectedPlanIds}
+            />
+          ) : null}
           <CalendarViewToggle value={calendarView} onChange={setCalendarView} />
         </div>
 
@@ -268,14 +275,6 @@ export const Plan = () => {
           planItem={editTarget}
           onClose={() => setEditTarget(null)}
           onRemove={() => setRemoveTarget(editTarget)}
-        />
-      ) : null}
-
-      {plansQuery.isSuccess && plansQuery.data.length > 1 && hasPlanSelection ? (
-        <PlanSelector
-          plans={plansQuery.data}
-          selectedPlanIds={selectedPlanIds}
-          onChange={setSelectedPlanIds}
         />
       ) : null}
 
