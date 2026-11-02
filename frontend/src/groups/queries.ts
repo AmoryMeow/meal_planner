@@ -5,6 +5,7 @@ import { useAuthSession } from "@package/auth";
 import { planQueryKeys } from "@package/plan";
 
 import {
+  acceptGroupInvite,
   createGroup,
   createGroupInvite,
   getGroup,
@@ -112,6 +113,27 @@ export const useRevokeGroupInviteMutation = (groupId: number) => {
   };
 };
 
+export const useAcceptGroupInviteMutation = (token: string) => {
+  const { request, user } = useAuthSession();
+  const queryClient = useQueryClient();
+  const userId = user?.id ?? null;
+
+  const mutation = useMutation({
+    mutationFn: () => acceptGroupInvite(request, token),
+    onSuccess: group => {
+      void queryClient.invalidateQueries({ queryKey: planQueryKeys.list(userId) });
+      void queryClient.invalidateQueries({
+        queryKey: groupQueryKeys.detail(userId, group.id),
+      });
+    },
+  });
+
+  return {
+    ...mutation,
+    submitError: getInviteAcceptanceError(mutation.error),
+  };
+};
+
 type GroupApiFieldErrors = Partial<Record<keyof CreateGroupInput, string>>;
 type InviteApiFieldErrors = Partial<Record<keyof CreateGroupInviteInput, string>>;
 
@@ -130,6 +152,13 @@ const getInviteApiFieldErrors = (error: Error | null): InviteApiFieldErrors => {
   return {
     email: getFirstError(error.body?.email),
   };
+};
+
+const getInviteAcceptanceError = (error: Error | null): string => {
+  if (error instanceof ApiError && error.status === 404) {
+    return "This invitation link is invalid or no longer available.";
+  }
+  return getSubmitError(error, {});
 };
 
 const getSubmitError = (

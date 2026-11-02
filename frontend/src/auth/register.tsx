@@ -1,14 +1,16 @@
 import React, { useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 
 import { useColors, Input, Button } from "@package/ui";
 
 import { AuthCard } from "./auth-card";
 import { useRegistrationMutation } from "./queries";
+import { getReturnPath } from "./return-path";
 import { useAuthSession } from "./session-context";
 
 export const Register = () => {
   const colors = useColors();
+  const location = useLocation();
   const navigate = useNavigate();
   const registration = useRegistrationMutation();
   const { signIn } = useAuthSession();
@@ -42,7 +44,7 @@ export const Register = () => {
       {
         onSuccess: session => {
           signIn(session);
-          navigate("/home", { replace: true });
+          navigate(getReturnPath(location.state), { replace: true });
         },
       }
     );
@@ -155,6 +157,7 @@ export const Register = () => {
           Already have an account?{" "}
           <Link
             to="/login"
+            state={location.state}
             css={{
               color: colors.primary,
               textDecoration: "none",

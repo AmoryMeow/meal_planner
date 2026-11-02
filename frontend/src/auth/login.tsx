@@ -5,6 +5,7 @@ import { useColors, Input, Button } from "@package/ui";
 
 import { AuthCard } from "./auth-card";
 import { useLoginMutation } from "./queries";
+import { getReturnPath } from "./return-path";
 import { useAuthSession } from "./session-context";
 
 export const Login = () => {
@@ -96,6 +97,7 @@ export const Login = () => {
           Don't have an account?{" "}
           <Link
             to="/register"
+            state={location.state}
             css={{
               color: colors.primary,
               textDecoration: "none",
@@ -112,23 +114,3 @@ export const Login = () => {
     </AuthCard>
   );
 };
-
-const getReturnPath = (state: unknown): string => {
-  if (!isRecord(state) || !isRecord(state.from)) return "/home";
-
-  const { pathname, search = "", hash = "" } = state.from;
-  if (
-    typeof pathname !== "string" ||
-    !pathname.startsWith("/") ||
-    pathname.startsWith("//")
-  ) {
-    return "/home";
-  }
-
-  return `${pathname}${typeof search === "string" ? search : ""}${
-    typeof hash === "string" ? hash : ""
-  }`;
-};
-
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null;

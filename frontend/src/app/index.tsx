@@ -7,6 +7,7 @@ import {
   ProtectedRoute,
   Register,
 } from "@package/auth";
+import { InviteAcceptance } from "@package/groups";
 import { Meals } from "@package/meals";
 import { Plan } from "@package/plan";
 import { PlanDetails, Plans } from "@package/plans";
@@ -44,6 +45,8 @@ const AppContent = () => {
       <Header />
 
       <Routes>
+        <Route path="/invite/:token" element={<InviteAcceptance />} />
+
         <Route element={<GuestRoute />}>
           <Route path="/" element={<Landing />} />
           <Route path="/login" element={<Login />} />

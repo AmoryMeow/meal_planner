@@ -72,3 +72,8 @@ export const revokeGroupInvite = (
   request<void>(`/groups/${groupId}/invites/${inviteId}/`, {
     method: "DELETE",
   });
+
+export const acceptGroupInvite = (request: AuthenticatedRequest, token: string) =>
+  request<MealGroup>(`/invites/${token}/accept/`, {
+    method: "POST",
+  });

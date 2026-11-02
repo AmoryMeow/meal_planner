@@ -1,6 +1,8 @@
 export { CreateGroupDialog } from "./create-group-dialog";
 export { GroupInvitations } from "./group-invitations";
+export { InviteAcceptance } from "./invite-acceptance";
 export {
+  acceptGroupInvite,
   createGroup,
   createGroupInvite,
   getGroup,
@@ -18,6 +20,7 @@ export {
 export {
   groupInviteQueryKeys,
   groupQueryKeys,
+  useAcceptGroupInviteMutation,
   useCreateGroupInviteMutation,
   useCreateGroupMutation,
   useGroupInvitesQuery,
