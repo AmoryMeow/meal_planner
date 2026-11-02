@@ -119,8 +119,18 @@ class PlanItem(models.Model):
 
     def clean(self):
         super().clean()
-        if self.plan_id and self.meal_id and self.plan.owner_id != self.meal.owner_id:
-            raise ValidationError({"meal": "Meal must be available to the plan owner."})
+        if not self.plan_id or not self.meal_id:
+            return
+        if self.plan.owner_id is not None:
+            if self.plan.owner_id != self.meal.owner_id:
+                raise ValidationError(
+                    {"meal": "Meal must be available to the plan owner."}
+                )
+            return
+        if not self.plan.group.memberships.filter(user_id=self.meal.owner_id).exists():
+            raise ValidationError(
+                {"meal": "Meal owner must be a member of the plan group."}
+            )
 
     def __str__(self):
         return f"{self.date} {self.get_meal_type_display()}: {self.meal}"

@@ -352,6 +352,8 @@ class PlanItemApiTests(APITestCase):
             owner=self.other_user,
             name="Private meal",
         )
+        self.group = create_group(owner=self.user, name="Family", color="#A78BFA")
+        self.group_plan = self.group.plan
         self.url = reverse("plan-item-list")
 
     def test_list_requires_authentication(self):
@@ -376,6 +378,21 @@ class PlanItemApiTests(APITestCase):
         self.assertIn("date_to", missing_range.data)
         self.assertEqual(reversed_range.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("non_field_errors", reversed_range.data)
+
+    def test_list_rejects_invalid_plan_ids(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            self.url,
+            {
+                "date_from": "2026-11-01",
+                "date_to": "2026-11-07",
+                "plan_ids": f"{self.plan.id},invalid",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("plan_ids", response.data)
 
     def test_list_contains_only_current_plan_and_requested_dates(self):
         breakfast = create_plan_item(
@@ -415,6 +432,63 @@ class PlanItemApiTests(APITestCase):
             [breakfast.id, dinner.id],
         )
 
+    def test_list_contains_items_from_selected_accessible_plans(self):
+        personal_item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.BREAKFAST,
+        )
+        group_item = create_plan_item(
+            plan=self.group_plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.DINNER,
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            self.url,
+            {
+                "date_from": "2026-11-01",
+                "date_to": "2026-11-07",
+                "plan_ids": f"{self.plan.id},{self.group_plan.id}",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [item["id"] for item in response.data],
+            [personal_item.id, group_item.id],
+        )
+
+    def test_list_ignores_inaccessible_plan_ids(self):
+        personal_item = create_plan_item(
+            plan=self.plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        create_plan_item(
+            plan=self.other_plan,
+            meal=self.other_meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            self.url,
+            {
+                "date_from": "2026-11-01",
+                "date_to": "2026-11-07",
+                "plan_ids": f"{self.plan.id},{self.other_plan.id}",
+            },
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([item["id"] for item in response.data], [personal_item.id])
+
     def test_empty_list_does_not_create_personal_plan(self):
         user_without_plan = User.objects.create_user(
             email="without-plan@example.com",
@@ -442,7 +516,6 @@ class PlanItemApiTests(APITestCase):
                 "meal_id": self.meal.id,
                 "servings": 2,
                 "note": "Prepare early",
-                "plan_id": self.other_plan.id,
                 "meal_snapshot": {"name": "Spoofed meal"},
             },
             format="json",
@@ -452,6 +525,65 @@ class PlanItemApiTests(APITestCase):
         item = PlanItem.objects.get(pk=response.data["id"])
         self.assertEqual(item.plan, self.plan)
         self.assertEqual(item.meal_snapshot["name"], "Vegetable soup")
+
+    def test_create_assigns_selected_group_plan(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.url,
+            {
+                "plan_id": self.group_plan.id,
+                "date": "2026-11-02",
+                "meal_type": "lunch",
+                "meal_id": self.meal.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = PlanItem.objects.get(pk=response.data["id"])
+        self.assertEqual(item.plan, self.group_plan)
+
+    def test_group_member_can_create_item_with_own_meal(self):
+        Membership.objects.create(
+            group=self.group,
+            user=self.other_user,
+            role=Membership.Role.MEMBER,
+        )
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.post(
+            self.url,
+            {
+                "plan_id": self.group_plan.id,
+                "date": "2026-11-02",
+                "meal_type": "lunch",
+                "meal_id": self.other_meal.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = PlanItem.objects.get(pk=response.data["id"])
+        self.assertEqual(item.plan, self.group_plan)
+        self.assertEqual(item.meal, self.other_meal)
+
+    def test_create_rejects_inaccessible_plan(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.url,
+            {
+                "plan_id": self.other_plan.id,
+                "date": "2026-11-02",
+                "meal_type": "lunch",
+                "meal_id": self.meal.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("plan_id", response.data)
 
     def test_create_initializes_personal_plan_when_missing(self):
         user_without_plan = User.objects.create_user(
@@ -522,6 +654,50 @@ class PlanItemApiTests(APITestCase):
         self.assertEqual(owner_response.status_code, status.HTTP_200_OK)
         self.assertEqual(owner_response.data["id"], item.id)
         self.assertEqual(other_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_group_member_can_update_group_plan_item(self):
+        Membership.objects.create(
+            group=self.group,
+            user=self.other_user,
+            role=Membership.Role.MEMBER,
+        )
+        item = create_plan_item(
+            plan=self.group_plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.patch(
+            reverse("plan-item-detail", args=(item.id,)),
+            {"date": "2026-11-03", "meal_type": "dinner"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        item.refresh_from_db()
+        self.assertEqual(item.date, date(2026, 11, 3))
+        self.assertEqual(item.meal_type, PlanItem.MealType.DINNER)
+
+    def test_group_member_can_delete_group_plan_item(self):
+        Membership.objects.create(
+            group=self.group,
+            user=self.other_user,
+            role=Membership.Role.MEMBER,
+        )
+        item = create_plan_item(
+            plan=self.group_plan,
+            meal=self.meal,
+            scheduled_date=date(2026, 11, 2),
+            meal_type=PlanItem.MealType.LUNCH,
+        )
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.delete(reverse("plan-item-detail", args=(item.id,)))
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(PlanItem.objects.filter(pk=item.id).exists())
 
     def test_patch_updates_plan_item_without_replacing_snapshot(self):
         item = create_plan_item(

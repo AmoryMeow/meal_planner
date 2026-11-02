@@ -6,7 +6,7 @@ from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 
 from accounts.models import User
-from groups.models import Group
+from groups.models import Group, Membership
 from meals.models import Meal
 from planning.models import DEFAULT_PLAN_COLOR, DEFAULT_PLAN_NAME, Plan, PlanItem
 
@@ -200,6 +200,36 @@ class PlanItemModelTests(TestCase):
             date=date(2026, 11, 1),
             meal_type=PlanItem.MealType.DINNER,
             meal=other_meal,
+        )
+
+        with self.assertRaises(ValidationError):
+            item.full_clean()
+
+    def test_group_plan_accepts_meal_owned_by_group_member(self):
+        group = Group.objects.create(name="Family")
+        Membership.objects.create(
+            group=group,
+            user=self.user,
+            role=Membership.Role.MEMBER,
+        )
+        group_plan = Plan.objects.create(group=group)
+        item = PlanItem(
+            plan=group_plan,
+            date=date(2026, 11, 1),
+            meal_type=PlanItem.MealType.DINNER,
+            meal=self.meal,
+        )
+
+        item.full_clean()
+
+    def test_group_plan_rejects_meal_owned_by_non_member(self):
+        group = Group.objects.create(name="Family")
+        group_plan = Plan.objects.create(group=group)
+        item = PlanItem(
+            plan=group_plan,
+            date=date(2026, 11, 1),
+            meal_type=PlanItem.MealType.DINNER,
+            meal=self.meal,
         )
 
         with self.assertRaises(ValidationError):

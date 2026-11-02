@@ -4,7 +4,7 @@ from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Plan, PlanItem
-from .permissions import PlanPermission
+from .permissions import PlanItemPermission, PlanPermission, get_accessible_plans
 from .serializers import PlanItemRangeSerializer, PlanItemSerializer, PlanSerializer
 from .services import get_or_create_personal_plan
 
@@ -62,21 +62,20 @@ class PlanItemListCreateView(generics.ListCreateAPIView):
     permission_classes = [IsAuthenticated]
     pagination_class = None
 
-    def get_plan(self, *, create):
-        if create:
-            return get_or_create_personal_plan(self.request.user)
-        return Plan.objects.filter(owner=self.request.user).first()
-
     def get_queryset(self):
         date_range = PlanItemRangeSerializer(data=self.request.query_params)
         date_range.is_valid(raise_exception=True)
-        plan = self.get_plan(create=False)
-        if plan is None:
-            return PlanItem.objects.none()
+        plans = get_accessible_plans(self.request.user)
+        plan_ids = date_range.validated_data.get("plan_ids")
+        plans = (
+            plans.filter(id__in=plan_ids)
+            if plan_ids is not None
+            else plans.filter(owner=self.request.user)
+        )
 
         return (
             PlanItem.objects.filter(
-                plan=plan,
+                plan__in=plans,
                 date__range=(
                     date_range.validated_data["date_from"],
                     date_range.validated_data["date_to"],
@@ -96,15 +95,21 @@ class PlanItemListCreateView(generics.ListCreateAPIView):
         )
 
     def perform_create(self, serializer):
-        serializer.save(plan=self.get_plan(create=True))
+        if "plan" in serializer.validated_data:
+            serializer.save()
+            return
+        serializer.save(plan=get_or_create_personal_plan(self.request.user))
 
 
 class PlanItemDetailView(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = PlanItemSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, PlanItemPermission]
 
     def get_queryset(self):
-        return PlanItem.objects.filter(plan__owner=self.request.user).select_related(
+        return PlanItem.objects.filter(
+            plan__in=get_accessible_plans(self.request.user)
+        ).select_related(
             "plan",
+            "plan__group",
             "meal",
         )

@@ -3,7 +3,7 @@ from rest_framework import serializers
 from meals.models import Meal
 
 from .models import MealType, Plan, PlanItem
-from .permissions import can_manage_plan
+from .permissions import can_manage_plan, get_accessible_plans
 from .services import build_meal_snapshot, create_plan_item
 
 
@@ -53,6 +53,20 @@ class PlanSerializer(serializers.ModelSerializer):
 class PlanItemRangeSerializer(serializers.Serializer):
     date_from = serializers.DateField()
     date_to = serializers.DateField()
+    plan_ids = serializers.CharField(required=False, allow_blank=False)
+
+    def validate_plan_ids(self, value):
+        try:
+            plan_ids = [int(plan_id) for plan_id in value.split(",")]
+        except ValueError as error:
+            raise serializers.ValidationError(
+                "Plan IDs must be positive integers separated by commas."
+            ) from error
+        if not plan_ids or any(plan_id <= 0 for plan_id in plan_ids):
+            raise serializers.ValidationError(
+                "Plan IDs must be positive integers separated by commas."
+            )
+        return list(dict.fromkeys(plan_ids))
 
     def validate(self, attrs):
         if attrs["date_from"] > attrs["date_to"]:
@@ -63,7 +77,7 @@ class PlanItemRangeSerializer(serializers.Serializer):
 
 
 class PlanItemSerializer(serializers.ModelSerializer):
-    plan_id = serializers.IntegerField(read_only=True)
+    plan_id = serializers.IntegerField(min_value=1, required=False)
     meal_id = serializers.PrimaryKeyRelatedField(
         source="meal",
         queryset=Meal.objects.none(),
@@ -85,7 +99,6 @@ class PlanItemSerializer(serializers.ModelSerializer):
         )
         read_only_fields = (
             "id",
-            "plan_id",
             "meal_snapshot",
             "created_at",
             "updated_at",
@@ -105,6 +118,20 @@ class PlanItemSerializer(serializers.ModelSerializer):
             meal_type=validated_data.pop("meal_type"),
             **validated_data,
         )
+
+    def validate(self, attrs):
+        plan_id = attrs.pop("plan_id", None)
+        if self.instance is not None or plan_id is None:
+            return attrs
+
+        request = self.context.get("request")
+        try:
+            attrs["plan"] = get_accessible_plans(request.user).get(pk=plan_id)
+        except Plan.DoesNotExist as error:
+            raise serializers.ValidationError(
+                {"plan_id": "Plan is not available."}
+            ) from error
+        return attrs
 
     def update(self, instance, validated_data):
         meal = validated_data.get("meal")
