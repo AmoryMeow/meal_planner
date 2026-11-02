@@ -25,21 +25,28 @@ import { WeekCalendar } from "./week-calendar";
 export {
   createPlanItem,
   getPlanItems,
+  getPlanSettings,
   removePlanItem,
   updatePlanItem,
+  updatePlanSettings,
   type CreatePlanItemInput,
   type MealSnapshot,
   type MealSnapshotIngredient,
   type PlanItem,
   type PlanItemRange,
+  type PlanSettings,
   type UpdatePlanItemInput,
+  type UpdatePlanSettingsInput,
 } from "./api";
 export {
   planItemQueryKeys,
+  planSettingsQueryKeys,
   useCreatePlanItemMutation,
   usePlanItemsQuery,
+  usePlanSettingsQuery,
   useRemovePlanItemMutation,
   useUpdatePlanItemMutation,
+  useUpdatePlanSettingsMutation,
 } from "./queries";
 export { type CalendarView, type MealType } from "./types";
 

@@ -3,6 +3,17 @@ import type { MealSource } from "@package/meals";
 
 import type { MealType } from "./types";
 
+export type PlanSettings = {
+  id: number;
+  enabled_meal_types: MealType[];
+  created_at: string;
+  updated_at: string;
+};
+
+export type UpdatePlanSettingsInput = {
+  enabled_meal_types: MealType[];
+};
+
 export type MealSnapshotIngredient = {
   ingredient_id: number;
   name: string;
@@ -45,6 +56,18 @@ export type CreatePlanItemInput = {
 };
 
 export type UpdatePlanItemInput = Partial<CreatePlanItemInput>;
+
+export const getPlanSettings = (request: AuthenticatedRequest) =>
+  request<PlanSettings>("/plan/");
+
+export const updatePlanSettings = (
+  request: AuthenticatedRequest,
+  input: UpdatePlanSettingsInput
+) =>
+  request<PlanSettings>("/plan/", {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
 
 export const getPlanItems = (
   request: AuthenticatedRequest,

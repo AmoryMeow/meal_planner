@@ -11,13 +11,54 @@ import { useAuthSession } from "@package/auth";
 import {
   createPlanItem,
   getPlanItems,
+  getPlanSettings,
   removePlanItem,
   updatePlanItem,
+  updatePlanSettings,
   type CreatePlanItemInput,
   type PlanItem,
   type PlanItemRange,
+  type PlanSettings,
+  type UpdatePlanSettingsInput,
   type UpdatePlanItemInput,
 } from "./api";
+
+export const planSettingsQueryKeys = {
+  all: ["plan-settings"] as const,
+  byUser: (userId: number | null) => [...planSettingsQueryKeys.all, userId] as const,
+};
+
+export const usePlanSettingsQuery = () => {
+  const { request, user } = useAuthSession();
+
+  return useQuery({
+    queryKey: planSettingsQueryKeys.byUser(user?.id ?? null),
+    queryFn: () => getPlanSettings(request),
+    enabled: Boolean(user),
+  });
+};
+
+export const useUpdatePlanSettingsMutation = () => {
+  const { request, user } = useAuthSession();
+  const queryClient = useQueryClient();
+  const userId = user?.id ?? null;
+
+  const mutation = useMutation({
+    mutationFn: (input: UpdatePlanSettingsInput) => updatePlanSettings(request, input),
+    onSuccess: settings =>
+      queryClient.setQueryData<PlanSettings>(
+        planSettingsQueryKeys.byUser(userId),
+        settings
+      ),
+  });
+  const apiFieldErrors = getPlanSettingsApiFieldErrors(mutation.error);
+
+  return {
+    ...mutation,
+    apiFieldErrors,
+    submitError: getSubmitError(mutation.error, apiFieldErrors),
+  };
+};
 
 export const planItemQueryKeys = {
   all: ["plan-items"] as const,
@@ -55,7 +96,7 @@ export const useCreatePlanItemMutation = () => {
   return {
     ...mutation,
     apiFieldErrors,
-    submitError: getPlanItemSubmitError(mutation.error, apiFieldErrors),
+    submitError: getSubmitError(mutation.error, apiFieldErrors),
   };
 };
 
@@ -74,7 +115,7 @@ export const useRemovePlanItemMutation = () => {
 
   return {
     ...mutation,
-    submitError: getPlanItemSubmitError(mutation.error, {}),
+    submitError: getSubmitError(mutation.error, {}),
   };
 };
 
@@ -138,7 +179,7 @@ export const useUpdatePlanItemMutation = () => {
   return {
     ...mutation,
     apiFieldErrors,
-    submitError: getPlanItemSubmitError(mutation.error, apiFieldErrors),
+    submitError: getSubmitError(mutation.error, apiFieldErrors),
   };
 };
 
@@ -166,6 +207,19 @@ const comparePlanItems = (first: PlanItem, second: PlanItem): number =>
   first.id - second.id;
 
 type PlanItemApiFieldErrors = Partial<Record<keyof CreatePlanItemInput, string>>;
+type PlanSettingsApiFieldErrors = Partial<
+  Record<keyof UpdatePlanSettingsInput, string>
+>;
+
+const getPlanSettingsApiFieldErrors = (
+  error: Error | null
+): PlanSettingsApiFieldErrors => {
+  if (!(error instanceof ApiError)) return {};
+
+  return {
+    enabled_meal_types: getFirstError(error.body?.enabled_meal_types),
+  };
+};
 
 const getPlanItemApiFieldErrors = (error: Error | null): PlanItemApiFieldErrors => {
   if (!(error instanceof ApiError)) return {};
@@ -179,9 +233,9 @@ const getPlanItemApiFieldErrors = (error: Error | null): PlanItemApiFieldErrors 
   };
 };
 
-const getPlanItemSubmitError = (
+const getSubmitError = (
   error: Error | null,
-  apiFieldErrors: PlanItemApiFieldErrors
+  apiFieldErrors: Record<string, string | undefined>
 ): string => {
   if (!error || Object.values(apiFieldErrors).some(Boolean)) return "";
   if (error instanceof ApiError) return error.message;
