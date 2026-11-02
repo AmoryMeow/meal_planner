@@ -16,6 +16,8 @@ class PlanSerializer(serializers.ModelSerializer):
         model = Plan
         fields = (
             "id",
+            "name",
+            "color",
             "enabled_meal_types",
             "created_at",
             "updated_at",

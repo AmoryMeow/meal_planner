@@ -16,6 +16,24 @@ class PersonalPlanView(generics.RetrieveUpdateAPIView):
         return get_or_create_personal_plan(self.request.user)
 
 
+class PlanListView(generics.ListAPIView):
+    serializer_class = PlanSerializer
+    permission_classes = [IsAuthenticated]
+    pagination_class = None
+
+    def get_queryset(self):
+        get_or_create_personal_plan(self.request.user)
+        return Plan.objects.filter(owner=self.request.user).order_by("id")
+
+
+class PlanDetailView(generics.RetrieveUpdateAPIView):
+    serializer_class = PlanSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return Plan.objects.filter(owner=self.request.user)
+
+
 class PlanItemListCreateView(generics.ListCreateAPIView):
     serializer_class = PlanItemSerializer
     permission_classes = [IsAuthenticated]

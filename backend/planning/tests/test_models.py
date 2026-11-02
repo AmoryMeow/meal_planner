@@ -7,7 +7,7 @@ from django.test import TestCase
 
 from accounts.models import User
 from meals.models import Meal
-from planning.models import Plan, PlanItem
+from planning.models import DEFAULT_PLAN_COLOR, DEFAULT_PLAN_NAME, Plan, PlanItem
 
 
 class PlanModelTests(TestCase):
@@ -34,7 +34,28 @@ class PlanModelTests(TestCase):
     def test_plan_enables_all_meal_sections_by_default(self):
         plan = Plan.objects.create(owner=self.user)
 
+        self.assertEqual(plan.name, DEFAULT_PLAN_NAME)
+        self.assertEqual(plan.color, DEFAULT_PLAN_COLOR)
         self.assertEqual(plan.enabled_meal_types, list(PlanItem.MealType.values))
+
+    def test_plan_accepts_custom_name_and_color(self):
+        plan = Plan(
+            owner=self.user,
+            name="Weekday meals",
+            color="#A78BFA",
+        )
+
+        plan.full_clean()
+
+    def test_plan_rejects_invalid_color(self):
+        invalid_colors = ("0EA5E9", "#FFF", "blue", "#0EA5E99")
+
+        for color in invalid_colors:
+            with self.subTest(color=color):
+                plan = Plan(owner=self.user, color=color)
+
+                with self.assertRaises(ValidationError):
+                    plan.full_clean()
 
     def test_plan_accepts_enabled_meal_section_subset(self):
         plan = Plan(

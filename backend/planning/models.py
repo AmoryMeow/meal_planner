@@ -1,9 +1,17 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
-from django.core.validators import MinValueValidator
+from django.core.validators import MinValueValidator, RegexValidator
 from django.db import models
 
 from meals.models import Meal
+
+DEFAULT_PLAN_NAME = "Personal plan"
+DEFAULT_PLAN_COLOR = "#0EA5E9"
+
+plan_color_validator = RegexValidator(
+    regex=r"^#[0-9A-Fa-f]{6}$",
+    message="Enter a color in #RRGGBB format.",
+)
 
 
 class MealType(models.TextChoices):
@@ -33,6 +41,12 @@ class Plan(models.Model):
         on_delete=models.CASCADE,
         related_name="personal_plan",
     )
+    name = models.CharField(max_length=100, default=DEFAULT_PLAN_NAME)
+    color = models.CharField(
+        max_length=7,
+        default=DEFAULT_PLAN_COLOR,
+        validators=(plan_color_validator,),
+    )
     enabled_meal_types = models.JSONField(
         default=default_enabled_meal_types,
         validators=(validate_enabled_meal_types,),
@@ -41,7 +55,7 @@ class Plan(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
     def __str__(self):
-        return f"{self.owner}'s plan"
+        return self.name
 
 
 class PlanItem(models.Model):

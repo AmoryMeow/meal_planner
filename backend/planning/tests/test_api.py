@@ -110,6 +110,121 @@ class PersonalPlanApiTests(APITestCase):
                 self.assertIn("enabled_meal_types", response.data)
 
 
+class PlanApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.plan = Plan.objects.create(
+            owner=self.user,
+            enabled_meal_types=[PlanItem.MealType.BREAKFAST],
+        )
+        self.other_plan = Plan.objects.create(owner=self.other_user)
+        self.list_url = reverse("plan-list")
+        self.detail_url = reverse("plan-detail", args=(self.plan.id,))
+        self.other_detail_url = reverse("plan-detail", args=(self.other_plan.id,))
+
+    def test_plans_require_authentication(self):
+        list_response = self.client.get(self.list_url)
+        detail_response = self.client.get(self.detail_url)
+        patch_response = self.client.patch(
+            self.detail_url,
+            {"enabled_meal_types": ["lunch"]},
+            format="json",
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(detail_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(patch_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_list_returns_only_current_users_plan(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual([plan["id"] for plan in response.data], [self.plan.id])
+
+    def test_list_initializes_missing_personal_plan(self):
+        user_without_plan = User.objects.create_user(
+            email="without-plan@example.com",
+            password="A-secure-password-123",
+        )
+        self.client.force_authenticate(user=user_without_plan)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        plan = Plan.objects.get(owner=user_without_plan)
+        self.assertEqual([item["id"] for item in response.data], [plan.id])
+
+    def test_retrieve_returns_current_users_plan(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(self.detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], self.plan.id)
+
+    def test_patch_updates_current_users_plan(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            self.detail_url,
+            {
+                "name": "My weekly menu",
+                "color": "#A78BFA",
+                "enabled_meal_types": ["lunch", "dinner"],
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.plan.refresh_from_db()
+        self.assertEqual(self.plan.name, "My weekly menu")
+        self.assertEqual(self.plan.color, "#A78BFA")
+        self.assertEqual(
+            self.plan.enabled_meal_types,
+            [PlanItem.MealType.LUNCH, PlanItem.MealType.DINNER],
+        )
+
+    def test_patch_rejects_invalid_name_and_color(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            self.detail_url,
+            {"name": "", "color": "blue"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", response.data)
+        self.assertIn("color", response.data)
+
+    def test_another_users_plan_is_not_accessible(self):
+        self.client.force_authenticate(user=self.user)
+
+        get_response = self.client.get(self.other_detail_url)
+        patch_response = self.client.patch(
+            self.other_detail_url,
+            {"enabled_meal_types": ["lunch"]},
+            format="json",
+        )
+
+        self.assertEqual(get_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(patch_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.other_plan.refresh_from_db()
+        self.assertEqual(
+            self.other_plan.enabled_meal_types,
+            list(PlanItem.MealType.values),
+        )
+
+
 class PlanItemApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
