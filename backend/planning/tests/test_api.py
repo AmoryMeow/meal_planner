@@ -278,6 +278,20 @@ class PlanApiTests(APITestCase):
             [PlanItem.MealType.DINNER],
         )
 
+    def test_group_plan_name_and_color_updates_group(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            self.group_detail_url,
+            {"name": "Home", "color": "#38BDF8"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.group.refresh_from_db()
+        self.assertEqual(self.group.name, "Home")
+        self.assertEqual(self.group.color, "#38BDF8")
+
     def test_group_member_cannot_update_group_plan(self):
         member = User.objects.create_user(
             email="member@example.com",

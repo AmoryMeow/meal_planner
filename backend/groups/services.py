@@ -23,3 +23,18 @@ def create_group(*, owner, name: str, color: str = DEFAULT_GROUP_COLOR) -> Group
     plan.full_clean()
     plan.save()
     return group
+
+
+@transaction.atomic
+def update_group(*, group: Group, name: str, color: str) -> Group:
+    group.name = name
+    group.color = color
+    group.full_clean()
+    group.save()
+
+    plan = group.plan
+    plan.name = name
+    plan.color = color
+    plan.full_clean()
+    plan.save()
+    return group

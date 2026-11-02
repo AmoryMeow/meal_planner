@@ -1,7 +1,28 @@
 from rest_framework import serializers
 
-from .models import Group
-from .services import create_group
+from .models import Group, Membership
+from .permissions import get_group_role
+from .services import create_group, update_group
+
+
+class GroupMemberSerializer(serializers.ModelSerializer):
+    user_id = serializers.IntegerField(read_only=True)
+    email = serializers.EmailField(source="user.email", read_only=True)
+    first_name = serializers.CharField(source="user.first_name", read_only=True)
+    last_name = serializers.CharField(source="user.last_name", read_only=True)
+
+    class Meta:
+        model = Membership
+        fields = (
+            "id",
+            "user_id",
+            "email",
+            "first_name",
+            "last_name",
+            "role",
+            "created_at",
+        )
+        read_only_fields = fields
 
 
 class GroupSerializer(serializers.ModelSerializer):
@@ -28,15 +49,8 @@ class GroupSerializer(serializers.ModelSerializer):
         )
 
     def get_role(self, obj):
-        memberships = getattr(obj, "current_user_memberships", None)
-        if memberships is not None:
-            return memberships[0].role if memberships else None
-
         request = self.context.get("request")
-        if not request or not request.user.is_authenticated:
-            return None
-        membership = obj.memberships.filter(user=request.user).first()
-        return membership.role if membership else None
+        return get_group_role(request.user, obj) if request else None
 
     def get_member_count(self, obj):
         annotated_count = getattr(obj, "member_total", None)
@@ -46,3 +60,17 @@ class GroupSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         return create_group(owner=self.context["request"].user, **validated_data)
+
+    def update(self, instance, validated_data):
+        return update_group(
+            group=instance,
+            name=validated_data.get("name", instance.name),
+            color=validated_data.get("color", instance.color),
+        )
+
+
+class GroupDetailSerializer(GroupSerializer):
+    members = GroupMemberSerializer(source="all_memberships", many=True, read_only=True)
+
+    class Meta(GroupSerializer.Meta):
+        fields = (*GroupSerializer.Meta.fields, "members")

@@ -2,7 +2,7 @@ from django.test import TestCase
 
 from accounts.models import User
 from groups.models import Membership
-from groups.services import create_group
+from groups.services import create_group, update_group
 
 
 class GroupServiceTests(TestCase):
@@ -22,3 +22,19 @@ class GroupServiceTests(TestCase):
         self.assertEqual(group.plan.name, group.name)
         self.assertEqual(group.plan.color, group.color)
         self.assertIsNone(group.plan.owner)
+
+    def test_update_group_updates_group_plan(self):
+        owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        group = create_group(owner=owner, name="Family", color="#A78BFA")
+
+        update_group(group=group, name="Friends", color="#38BDF8")
+
+        group.refresh_from_db()
+        group.plan.refresh_from_db()
+        self.assertEqual(group.name, "Friends")
+        self.assertEqual(group.color, "#38BDF8")
+        self.assertEqual(group.plan.name, "Friends")
+        self.assertEqual(group.plan.color, "#38BDF8")

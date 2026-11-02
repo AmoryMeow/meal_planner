@@ -1,3 +1,5 @@
+from django.db import transaction
+
 from rest_framework import serializers
 
 from meals.models import Meal
@@ -48,6 +50,19 @@ class PlanSerializer(serializers.ModelSerializer):
                 "Meal sections must not contain duplicates."
             )
         return value
+
+    @transaction.atomic
+    def update(self, instance, validated_data):
+        updated_plan = super().update(instance, validated_data)
+        if updated_plan.group_id is not None and (
+            "name" in validated_data or "color" in validated_data
+        ):
+            group = updated_plan.group
+            group.name = updated_plan.name
+            group.color = updated_plan.color
+            group.full_clean()
+            group.save()
+        return updated_plan
 
 
 class PlanItemRangeSerializer(serializers.Serializer):

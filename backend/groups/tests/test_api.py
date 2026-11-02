@@ -37,6 +37,7 @@ class GroupApiTests(APITestCase):
             name="Other family",
         )
         self.url = reverse("group-list")
+        self.detail_url = reverse("group-detail", args=(self.group.id,))
 
     def test_groups_require_authentication(self):
         list_response = self.client.get(self.url)
@@ -112,3 +113,74 @@ class GroupApiTests(APITestCase):
         self.assertIn("name", response.data)
         self.assertIn("color", response.data)
         self.assertFalse(Group.objects.filter(color="blue").exists())
+
+    def test_group_detail_requires_authentication(self):
+        response = self.client.get(self.detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_group_member_can_view_members(self):
+        self.client.force_authenticate(user=self.member)
+
+        response = self.client.get(self.detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["role"], Membership.Role.MEMBER)
+        self.assertEqual(
+            [member["email"] for member in response.data["members"]],
+            [self.owner.email, self.member.email],
+        )
+        self.assertEqual(
+            [member["role"] for member in response.data["members"]],
+            [Membership.Role.OWNER, Membership.Role.MEMBER],
+        )
+
+    def test_non_member_cannot_view_group(self):
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.get(self.detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_can_update_group_and_plan(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.patch(
+            self.detail_url,
+            {"name": "Home", "color": "#38BDF8"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.group.refresh_from_db()
+        self.group.plan.refresh_from_db()
+        self.assertEqual(self.group.name, "Home")
+        self.assertEqual(self.group.color, "#38BDF8")
+        self.assertEqual(self.group.plan.name, "Home")
+        self.assertEqual(self.group.plan.color, "#38BDF8")
+
+    def test_member_cannot_update_group(self):
+        self.client.force_authenticate(user=self.member)
+
+        response = self.client.patch(
+            self.detail_url,
+            {"name": "Changed"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.group.refresh_from_db()
+        self.assertEqual(self.group.name, "Family")
+
+    def test_owner_cannot_apply_invalid_group_settings(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.patch(
+            self.detail_url,
+            {"name": "", "color": "blue"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", response.data)
+        self.assertIn("color", response.data)
