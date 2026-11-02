@@ -1,9 +1,10 @@
-from django.db.models import Case, IntegerField, Value, When
+from django.db.models import Case, IntegerField, Q, Value, When
 
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Plan, PlanItem
+from .permissions import PlanPermission
 from .serializers import PlanItemRangeSerializer, PlanItemSerializer, PlanSerializer
 from .services import get_or_create_personal_plan
 
@@ -23,15 +24,37 @@ class PlanListView(generics.ListAPIView):
 
     def get_queryset(self):
         get_or_create_personal_plan(self.request.user)
-        return Plan.objects.filter(owner=self.request.user).order_by("id")
+        return (
+            Plan.objects.filter(
+                Q(owner=self.request.user)
+                | Q(group__memberships__user=self.request.user)
+            )
+            .select_related("group")
+            .distinct()
+            .alias(
+                scope_order=Case(
+                    When(owner=self.request.user, then=Value(0)),
+                    default=Value(1),
+                    output_field=IntegerField(),
+                )
+            )
+            .order_by("scope_order", "id")
+        )
 
 
 class PlanDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = PlanSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, PlanPermission]
 
     def get_queryset(self):
-        return Plan.objects.filter(owner=self.request.user)
+        return (
+            Plan.objects.filter(
+                Q(owner=self.request.user)
+                | Q(group__memberships__user=self.request.user)
+            )
+            .select_related("group")
+            .distinct()
+        )
 
 
 class PlanItemListCreateView(generics.ListCreateAPIView):

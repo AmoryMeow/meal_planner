@@ -6,6 +6,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
+from groups.models import Membership
+from groups.services import create_group
 from meals.models import Meal
 from planning.models import Plan, PlanItem
 from planning.services import create_plan_item
@@ -125,8 +127,15 @@ class PlanApiTests(APITestCase):
             enabled_meal_types=[PlanItem.MealType.BREAKFAST],
         )
         self.other_plan = Plan.objects.create(owner=self.other_user)
+        self.group = create_group(
+            owner=self.user,
+            name="Family",
+            color="#A78BFA",
+        )
+        self.group_plan = self.group.plan
         self.list_url = reverse("plan-list")
         self.detail_url = reverse("plan-detail", args=(self.plan.id,))
+        self.group_detail_url = reverse("plan-detail", args=(self.group_plan.id,))
         self.other_detail_url = reverse("plan-detail", args=(self.other_plan.id,))
 
     def test_plans_require_authentication(self):
@@ -142,13 +151,55 @@ class PlanApiTests(APITestCase):
         self.assertEqual(detail_response.status_code, status.HTTP_401_UNAUTHORIZED)
         self.assertEqual(patch_response.status_code, status.HTTP_401_UNAUTHORIZED)
 
-    def test_list_returns_only_current_users_plan(self):
+    def test_list_returns_personal_and_group_plans(self):
         self.client.force_authenticate(user=self.user)
 
         response = self.client.get(self.list_url)
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
-        self.assertEqual([plan["id"] for plan in response.data], [self.plan.id])
+        self.assertEqual(
+            [plan["id"] for plan in response.data],
+            [self.plan.id, self.group_plan.id],
+        )
+        self.assertEqual(
+            response.data[0],
+            {
+                "id": self.plan.id,
+                "scope": "personal",
+                "group_id": None,
+                "can_manage": True,
+                "name": self.plan.name,
+                "color": self.plan.color,
+                "enabled_meal_types": [PlanItem.MealType.BREAKFAST],
+                "created_at": response.data[0]["created_at"],
+                "updated_at": response.data[0]["updated_at"],
+            },
+        )
+        self.assertEqual(response.data[1]["scope"], "group")
+        self.assertEqual(response.data[1]["group_id"], self.group.id)
+        self.assertTrue(response.data[1]["can_manage"])
+
+    def test_list_returns_group_plan_to_member_without_management_access(self):
+        member = User.objects.create_user(
+            email="member@example.com",
+            password="A-secure-password-123",
+        )
+        Membership.objects.create(
+            group=self.group,
+            user=member,
+            role=Membership.Role.MEMBER,
+        )
+        self.client.force_authenticate(user=member)
+
+        response = self.client.get(self.list_url)
+
+        personal_plan = Plan.objects.get(owner=member)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            [plan["id"] for plan in response.data],
+            [personal_plan.id, self.group_plan.id],
+        )
+        self.assertFalse(response.data[1]["can_manage"])
 
     def test_list_initializes_missing_personal_plan(self):
         user_without_plan = User.objects.create_user(
@@ -171,6 +222,24 @@ class PlanApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["id"], self.plan.id)
 
+    def test_group_member_can_retrieve_group_plan(self):
+        member = User.objects.create_user(
+            email="member@example.com",
+            password="A-secure-password-123",
+        )
+        Membership.objects.create(
+            group=self.group,
+            user=member,
+            role=Membership.Role.MEMBER,
+        )
+        self.client.force_authenticate(user=member)
+
+        response = self.client.get(self.group_detail_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["id"], self.group_plan.id)
+        self.assertFalse(response.data["can_manage"])
+
     def test_patch_updates_current_users_plan(self):
         self.client.force_authenticate(user=self.user)
 
@@ -191,6 +260,47 @@ class PlanApiTests(APITestCase):
         self.assertEqual(
             self.plan.enabled_meal_types,
             [PlanItem.MealType.LUNCH, PlanItem.MealType.DINNER],
+        )
+
+    def test_group_owner_can_update_group_plan(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            self.group_detail_url,
+            {"enabled_meal_types": ["dinner"]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.group_plan.refresh_from_db()
+        self.assertEqual(
+            self.group_plan.enabled_meal_types,
+            [PlanItem.MealType.DINNER],
+        )
+
+    def test_group_member_cannot_update_group_plan(self):
+        member = User.objects.create_user(
+            email="member@example.com",
+            password="A-secure-password-123",
+        )
+        Membership.objects.create(
+            group=self.group,
+            user=member,
+            role=Membership.Role.MEMBER,
+        )
+        self.client.force_authenticate(user=member)
+
+        response = self.client.patch(
+            self.group_detail_url,
+            {"enabled_meal_types": ["dinner"]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.group_plan.refresh_from_db()
+        self.assertEqual(
+            self.group_plan.enabled_meal_types,
+            list(PlanItem.MealType.values),
         )
 
     def test_patch_rejects_invalid_name_and_color(self):

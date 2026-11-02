@@ -3,10 +3,14 @@ from rest_framework import serializers
 from meals.models import Meal
 
 from .models import MealType, Plan, PlanItem
+from .permissions import can_manage_plan
 from .services import build_meal_snapshot, create_plan_item
 
 
 class PlanSerializer(serializers.ModelSerializer):
+    scope = serializers.SerializerMethodField()
+    group_id = serializers.IntegerField(read_only=True, allow_null=True)
+    can_manage = serializers.SerializerMethodField()
     enabled_meal_types = serializers.ListField(
         child=serializers.ChoiceField(choices=MealType.choices),
         allow_empty=False,
@@ -16,6 +20,9 @@ class PlanSerializer(serializers.ModelSerializer):
         model = Plan
         fields = (
             "id",
+            "scope",
+            "group_id",
+            "can_manage",
             "name",
             "color",
             "enabled_meal_types",
@@ -27,6 +34,13 @@ class PlanSerializer(serializers.ModelSerializer):
             "created_at",
             "updated_at",
         )
+
+    def get_scope(self, obj):
+        return "group" if obj.group_id is not None else "personal"
+
+    def get_can_manage(self, obj):
+        request = self.context.get("request")
+        return bool(request and can_manage_plan(request.user, obj))
 
     def validate_enabled_meal_types(self, value):
         if len(value) != len(set(value)):
