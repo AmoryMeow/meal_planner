@@ -60,8 +60,10 @@ export const useUpdatePlanMutation = (planId: number) => {
   const mutation = useMutation({
     mutationFn: (input: UpdatePlanInput) => updatePlan(request, planId, input),
     onSuccess: updatedPlan => {
-      queryClient.setQueryData<MealPlan[]>(planQueryKeys.list(userId), plans =>
-        plans?.map(plan => (plan.id === updatedPlan.id ? updatedPlan : plan))
+      queryClient.setQueryData<MealPlan[]>(
+        planQueryKeys.list(userId),
+        (plans: MealPlan[] | undefined) =>
+          plans?.map(plan => (plan.id === updatedPlan.id ? updatedPlan : plan))
       );
       queryClient.setQueryData<MealPlan>(
         planQueryKeys.detail(userId, planId),
