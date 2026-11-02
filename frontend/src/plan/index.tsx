@@ -17,9 +17,9 @@ import {
 } from "./date-utils";
 import { EditPlanItemDialog } from "./edit-plan-item-dialog";
 import { MonthCalendar } from "./month-calendar";
-import { usePlanItemsQuery } from "./queries";
+import { usePlanItemsQuery, usePlanSettingsQuery } from "./queries";
 import { RemovePlanItemDialog } from "./remove-plan-item-dialog";
-import { type CalendarView, DEFAULT_MEAL_TYPES, type MealType } from "./types";
+import { type CalendarView, type MealType } from "./types";
 import { WeekCalendar } from "./week-calendar";
 
 export {
@@ -101,7 +101,14 @@ export const Plan = () => {
       dateTo: getDateKey(days.at(-1) ?? visibleDate),
     };
   }, [calendarView, visibleDate]);
+  const planSettingsQuery = usePlanSettingsQuery();
   const planItemsQuery = usePlanItemsQuery(visibleRange);
+  const mealTypes = planSettingsQuery.data?.enabled_meal_types ?? [];
+  const visiblePlanItems =
+    planItemsQuery.data?.filter(planItem => mealTypes.includes(planItem.meal_type)) ??
+    [];
+  const isPlanPending = planSettingsQuery.isPending || planItemsQuery.isPending;
+  const isPlanError = planSettingsQuery.isError || planItemsQuery.isError;
   const isCurrentPeriod =
     calendarView === "week"
       ? getDateKey(weekStart) === getDateKey(getStartOfWeek(new Date()))
@@ -219,25 +226,33 @@ export const Plan = () => {
         />
       ) : null}
 
-      {planItemsQuery.isPending ? <PlanStatus>Loading meal plan…</PlanStatus> : null}
-      {planItemsQuery.isError ? (
-        <PlanError onRetry={() => void planItemsQuery.refetch()} />
+      {isPlanPending ? <PlanStatus>Loading meal plan…</PlanStatus> : null}
+      {!isPlanPending && isPlanError ? (
+        <PlanError
+          onRetry={() =>
+            void Promise.all([planSettingsQuery.refetch(), planItemsQuery.refetch()])
+          }
+        />
       ) : null}
-      {planItemsQuery.isSuccess && calendarView === "week" ? (
+      {planSettingsQuery.isSuccess &&
+      planItemsQuery.isSuccess &&
+      calendarView === "week" ? (
         <WeekCalendar
           weekStart={weekStart}
-          mealTypes={DEFAULT_MEAL_TYPES}
-          planItems={planItemsQuery.data}
+          mealTypes={mealTypes}
+          planItems={visiblePlanItems}
           isMobile={isMobile}
           onAddMeal={(date, mealType) => setAddTarget({ date, mealType })}
           onEditPlanItem={setEditTarget}
         />
       ) : null}
-      {planItemsQuery.isSuccess && calendarView === "month" ? (
+      {planSettingsQuery.isSuccess &&
+      planItemsQuery.isSuccess &&
+      calendarView === "month" ? (
         <MonthCalendar
           monthStart={monthStart}
-          mealTypes={DEFAULT_MEAL_TYPES}
-          planItems={planItemsQuery.data}
+          mealTypes={mealTypes}
+          planItems={visiblePlanItems}
           isMobile={isMobile}
           onAddMeal={(date, mealType) => setAddTarget({ date, mealType })}
           onEditPlanItem={setEditTarget}
