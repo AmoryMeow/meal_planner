@@ -1,10 +1,27 @@
-import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "@package/api";
 import { useAuthSession } from "@package/auth";
 import { planQueryKeys } from "@package/plan";
 
-import { createGroup, type CreateGroupInput } from "./api";
+import { createGroup, getGroup, type CreateGroupInput } from "./api";
+
+export const groupQueryKeys = {
+  all: ["groups"] as const,
+  byUser: (userId: number | null) => [...groupQueryKeys.all, userId] as const,
+  detail: (userId: number | null, groupId: number) =>
+    [...groupQueryKeys.byUser(userId), "detail", groupId] as const,
+};
+
+export const useGroupQuery = (groupId: number) => {
+  const { request, user } = useAuthSession();
+
+  return useQuery({
+    queryKey: groupQueryKeys.detail(user?.id ?? null, groupId),
+    queryFn: () => getGroup(request, groupId),
+    enabled: Boolean(user && groupId),
+  });
+};
 
 export const useCreateGroupMutation = () => {
   const { request, user } = useAuthSession();
