@@ -375,3 +375,113 @@ class GroupInviteApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
         invite.refresh_from_db()
         self.assertEqual(invite.status, Invite.Status.REVOKED)
+
+
+class InviteAcceptanceApiTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.invited_user = User.objects.create_user(
+            email="guest@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.group = create_group(owner=self.owner, name="Family")
+        self.invite = Invite.objects.create(
+            group=self.group,
+            email=self.invited_user.email,
+            invited_by=self.owner,
+        )
+        self.url = reverse("invite-accept", args=(self.invite.token,))
+
+    def test_accepting_invite_requires_authentication(self):
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_invited_user_can_accept_invite(self):
+        self.client.force_authenticate(user=self.invited_user)
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.invite.refresh_from_db()
+        membership = Membership.objects.get(
+            group=self.group,
+            user=self.invited_user,
+        )
+        self.assertEqual(membership.role, Membership.Role.MEMBER)
+        self.assertEqual(self.invite.status, Invite.Status.ACCEPTED)
+        self.assertIsNotNone(self.invite.accepted_at)
+        self.assertEqual(response.data["id"], self.group.id)
+        self.assertEqual(response.data["role"], Membership.Role.MEMBER)
+        self.assertEqual(response.data["plan_id"], self.group.plan.id)
+        self.assertEqual(response.data["member_count"], 2)
+
+    def test_user_with_different_email_cannot_accept_invite(self):
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(
+            response.data["detail"],
+            "This invitation was sent to a different email address.",
+        )
+        self.assertFalse(
+            Membership.objects.filter(group=self.group, user=self.other_user).exists()
+        )
+
+    def test_expired_invite_cannot_be_accepted(self):
+        self.invite.expires_at = timezone.now() - timedelta(seconds=1)
+        self.invite.save(update_fields=("expires_at", "updated_at"))
+        self.client.force_authenticate(user=self.invited_user)
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["detail"], "This invitation has expired.")
+        self.assertFalse(
+            Membership.objects.filter(
+                group=self.group,
+                user=self.invited_user,
+            ).exists()
+        )
+
+    def test_revoked_invite_cannot_be_accepted(self):
+        self.invite.status = Invite.Status.REVOKED
+        self.invite.save(update_fields=("status", "updated_at"))
+        self.client.force_authenticate(user=self.invited_user)
+
+        response = self.client.post(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["detail"],
+            "This invitation is no longer available.",
+        )
+
+    def test_accepting_invite_is_idempotent(self):
+        self.client.force_authenticate(user=self.invited_user)
+
+        first_response = self.client.post(self.url)
+        self.invite.refresh_from_db()
+        first_accepted_at = self.invite.accepted_at
+        second_response = self.client.post(self.url)
+
+        self.assertEqual(first_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(second_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            Membership.objects.filter(
+                group=self.group,
+                user=self.invited_user,
+            ).count(),
+            1,
+        )
+        self.invite.refresh_from_db()
+        self.assertEqual(self.invite.accepted_at, first_accepted_at)

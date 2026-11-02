@@ -1,4 +1,5 @@
 from django.db import IntegrityError, transaction
+from django.utils import timezone
 
 from planning.models import Plan
 
@@ -14,6 +15,22 @@ class ActiveInviteExistsError(InviteServiceError):
 
 
 class InviteeAlreadyMemberError(InviteServiceError):
+    pass
+
+
+class InviteAcceptanceError(InviteServiceError):
+    pass
+
+
+class InviteEmailMismatchError(InviteAcceptanceError):
+    pass
+
+
+class InviteExpiredError(InviteAcceptanceError):
+    pass
+
+
+class InviteUnavailableError(InviteAcceptanceError):
     pass
 
 
@@ -94,3 +111,38 @@ def revoke_invite(*, invite: Invite) -> Invite:
     invite.status = Invite.Status.REVOKED
     invite.save(update_fields=("status", "updated_at"))
     return invite
+
+
+@transaction.atomic
+def accept_invite(*, invite: Invite, user) -> tuple[Invite, Membership]:
+    invite = Invite.objects.select_for_update().get(pk=invite.pk)
+    if invite.email.casefold() != user.email.casefold():
+        raise InviteEmailMismatchError(
+            "This invitation was sent to a different email address."
+        )
+
+    membership = Membership.objects.filter(group=invite.group, user=user).first()
+    if invite.status == Invite.Status.ACCEPTED and membership:
+        return invite, membership
+    if invite.status != Invite.Status.PENDING:
+        raise InviteUnavailableError("This invitation is no longer available.")
+    if invite.is_expired:
+        raise InviteExpiredError("This invitation has expired.")
+
+    if membership is None:
+        membership = Membership(
+            group=invite.group,
+            user=user,
+            role=Membership.Role.MEMBER,
+        )
+        membership.full_clean()
+        try:
+            with transaction.atomic():
+                membership.save()
+        except IntegrityError:
+            membership = Membership.objects.get(group=invite.group, user=user)
+
+    invite.status = Invite.Status.ACCEPTED
+    invite.accepted_at = timezone.now()
+    invite.save(update_fields=("status", "accepted_at", "updated_at"))
+    return invite, membership

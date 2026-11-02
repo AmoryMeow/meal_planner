@@ -5,6 +5,7 @@ from .views import (
     GroupInviteDetailView,
     GroupInviteListCreateView,
     GroupListCreateView,
+    InviteAcceptView,
 )
 
 urlpatterns = [
@@ -19,5 +20,10 @@ urlpatterns = [
         "groups/<int:group_pk>/invites/<int:pk>/",
         GroupInviteDetailView.as_view(),
         name="group-invite-detail",
+    ),
+    path(
+        "invites/<uuid:token>/accept/",
+        InviteAcceptView.as_view(),
+        name="invite-accept",
     ),
 ]

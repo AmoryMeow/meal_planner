@@ -2,12 +2,21 @@ from django.db.models import Case, Count, IntegerField, Prefetch, Value, When
 from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
+from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 from .models import Group, Invite, Membership
 from .permissions import GroupOwnerPermission, GroupPermission
 from .serializers import GroupDetailSerializer, GroupSerializer, InviteSerializer
-from .services import revoke_invite
+from .services import (
+    InviteEmailMismatchError,
+    InviteExpiredError,
+    InviteUnavailableError,
+    accept_invite,
+    revoke_invite,
+)
 
 
 def get_current_memberships(user):
@@ -117,3 +126,26 @@ class GroupInviteDetailView(GroupInviteMixin, generics.DestroyAPIView):
 
     def perform_destroy(self, instance):
         revoke_invite(invite=instance)
+
+
+class InviteAcceptView(APIView):
+    permission_classes = (IsAuthenticated,)
+
+    def post(self, request, token):
+        invite = get_object_or_404(
+            Invite.objects.select_related("group__plan"),
+            token=token,
+        )
+        try:
+            accepted_invite, membership = accept_invite(
+                invite=invite, user=request.user
+            )
+        except InviteEmailMismatchError as error:
+            raise PermissionDenied(str(error)) from error
+        except (InviteExpiredError, InviteUnavailableError) as error:
+            raise ValidationError({"detail": str(error)}) from error
+
+        group = accepted_invite.group
+        group.current_user_memberships = [membership]
+        group.member_total = group.memberships.count()
+        return Response(GroupSerializer(group, context={"request": request}).data)
