@@ -10,48 +10,66 @@ import { useAuthSession } from "@package/auth";
 
 import {
   createPlanItem,
+  getPlan,
   getPlanItems,
-  getPlanSettings,
+  getPlans,
   removePlanItem,
+  updatePlan,
   updatePlanItem,
-  updatePlanSettings,
   type CreatePlanItemInput,
+  type MealPlan,
   type PlanItem,
   type PlanItemRange,
-  type PlanSettings,
-  type UpdatePlanSettingsInput,
+  type UpdatePlanInput,
   type UpdatePlanItemInput,
 } from "./api";
 
-export const planSettingsQueryKeys = {
-  all: ["plan-settings"] as const,
-  byUser: (userId: number | null) => [...planSettingsQueryKeys.all, userId] as const,
+export const planQueryKeys = {
+  all: ["plans"] as const,
+  byUser: (userId: number | null) => [...planQueryKeys.all, userId] as const,
+  list: (userId: number | null) => [...planQueryKeys.byUser(userId), "list"] as const,
+  detail: (userId: number | null, planId: number) =>
+    [...planQueryKeys.byUser(userId), "detail", planId] as const,
 };
 
-export const usePlanSettingsQuery = () => {
+export const usePlansQuery = () => {
   const { request, user } = useAuthSession();
 
   return useQuery({
-    queryKey: planSettingsQueryKeys.byUser(user?.id ?? null),
-    queryFn: () => getPlanSettings(request),
+    queryKey: planQueryKeys.list(user?.id ?? null),
+    queryFn: () => getPlans(request),
     enabled: Boolean(user),
   });
 };
 
-export const useUpdatePlanSettingsMutation = () => {
+export const usePlanQuery = (planId: number) => {
+  const { request, user } = useAuthSession();
+
+  return useQuery({
+    queryKey: planQueryKeys.detail(user?.id ?? null, planId),
+    queryFn: () => getPlan(request, planId),
+    enabled: Boolean(user && planId),
+  });
+};
+
+export const useUpdatePlanMutation = (planId: number) => {
   const { request, user } = useAuthSession();
   const queryClient = useQueryClient();
   const userId = user?.id ?? null;
 
   const mutation = useMutation({
-    mutationFn: (input: UpdatePlanSettingsInput) => updatePlanSettings(request, input),
-    onSuccess: settings =>
-      queryClient.setQueryData<PlanSettings>(
-        planSettingsQueryKeys.byUser(userId),
-        settings
-      ),
+    mutationFn: (input: UpdatePlanInput) => updatePlan(request, planId, input),
+    onSuccess: updatedPlan => {
+      queryClient.setQueryData<MealPlan[]>(planQueryKeys.list(userId), plans =>
+        plans?.map(plan => (plan.id === updatedPlan.id ? updatedPlan : plan))
+      );
+      queryClient.setQueryData<MealPlan>(
+        planQueryKeys.detail(userId, planId),
+        updatedPlan
+      );
+    },
   });
-  const apiFieldErrors = getPlanSettingsApiFieldErrors(mutation.error);
+  const apiFieldErrors = getPlanApiFieldErrors(mutation.error);
 
   return {
     ...mutation,
@@ -207,16 +225,14 @@ const comparePlanItems = (first: PlanItem, second: PlanItem): number =>
   first.id - second.id;
 
 type PlanItemApiFieldErrors = Partial<Record<keyof CreatePlanItemInput, string>>;
-type PlanSettingsApiFieldErrors = Partial<
-  Record<keyof UpdatePlanSettingsInput, string>
->;
+type PlanApiFieldErrors = Partial<Record<keyof UpdatePlanInput, string>>;
 
-const getPlanSettingsApiFieldErrors = (
-  error: Error | null
-): PlanSettingsApiFieldErrors => {
+const getPlanApiFieldErrors = (error: Error | null): PlanApiFieldErrors => {
   if (!(error instanceof ApiError)) return {};
 
   return {
+    name: getFirstError(error.body?.name),
+    color: getFirstError(error.body?.color),
     enabled_meal_types: getFirstError(error.body?.enabled_meal_types),
   };
 };

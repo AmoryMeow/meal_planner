@@ -17,36 +17,38 @@ import {
 } from "./date-utils";
 import { EditPlanItemDialog } from "./edit-plan-item-dialog";
 import { MonthCalendar } from "./month-calendar";
-import { usePlanItemsQuery, usePlanSettingsQuery } from "./queries";
+import { usePlanItemsQuery, usePlansQuery } from "./queries";
 import { RemovePlanItemDialog } from "./remove-plan-item-dialog";
 import { type CalendarView, type MealType } from "./types";
 import { WeekCalendar } from "./week-calendar";
 
 export {
   createPlanItem,
+  getPlan,
   getPlanItems,
-  getPlanSettings,
+  getPlans,
   removePlanItem,
+  updatePlan,
   updatePlanItem,
-  updatePlanSettings,
   type CreatePlanItemInput,
+  type MealPlan,
   type MealSnapshot,
   type MealSnapshotIngredient,
   type PlanItem,
   type PlanItemRange,
-  type PlanSettings,
+  type UpdatePlanInput,
   type UpdatePlanItemInput,
-  type UpdatePlanSettingsInput,
 } from "./api";
 export {
   planItemQueryKeys,
-  planSettingsQueryKeys,
+  planQueryKeys,
   useCreatePlanItemMutation,
+  usePlanQuery,
   usePlanItemsQuery,
-  usePlanSettingsQuery,
+  usePlansQuery,
   useRemovePlanItemMutation,
+  useUpdatePlanMutation,
   useUpdatePlanItemMutation,
-  useUpdatePlanSettingsMutation,
 } from "./queries";
 export { type CalendarView, type MealType } from "./types";
 
@@ -101,14 +103,15 @@ export const Plan = () => {
       dateTo: getDateKey(days.at(-1) ?? visibleDate),
     };
   }, [calendarView, visibleDate]);
-  const planSettingsQuery = usePlanSettingsQuery();
+  const plansQuery = usePlansQuery();
   const planItemsQuery = usePlanItemsQuery(visibleRange);
-  const mealTypes = planSettingsQuery.data?.enabled_meal_types ?? [];
+  const activePlan = plansQuery.data?.[0];
+  const mealTypes = activePlan?.enabled_meal_types ?? [];
   const visiblePlanItems =
     planItemsQuery.data?.filter(planItem => mealTypes.includes(planItem.meal_type)) ??
     [];
-  const isPlanPending = planSettingsQuery.isPending || planItemsQuery.isPending;
-  const isPlanError = planSettingsQuery.isError || planItemsQuery.isError;
+  const isPlanPending = plansQuery.isPending || planItemsQuery.isPending;
+  const isPlanError = plansQuery.isError || planItemsQuery.isError;
   const isCurrentPeriod =
     calendarView === "week"
       ? getDateKey(weekStart) === getDateKey(getStartOfWeek(new Date()))
@@ -230,13 +233,11 @@ export const Plan = () => {
       {!isPlanPending && isPlanError ? (
         <PlanError
           onRetry={() =>
-            void Promise.all([planSettingsQuery.refetch(), planItemsQuery.refetch()])
+            void Promise.all([plansQuery.refetch(), planItemsQuery.refetch()])
           }
         />
       ) : null}
-      {planSettingsQuery.isSuccess &&
-      planItemsQuery.isSuccess &&
-      calendarView === "week" ? (
+      {plansQuery.isSuccess && planItemsQuery.isSuccess && calendarView === "week" ? (
         <WeekCalendar
           weekStart={weekStart}
           mealTypes={mealTypes}
@@ -246,9 +247,7 @@ export const Plan = () => {
           onEditPlanItem={setEditTarget}
         />
       ) : null}
-      {planSettingsQuery.isSuccess &&
-      planItemsQuery.isSuccess &&
-      calendarView === "month" ? (
+      {plansQuery.isSuccess && planItemsQuery.isSuccess && calendarView === "month" ? (
         <MonthCalendar
           monthStart={monthStart}
           mealTypes={mealTypes}

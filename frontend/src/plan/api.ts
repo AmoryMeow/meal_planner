@@ -3,16 +3,18 @@ import type { MealSource } from "@package/meals";
 
 import type { MealType } from "./types";
 
-export type PlanSettings = {
+export type MealPlan = {
   id: number;
+  name: string;
+  color: string;
   enabled_meal_types: MealType[];
   created_at: string;
   updated_at: string;
 };
 
-export type UpdatePlanSettingsInput = {
-  enabled_meal_types: MealType[];
-};
+export type UpdatePlanInput = Partial<
+  Pick<MealPlan, "name" | "color" | "enabled_meal_types">
+>;
 
 export type MealSnapshotIngredient = {
   ingredient_id: number;
@@ -57,14 +59,18 @@ export type CreatePlanItemInput = {
 
 export type UpdatePlanItemInput = Partial<CreatePlanItemInput>;
 
-export const getPlanSettings = (request: AuthenticatedRequest) =>
-  request<PlanSettings>("/plan/");
+export const getPlans = (request: AuthenticatedRequest) =>
+  request<MealPlan[]>("/plans/");
 
-export const updatePlanSettings = (
+export const getPlan = (request: AuthenticatedRequest, planId: number) =>
+  request<MealPlan>(`/plans/${planId}/`);
+
+export const updatePlan = (
   request: AuthenticatedRequest,
-  input: UpdatePlanSettingsInput
+  planId: number,
+  input: UpdatePlanInput
 ) =>
-  request<PlanSettings>("/plan/", {
+  request<MealPlan>(`/plans/${planId}/`, {
     method: "PATCH",
     body: JSON.stringify(input),
   });
