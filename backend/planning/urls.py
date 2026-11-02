@@ -1,8 +1,13 @@
 from django.urls import path
 
-from .views import PlanItemDetailView, PlanItemListCreateView
+from .views import PersonalPlanView, PlanItemDetailView, PlanItemListCreateView
 
 urlpatterns = [
+    path(
+        "plan/",
+        PersonalPlanView.as_view(),
+        name="personal-plan-detail",
+    ),
     path(
         "plan-items/",
         PlanItemListCreateView.as_view(),

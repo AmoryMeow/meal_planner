@@ -2,8 +2,36 @@ from rest_framework import serializers
 
 from meals.models import Meal
 
-from .models import PlanItem
+from .models import MealType, Plan, PlanItem
 from .services import build_meal_snapshot, create_plan_item
+
+
+class PlanSerializer(serializers.ModelSerializer):
+    enabled_meal_types = serializers.ListField(
+        child=serializers.ChoiceField(choices=MealType.choices),
+        allow_empty=False,
+    )
+
+    class Meta:
+        model = Plan
+        fields = (
+            "id",
+            "enabled_meal_types",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "created_at",
+            "updated_at",
+        )
+
+    def validate_enabled_meal_types(self, value):
+        if len(value) != len(set(value)):
+            raise serializers.ValidationError(
+                "Meal sections must not contain duplicates."
+            )
+        return value
 
 
 class PlanItemRangeSerializer(serializers.Serializer):

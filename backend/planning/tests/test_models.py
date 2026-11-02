@@ -31,6 +31,40 @@ class PlanModelTests(TestCase):
 
         self.assertFalse(Plan.objects.filter(pk=plan.pk).exists())
 
+    def test_plan_enables_all_meal_sections_by_default(self):
+        plan = Plan.objects.create(owner=self.user)
+
+        self.assertEqual(plan.enabled_meal_types, list(PlanItem.MealType.values))
+
+    def test_plan_accepts_enabled_meal_section_subset(self):
+        plan = Plan(
+            owner=self.user,
+            enabled_meal_types=[
+                PlanItem.MealType.BREAKFAST,
+                PlanItem.MealType.DINNER,
+            ],
+        )
+
+        plan.full_clean()
+
+    def test_plan_rejects_invalid_enabled_meal_sections(self):
+        invalid_values = (
+            [],
+            [PlanItem.MealType.BREAKFAST, "snack"],
+            [PlanItem.MealType.LUNCH, PlanItem.MealType.LUNCH],
+            "breakfast",
+        )
+
+        for enabled_meal_types in invalid_values:
+            with self.subTest(enabled_meal_types=enabled_meal_types):
+                plan = Plan(
+                    owner=self.user,
+                    enabled_meal_types=enabled_meal_types,
+                )
+
+                with self.assertRaises(ValidationError):
+                    plan.full_clean()
+
 
 class PlanItemModelTests(TestCase):
     def setUp(self):

@@ -6,11 +6,36 @@ from django.db import models
 from meals.models import Meal
 
 
+class MealType(models.TextChoices):
+    BREAKFAST = "breakfast", "Breakfast"
+    LUNCH = "lunch", "Lunch"
+    DINNER = "dinner", "Dinner"
+
+
+def default_enabled_meal_types():
+    return list(MealType.values)
+
+
+def validate_enabled_meal_types(value):
+    if not isinstance(value, list):
+        raise ValidationError("Meal sections must be a list.")
+    if not value:
+        raise ValidationError("At least one meal section must be enabled.")
+    if any(meal_type not in MealType.values for meal_type in value):
+        raise ValidationError("Meal sections contain unsupported values.")
+    if len(value) != len(set(value)):
+        raise ValidationError("Meal sections must not contain duplicates.")
+
+
 class Plan(models.Model):
     owner = models.OneToOneField(
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="personal_plan",
+    )
+    enabled_meal_types = models.JSONField(
+        default=default_enabled_meal_types,
+        validators=(validate_enabled_meal_types,),
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -20,10 +45,7 @@ class Plan(models.Model):
 
 
 class PlanItem(models.Model):
-    class MealType(models.TextChoices):
-        BREAKFAST = "breakfast", "Breakfast"
-        LUNCH = "lunch", "Lunch"
-        DINNER = "dinner", "Dinner"
+    MealType = MealType
 
     plan = models.ForeignKey(
         Plan,
