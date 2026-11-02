@@ -19,7 +19,7 @@ import { EditPlanItemDialog } from "./edit-plan-item-dialog";
 import { MonthCalendar } from "./month-calendar";
 import { usePlanItemsQuery, usePlansQuery } from "./queries";
 import { RemovePlanItemDialog } from "./remove-plan-item-dialog";
-import { type CalendarView, type MealType } from "./types";
+import { type CalendarView, type MealType, type PlanColorMap } from "./types";
 import { WeekCalendar } from "./week-calendar";
 
 export {
@@ -50,7 +50,7 @@ export {
   useUpdatePlanMutation,
   useUpdatePlanItemMutation,
 } from "./queries";
-export { type CalendarView, type MealType } from "./types";
+export { type CalendarView, type MealType, type PlanColorMap } from "./types";
 
 const currentYearWeekFormatter = new Intl.DateTimeFormat(undefined, {
   day: "numeric",
@@ -107,6 +107,10 @@ export const Plan = () => {
   const planItemsQuery = usePlanItemsQuery(visibleRange);
   const activePlan = plansQuery.data?.[0];
   const mealTypes = activePlan?.enabled_meal_types ?? [];
+  const planColors: PlanColorMap = useMemo(
+    () => new Map(plansQuery.data?.map(plan => [plan.id, plan.color]) ?? []),
+    [plansQuery.data]
+  );
   const visiblePlanItems =
     planItemsQuery.data?.filter(planItem => mealTypes.includes(planItem.meal_type)) ??
     [];
@@ -241,6 +245,7 @@ export const Plan = () => {
         <WeekCalendar
           weekStart={weekStart}
           mealTypes={mealTypes}
+          planColors={planColors}
           planItems={visiblePlanItems}
           isMobile={isMobile}
           onAddMeal={(date, mealType) => setAddTarget({ date, mealType })}
@@ -251,6 +256,7 @@ export const Plan = () => {
         <MonthCalendar
           monthStart={monthStart}
           mealTypes={mealTypes}
+          planColors={planColors}
           planItems={visiblePlanItems}
           isMobile={isMobile}
           onAddMeal={(date, mealType) => setAddTarget({ date, mealType })}

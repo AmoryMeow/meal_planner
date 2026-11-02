@@ -9,11 +9,12 @@ import {
   usePlanDropTarget,
   usePlanItemDraggable,
 } from "./plan-drag-and-drop";
-import { type MealType } from "./types";
+import { type MealType, type PlanColorMap } from "./types";
 
 type MonthCalendarProps = {
   monthStart: Date;
   mealTypes: readonly MealType[];
+  planColors: PlanColorMap;
   planItems: PlanItem[];
   isMobile: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
@@ -48,6 +49,7 @@ const weekdayDates = Array.from(
 export const MonthCalendar = ({
   monthStart,
   mealTypes,
+  planColors,
   planItems,
   isMobile,
   onAddMeal,
@@ -79,6 +81,7 @@ export const MonthCalendar = ({
       key={getDateKey(monthStart)}
       monthStart={monthStart}
       mealTypes={mealTypes}
+      planColors={planColors}
       planItems={planItems}
       onAddMeal={onAddMeal}
       onEditPlanItem={onEditPlanItem}
@@ -87,18 +90,24 @@ export const MonthCalendar = ({
     <DesktopMonthCalendar
       monthStart={monthStart}
       mealTypes={mealTypes}
+      planColors={planColors}
       planItems={planItems}
       onAddMeal={onAddMeal}
       onEditPlanItem={onEditPlanItem}
     />
   );
 
-  return <PlanDragAndDropProvider>{calendar}</PlanDragAndDropProvider>;
+  return (
+    <PlanDragAndDropProvider planColors={planColors}>
+      {calendar}
+    </PlanDragAndDropProvider>
+  );
 };
 
 const DesktopMonthCalendar = ({
   monthStart,
   mealTypes,
+  planColors,
   planItems,
   onAddMeal,
   onEditPlanItem,
@@ -148,6 +157,7 @@ const DesktopMonthCalendar = ({
                 key={getDateKey(day)}
                 day={day}
                 monthStart={monthStart}
+                planColors={planColors}
                 planItems={planItems}
                 defaultMealType={defaultMealType}
                 onAddMeal={onAddMeal}
@@ -164,6 +174,7 @@ const DesktopMonthCalendar = ({
 const DesktopMonthDay = ({
   day,
   monthStart,
+  planColors,
   planItems,
   defaultMealType,
   onAddMeal,
@@ -171,6 +182,7 @@ const DesktopMonthDay = ({
 }: {
   day: Date;
   monthStart: Date;
+  planColors: PlanColorMap;
   planItems: PlanItem[];
   defaultMealType?: MealType;
   onAddMeal: (date: Date, mealType: MealType) => void;
@@ -256,6 +268,7 @@ const DesktopMonthDay = ({
             <li key={planItem.id}>
               <MonthPlanItem
                 planItem={planItem}
+                color={planColors.get(planItem.plan_id)}
                 onEdit={() => onEditPlanItem(planItem)}
               />
             </li>
@@ -283,6 +296,7 @@ const DesktopMonthDay = ({
 const MobileMonthCalendar = ({
   monthStart,
   mealTypes,
+  planColors,
   planItems,
   onAddMeal,
   onEditPlanItem,
@@ -371,6 +385,7 @@ const MobileMonthCalendar = ({
               key={mealType}
               date={selectedDate}
               mealType={mealType}
+              planColors={planColors}
               planItems={selectedPlanItems.filter(item => item.meal_type === mealType)}
               onAddMeal={onAddMeal}
               onEditPlanItem={onEditPlanItem}
@@ -465,12 +480,14 @@ const MobileMonthDayButton = ({
 const MobileMonthMealSection = ({
   date,
   mealType,
+  planColors,
   planItems,
   onAddMeal,
   onEditPlanItem,
 }: {
   date: Date;
   mealType: MealType;
+  planColors: PlanColorMap;
   planItems: PlanItem[];
   onAddMeal: (date: Date, mealType: MealType) => void;
   onEditPlanItem: (planItem: PlanItem) => void;
@@ -521,6 +538,7 @@ const MobileMonthMealSection = ({
             <li key={planItem.id}>
               <MonthPlanItem
                 planItem={planItem}
+                color={planColors.get(planItem.plan_id)}
                 onEdit={() => onEditPlanItem(planItem)}
               />
             </li>
@@ -541,13 +559,15 @@ const MobileMonthMealSection = ({
 
 const MonthPlanItem = ({
   planItem,
+  color,
   onEdit,
 }: {
   planItem: PlanItem;
+  color?: string;
   onEdit: () => void;
 }) => {
   const colors = useColors();
-  const calendarColor = colors.primary;
+  const calendarColor = color ?? colors.primary;
   const { attributes, dragDisabled, isDragging, listeners, setNodeRef } =
     usePlanItemDraggable(planItem, "compact");
 

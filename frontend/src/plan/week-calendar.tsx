@@ -9,11 +9,12 @@ import {
   usePlanDropTarget,
   usePlanItemDraggable,
 } from "./plan-drag-and-drop";
-import { type MealType } from "./types";
+import { type MealType, type PlanColorMap } from "./types";
 
 type WeekCalendarProps = {
   weekStart: Date;
   mealTypes: readonly MealType[];
+  planColors: PlanColorMap;
   planItems: PlanItem[];
   isMobile: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
@@ -45,6 +46,7 @@ const fullDateFormatter = new Intl.DateTimeFormat(undefined, {
 export const WeekCalendar = ({
   weekStart,
   mealTypes,
+  planColors,
   planItems,
   isMobile,
   onAddMeal,
@@ -77,6 +79,7 @@ export const WeekCalendar = ({
       key={getDateKey(weekStart)}
       days={days}
       mealTypes={mealTypes}
+      planColors={planColors}
       planItems={planItems}
       onAddMeal={onAddMeal}
       onEditPlanItem={onEditPlanItem}
@@ -98,6 +101,7 @@ export const WeekCalendar = ({
               key={getDateKey(day)}
               day={day}
               mealTypes={mealTypes}
+              planColors={planColors}
               planItems={planItems}
               isToday={isSameDay(day, new Date())}
               onAddMeal={onAddMeal}
@@ -109,18 +113,24 @@ export const WeekCalendar = ({
     </section>
   );
 
-  return <PlanDragAndDropProvider>{calendar}</PlanDragAndDropProvider>;
+  return (
+    <PlanDragAndDropProvider planColors={planColors}>
+      {calendar}
+    </PlanDragAndDropProvider>
+  );
 };
 
 const MobileWeekCalendar = ({
   days,
   mealTypes,
+  planColors,
   planItems,
   onAddMeal,
   onEditPlanItem,
 }: {
   days: Date[];
   mealTypes: readonly MealType[];
+  planColors: PlanColorMap;
   planItems: PlanItem[];
   onAddMeal: (date: Date, mealType: MealType) => void;
   onEditPlanItem: (planItem: PlanItem) => void;
@@ -162,6 +172,7 @@ const MobileWeekCalendar = ({
         <DayColumn
           day={selectedDay}
           mealTypes={mealTypes}
+          planColors={planColors}
           planItems={planItems}
           isToday={isSameDay(selectedDay, new Date())}
           onAddMeal={onAddMeal}
@@ -243,6 +254,7 @@ const MobileDayTab = ({
 const DayColumn = ({
   day,
   mealTypes,
+  planColors,
   planItems,
   isToday,
   onAddMeal,
@@ -250,6 +262,7 @@ const DayColumn = ({
 }: {
   day: Date;
   mealTypes: readonly MealType[];
+  planColors: PlanColorMap;
   planItems: PlanItem[];
   isToday: boolean;
   onAddMeal: (date: Date, mealType: MealType) => void;
@@ -340,6 +353,7 @@ const DayColumn = ({
             key={mealType}
             date={day}
             mealType={mealType}
+            planColors={planColors}
             planItems={dayPlanItems.filter(item => item.meal_type === mealType)}
             onAddMeal={onAddMeal}
             onEditPlanItem={onEditPlanItem}
@@ -353,12 +367,14 @@ const DayColumn = ({
 const MealSection = ({
   date,
   mealType,
+  planColors,
   planItems,
   onAddMeal,
   onEditPlanItem,
 }: {
   date: Date;
   mealType: MealType;
+  planColors: PlanColorMap;
   planItems: PlanItem[];
   onAddMeal: (date: Date, mealType: MealType) => void;
   onEditPlanItem: (planItem: PlanItem) => void;
@@ -421,6 +437,7 @@ const MealSection = ({
             <li key={planItem.id}>
               <PlanItemCard
                 planItem={planItem}
+                color={planColors.get(planItem.plan_id)}
                 onEdit={() => onEditPlanItem(planItem)}
               />
             </li>
@@ -454,12 +471,15 @@ const MealSection = ({
 
 const PlanItemCard = ({
   planItem,
+  color,
   onEdit,
 }: {
   planItem: PlanItem;
+  color?: string;
   onEdit: () => void;
 }) => {
   const colors = useColors();
+  const planColor = color ?? colors.primary;
   const { attributes, dragDisabled, isDragging, listeners, setNodeRef } =
     usePlanItemDraggable(planItem);
 
@@ -479,7 +499,7 @@ const PlanItemCard = ({
         boxSizing: "border-box",
         padding: "7px 9px",
         border: `1px solid ${colors.border}`,
-        borderLeft: `3px solid ${colors.primary}`,
+        borderLeft: `3px solid ${planColor}`,
         borderRadius: 8,
         background: colors.surface,
         color: colors.textPrimary,
@@ -490,8 +510,8 @@ const PlanItemCard = ({
         transition: "border-color 0.15s ease",
         touchAction: "manipulation",
         "&:hover": {
-          borderColor: colors.primary,
-          borderLeftColor: colors.primary,
+          borderColor: planColor,
+          borderLeftColor: planColor,
         },
         "&:focus": { outline: "none" },
         "&:focus-visible": {

@@ -1,4 +1,5 @@
 export type MealType = "breakfast" | "lunch" | "dinner";
+export type PlanColorMap = ReadonlyMap<number, string>;
 
 export type CalendarView = "week" | "month";
 

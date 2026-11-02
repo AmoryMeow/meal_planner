@@ -21,7 +21,7 @@ import { hexToRgba, useColors } from "@package/ui";
 
 import { type PlanItem } from "./api";
 import { useUpdatePlanItemMutation } from "./queries";
-import { type MealType } from "./types";
+import { type MealType, type PlanColorMap } from "./types";
 
 type PlanItemDragData = {
   kind: "plan-item";
@@ -48,6 +48,7 @@ type PlanDragContextValue = {
 
 type PlanDragAndDropProviderProps = {
   children: ReactNode;
+  planColors: PlanColorMap;
 };
 
 type PlanDropTarget = {
@@ -106,7 +107,10 @@ const announcements: Announcements = {
   },
 };
 
-export const PlanDragAndDropProvider = ({ children }: PlanDragAndDropProviderProps) => {
+export const PlanDragAndDropProvider = ({
+  children,
+  planColors,
+}: PlanDragAndDropProviderProps) => {
   const colors = useColors();
   const [activePlanItem, setActivePlanItem] = useState<ActivePlanItem | null>(null);
   const movePlanItem = useUpdatePlanItemMutation();
@@ -199,6 +203,7 @@ export const PlanDragAndDropProvider = ({ children }: PlanDragAndDropProviderPro
             <PlanItemDragPreview
               planItem={activePlanItem.planItem}
               variant={activePlanItem.variant}
+              color={planColors.get(activePlanItem.planItem.plan_id) ?? colors.primary}
               width={activePlanItem.width}
               height={activePlanItem.height}
             />
@@ -246,11 +251,13 @@ export const usePlanDropTarget = ({
 const PlanItemDragPreview = ({
   planItem,
   variant,
+  color,
   width,
   height,
 }: {
   planItem: PlanItem;
   variant: PlanItemDragVariant;
+  color: string;
   width?: number;
   height?: number;
 }) => {
@@ -269,8 +276,8 @@ const PlanItemDragPreview = ({
         gap: isCompact ? 5 : 0,
         boxSizing: "border-box",
         padding: isCompact ? "5px 6px" : "9px 12px",
-        border: `1px solid ${colors.primary}`,
-        borderLeft: `3px solid ${colors.primary}`,
+        border: `1px solid ${color}`,
+        borderLeft: `3px solid ${color}`,
         borderRadius: isCompact ? 7 : 8,
         background: colors.surface,
         color: colors.textPrimary,
@@ -286,7 +293,7 @@ const PlanItemDragPreview = ({
           aria-hidden="true"
           css={{
             flex: "0 0 auto",
-            color: colors.primary,
+            color,
             fontSize: 9,
             fontWeight: 800,
           }}
