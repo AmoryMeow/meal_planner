@@ -1,10 +1,13 @@
+import { useRef } from "react";
 import { Link } from "react-router-dom";
 
+import { CreateGroupDialog } from "@package/groups";
 import { type MealPlan, type MealType, usePlansQuery } from "@package/plan";
 import {
   Button,
   getContentContainerStyles,
   hexToRgba,
+  PlusIcon,
   useColors,
   useIsMobile,
 } from "@package/ui";
@@ -21,6 +24,7 @@ export const Plans = () => {
   const colors = useColors();
   const isMobile = useIsMobile();
   const plansQuery = usePlansQuery();
+  const createGroupDialogRef = useRef<HTMLDialogElement>(null);
 
   return (
     <main
@@ -32,7 +36,16 @@ export const Plans = () => {
           : "48px",
       }}
     >
-      <header css={{ marginBottom: 16 }}>
+      <header
+        css={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+          marginBottom: 16,
+        }}
+      >
         <div
           css={{
             display: "flex",
@@ -55,7 +68,16 @@ export const Plans = () => {
             Your personal and shared meal plans.
           </p>
         </div>
+        <Button
+          size="sm"
+          icon={<PlusIcon />}
+          onClick={() => createGroupDialogRef.current?.showModal()}
+        >
+          Create group
+        </Button>
       </header>
+
+      <CreateGroupDialog dialogRef={createGroupDialogRef} />
 
       {plansQuery.isPending ? <PlansLoading isMobile={isMobile} /> : null}
       {plansQuery.isError ? (
