@@ -5,9 +5,9 @@ from .models import Plan, PlanItem
 
 @admin.register(Plan)
 class PlanAdmin(admin.ModelAdmin):
-    list_display = ("name", "owner", "color", "created_at", "updated_at")
-    search_fields = ("name", "owner__email")
-    list_select_related = ("owner",)
+    list_display = ("name", "owner", "group", "color", "created_at", "updated_at")
+    search_fields = ("name", "owner__email", "group__name")
+    list_select_related = ("owner", "group")
     readonly_fields = ("created_at", "updated_at")
     ordering = ("name",)
 

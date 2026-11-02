@@ -19,3 +19,6 @@ class GroupServiceTests(TestCase):
         self.assertEqual(group.color, "#A78BFA")
         self.assertEqual(membership.user, owner)
         self.assertEqual(membership.role, Membership.Role.OWNER)
+        self.assertEqual(group.plan.name, group.name)
+        self.assertEqual(group.plan.color, group.color)
+        self.assertIsNone(group.plan.owner)

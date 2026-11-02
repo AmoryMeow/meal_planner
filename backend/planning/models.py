@@ -40,6 +40,15 @@ class Plan(models.Model):
         settings.AUTH_USER_MODEL,
         on_delete=models.CASCADE,
         related_name="personal_plan",
+        blank=True,
+        null=True,
+    )
+    group = models.OneToOneField(
+        "groups.Group",
+        on_delete=models.CASCADE,
+        related_name="plan",
+        blank=True,
+        null=True,
     )
     name = models.CharField(max_length=100, default=DEFAULT_PLAN_NAME)
     color = models.CharField(
@@ -53,6 +62,17 @@ class Plan(models.Model):
     )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = (
+            models.CheckConstraint(
+                check=(
+                    models.Q(owner__isnull=False, group__isnull=True)
+                    | models.Q(owner__isnull=True, group__isnull=False)
+                ),
+                name="planning_plan_exactly_one_scope",
+            ),
+        )
 
     def __str__(self):
         return self.name

@@ -3,6 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
+from groups.models import Group
 from meals.models import Meal
 from planning.models import Plan, PlanItem
 
@@ -37,6 +38,15 @@ class PlanningAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.plan.name)
         self.assertContains(response, self.owner.email)
+
+    def test_plan_admin_lists_group_plans(self):
+        group = Group.objects.create(name="Family")
+        Plan.objects.create(group=group, name=group.name, color=group.color)
+
+        response = self.client.get(reverse("admin:planning_plan_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, group.name)
 
     def test_plan_item_admin_lists_scheduled_meals(self):
         response = self.client.get(reverse("admin:planning_planitem_changelist"))

@@ -6,6 +6,7 @@ from django.db.models.deletion import ProtectedError
 from django.test import TestCase
 
 from accounts.models import User
+from groups.models import Group
 from meals.models import Meal
 from planning.models import DEFAULT_PLAN_COLOR, DEFAULT_PLAN_NAME, Plan, PlanItem
 
@@ -21,13 +22,43 @@ class PlanModelTests(TestCase):
         plan = Plan.objects.create(owner=self.user)
 
         self.assertEqual(self.user.personal_plan, plan)
+        self.assertIsNone(plan.group)
         with self.assertRaises(IntegrityError), transaction.atomic():
             Plan.objects.create(owner=self.user)
+
+    def test_group_has_one_group_plan(self):
+        group = Group.objects.create(name="Family")
+        plan = Plan.objects.create(group=group, name=group.name, color=group.color)
+
+        self.assertEqual(group.plan, plan)
+        self.assertIsNone(plan.owner)
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Plan.objects.create(group=group)
+
+    def test_plan_requires_exactly_one_scope(self):
+        group = Group.objects.create(name="Family")
+
+        with self.assertRaises(ValidationError):
+            Plan().full_clean()
+        with self.assertRaises(ValidationError):
+            Plan(owner=self.user, group=group).full_clean()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Plan.objects.create()
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Plan.objects.create(owner=self.user, group=group)
 
     def test_deleting_owner_deletes_personal_plan(self):
         plan = Plan.objects.create(owner=self.user)
 
         self.user.delete()
+
+        self.assertFalse(Plan.objects.filter(pk=plan.pk).exists())
+
+    def test_deleting_group_deletes_group_plan(self):
+        group = Group.objects.create(name="Family")
+        plan = Plan.objects.create(group=group)
+
+        group.delete()
 
         self.assertFalse(Plan.objects.filter(pk=plan.pk).exists())
 
