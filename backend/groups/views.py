@@ -1,11 +1,13 @@
 from django.db.models import Case, Count, IntegerField, Prefetch, Value, When
+from django.shortcuts import get_object_or_404
 
 from rest_framework import generics
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Group, Membership
-from .permissions import GroupPermission
-from .serializers import GroupDetailSerializer, GroupSerializer
+from .models import Group, Invite, Membership
+from .permissions import GroupOwnerPermission, GroupPermission
+from .serializers import GroupDetailSerializer, GroupSerializer, InviteSerializer
+from .services import revoke_invite
 
 
 def get_current_memberships(user):
@@ -69,3 +71,49 @@ class GroupDetailView(generics.RetrieveUpdateAPIView):
             )
             .distinct()
         )
+
+
+class GroupInviteMixin:
+    permission_classes = (IsAuthenticated, GroupOwnerPermission)
+
+    def get_group(self):
+        if not hasattr(self, "_group"):
+            group = get_object_or_404(
+                Group.objects.filter(memberships__user=self.request.user)
+                .prefetch_related(
+                    Prefetch(
+                        "memberships",
+                        queryset=get_current_memberships(self.request.user),
+                        to_attr="current_user_memberships",
+                    )
+                )
+                .distinct(),
+                pk=self.kwargs["group_pk"],
+            )
+            self.check_object_permissions(self.request, group)
+            self._group = group
+        return self._group
+
+    def get_queryset(self):
+        return Invite.objects.filter(
+            group=self.get_group(),
+            status=Invite.Status.PENDING,
+        ).order_by("-created_at")
+
+
+class GroupInviteListCreateView(GroupInviteMixin, generics.ListCreateAPIView):
+    serializer_class = InviteSerializer
+    pagination_class = None
+
+    def get_serializer_context(self):
+        return {
+            **super().get_serializer_context(),
+            "group": self.get_group(),
+        }
+
+
+class GroupInviteDetailView(GroupInviteMixin, generics.DestroyAPIView):
+    serializer_class = InviteSerializer
+
+    def perform_destroy(self, instance):
+        revoke_invite(invite=instance)

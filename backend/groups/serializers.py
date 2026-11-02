@@ -1,8 +1,8 @@
 from rest_framework import serializers
 
-from .models import Group, Membership
+from .models import Group, Invite, Membership
 from .permissions import get_group_role
-from .services import create_group, update_group
+from .services import InviteServiceError, create_group, create_invite, update_group
 
 
 class GroupMemberSerializer(serializers.ModelSerializer):
@@ -74,3 +74,37 @@ class GroupDetailSerializer(GroupSerializer):
 
     class Meta(GroupSerializer.Meta):
         fields = (*GroupSerializer.Meta.fields, "members")
+
+
+class InviteSerializer(serializers.ModelSerializer):
+    is_expired = serializers.BooleanField(read_only=True)
+
+    class Meta:
+        model = Invite
+        fields = (
+            "id",
+            "email",
+            "token",
+            "status",
+            "is_expired",
+            "expires_at",
+            "created_at",
+        )
+        read_only_fields = (
+            "id",
+            "token",
+            "status",
+            "is_expired",
+            "expires_at",
+            "created_at",
+        )
+
+    def create(self, validated_data):
+        try:
+            return create_invite(
+                group=self.context["group"],
+                invited_by=self.context["request"].user,
+                **validated_data,
+            )
+        except InviteServiceError as error:
+            raise serializers.ValidationError({"email": [str(error)]}) from error

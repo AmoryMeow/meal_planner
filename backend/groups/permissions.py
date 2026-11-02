@@ -24,3 +24,11 @@ class GroupPermission(BasePermission):
         if request.method in SAFE_METHODS:
             return role is not None
         return role == Membership.Role.OWNER
+
+
+class GroupOwnerPermission(BasePermission):
+    message = "Only the group owner can manage invitations."
+
+    def has_object_permission(self, request, view, obj):
+        group = getattr(obj, "group", obj)
+        return get_group_role(request.user, group) == Membership.Role.OWNER

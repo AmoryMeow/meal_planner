@@ -1,10 +1,13 @@
+from datetime import timedelta
+
 from django.urls import reverse
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
-from groups.models import Group, Membership
+from groups.models import Group, Invite, Membership
 from groups.services import create_group
 
 
@@ -184,3 +187,191 @@ class GroupApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("name", response.data)
         self.assertIn("color", response.data)
+
+
+class GroupInviteApiTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.member = User.objects.create_user(
+            email="member@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.group = create_group(owner=self.owner, name="Family")
+        Membership.objects.create(
+            group=self.group,
+            user=self.member,
+            role=Membership.Role.MEMBER,
+        )
+        self.other_group = create_group(owner=self.other_user, name="Friends")
+        self.list_url = reverse("group-invite-list", args=(self.group.id,))
+
+    def test_invites_require_authentication(self):
+        invite = Invite.objects.create(
+            group=self.group,
+            email="guest@example.com",
+            invited_by=self.owner,
+        )
+
+        list_response = self.client.get(self.list_url)
+        create_response = self.client.post(
+            self.list_url,
+            {"email": "new@example.com"},
+            format="json",
+        )
+        delete_response = self.client.delete(
+            reverse("group-invite-detail", args=(self.group.id, invite.id))
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(create_response.status_code, status.HTTP_401_UNAUTHORIZED)
+        self.assertEqual(delete_response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_only_owner_can_manage_invites(self):
+        invite = Invite.objects.create(
+            group=self.group,
+            email="guest@example.com",
+            invited_by=self.owner,
+        )
+        self.client.force_authenticate(user=self.member)
+
+        list_response = self.client.get(self.list_url)
+        create_response = self.client.post(
+            self.list_url,
+            {"email": "new@example.com"},
+            format="json",
+        )
+        delete_response = self.client.delete(
+            reverse("group-invite-detail", args=(self.group.id, invite.id))
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(create_response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(delete_response.status_code, status.HTTP_403_FORBIDDEN)
+
+    def test_non_member_cannot_access_group_invites(self):
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_lists_only_pending_invites_for_group(self):
+        pending_invite = Invite.objects.create(
+            group=self.group,
+            email="pending@example.com",
+            invited_by=self.owner,
+        )
+        Invite.objects.create(
+            group=self.group,
+            email="revoked@example.com",
+            invited_by=self.owner,
+            status=Invite.Status.REVOKED,
+        )
+        Invite.objects.create(
+            group=self.other_group,
+            email="other@example.com",
+            invited_by=self.other_user,
+        )
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(response.data[0]["id"], pending_invite.id)
+        self.assertEqual(response.data[0]["email"], pending_invite.email)
+        self.assertIn("token", response.data[0])
+        self.assertFalse(response.data[0]["is_expired"])
+
+    def test_owner_creates_invite_with_normalized_email(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {"email": "  Guest@Example.COM  "},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        invite = Invite.objects.get(pk=response.data["id"])
+        self.assertEqual(invite.email, "guest@example.com")
+        self.assertEqual(invite.group, self.group)
+        self.assertEqual(invite.invited_by, self.owner)
+
+    def test_owner_cannot_invite_existing_member(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {"email": self.member.email.upper()},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["email"][0],
+            "This user is already a group member.",
+        )
+
+    def test_owner_cannot_create_duplicate_active_invite(self):
+        Invite.objects.create(
+            group=self.group,
+            email="guest@example.com",
+            invited_by=self.owner,
+        )
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {"email": "GUEST@example.com"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["email"][0],
+            "An active invitation already exists for this email.",
+        )
+
+    def test_owner_can_replace_expired_invite(self):
+        expired_invite = Invite.objects.create(
+            group=self.group,
+            email="guest@example.com",
+            invited_by=self.owner,
+            expires_at=timezone.now() - timedelta(seconds=1),
+        )
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {"email": "guest@example.com"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        expired_invite.refresh_from_db()
+        self.assertEqual(expired_invite.status, Invite.Status.REVOKED)
+        self.assertNotEqual(response.data["id"], expired_invite.id)
+
+    def test_owner_can_revoke_pending_invite(self):
+        invite = Invite.objects.create(
+            group=self.group,
+            email="guest@example.com",
+            invited_by=self.owner,
+        )
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.delete(
+            reverse("group-invite-detail", args=(self.group.id, invite.id))
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        invite.refresh_from_db()
+        self.assertEqual(invite.status, Invite.Status.REVOKED)
