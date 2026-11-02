@@ -26,16 +26,17 @@ export const CalendarNavigation = ({
       aria-label={`${periodLabel === "week" ? "Week" : "Month"} navigation`}
       css={{
         display: "flex",
+        flexDirection: isMobile ? "column" : "row",
         alignItems: "center",
-        justifyContent: isMobile ? "space-between" : "flex-end",
-        flexWrap: "wrap",
+        justifyContent: "flex-end",
+        flexWrap: isMobile ? "nowrap" : "wrap",
         gap: 8,
         width: isMobile ? "100%" : "auto",
       }}
     >
       <strong
         css={{
-          minWidth: isMobile ? "100%" : 0,
+          width: isMobile ? "100%" : "auto",
           color: colors.textPrimary,
           fontSize: 14,
           textAlign: isMobile ? "left" : "center",
@@ -45,18 +46,28 @@ export const CalendarNavigation = ({
         {label}
       </strong>
 
-      <div css={{ display: "flex", alignItems: "center", gap: 8 }}>
+      <div
+        css={{
+          display: isMobile ? "grid" : "flex",
+          gridTemplateColumns: isMobile ? "repeat(3, minmax(0, 1fr))" : undefined,
+          alignItems: "center",
+          gap: 8,
+          width: isMobile ? "100%" : "auto",
+        }}
+      >
         <Button
           variant="secondary"
           size="sm"
           icon={<PreviousIcon />}
           ariaLabel={`Previous ${periodLabel}`}
+          fullWidth={isMobile}
           onClick={onPrevious}
         />
         <Button
           variant="secondary"
           size="sm"
           disabled={isCurrentPeriod}
+          fullWidth={isMobile}
           onClick={onToday}
         >
           Today
@@ -66,6 +77,7 @@ export const CalendarNavigation = ({
           size="sm"
           icon={<NextIcon />}
           ariaLabel={`Next ${periodLabel}`}
+          fullWidth={isMobile}
           onClick={onNext}
         />
       </div>

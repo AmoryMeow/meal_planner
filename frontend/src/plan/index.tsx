@@ -143,6 +143,8 @@ export const Plan = () => {
     calendarView === "week"
       ? formatWeekRange(weekStart, addDays(weekStart, 6))
       : formatMonth(monthStart);
+  const showPlanSelector =
+    plansQuery.isSuccess && plansQuery.data.length > 1 && hasPlanSelection;
 
   useEffect(() => {
     if (!plansQuery.data?.length) return;
@@ -151,10 +153,9 @@ export const Plan = () => {
       const availableSelection = plansQuery.data
         .filter(plan => current.includes(plan.id))
         .map(plan => plan.id);
-      const personalPlan = plansQuery.data.find(plan => plan.scope === "personal");
       const nextSelection = availableSelection.length
         ? availableSelection
-        : [personalPlan?.id ?? plansQuery.data[0]!.id];
+        : plansQuery.data.map(plan => plan.id);
 
       return areNumberArraysEqual(current, nextSelection) ? current : nextSelection;
     });
@@ -188,9 +189,10 @@ export const Plan = () => {
       <header
         css={{
           display: "flex",
+          flexDirection: isMobile ? "column" : "row",
           alignItems: "center",
           justifyContent: "space-between",
-          flexWrap: "wrap",
+          flexWrap: isMobile ? "nowrap" : "wrap",
           gap: 12,
           marginBottom: 16,
         }}
@@ -198,9 +200,9 @@ export const Plan = () => {
         <div
           css={{
             display: "flex",
-            alignItems: "center",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
+            flexDirection: isMobile ? "column" : "row",
+            alignItems: isMobile ? "stretch" : "center",
+            flexWrap: isMobile ? "nowrap" : "wrap",
             gap: 12,
             width: isMobile ? "100%" : "auto",
           }}
@@ -215,14 +217,34 @@ export const Plan = () => {
           >
             Meal plan
           </h1>
-          {plansQuery.isSuccess && plansQuery.data.length > 1 && hasPlanSelection ? (
-            <PlanSelector
-              plans={plansQuery.data}
-              selectedPlanIds={selectedPlanIds}
-              onChange={setSelectedPlanIds}
+          <div
+            css={{
+              display: isMobile ? "grid" : "flex",
+              gridTemplateColumns:
+                isMobile && showPlanSelector
+                  ? "repeat(2, minmax(0, 1fr))"
+                  : isMobile
+                    ? "minmax(0, 1fr)"
+                    : undefined,
+              alignItems: "center",
+              gap: isMobile ? 8 : 12,
+              width: isMobile ? "100%" : "auto",
+            }}
+          >
+            {showPlanSelector ? (
+              <PlanSelector
+                plans={plansQuery.data ?? []}
+                selectedPlanIds={selectedPlanIds}
+                fullWidth={isMobile}
+                onChange={setSelectedPlanIds}
+              />
+            ) : null}
+            <CalendarViewToggle
+              value={calendarView}
+              fullWidth={isMobile}
+              onChange={setCalendarView}
             />
-          ) : null}
-          <CalendarViewToggle value={calendarView} onChange={setCalendarView} />
+          </div>
         </div>
 
         <CalendarNavigation

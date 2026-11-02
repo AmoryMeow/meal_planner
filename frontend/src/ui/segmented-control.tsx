@@ -9,6 +9,7 @@ export type SegmentedControlProps<T extends string> = {
   ariaLabel: string;
   value: T;
   options: readonly SegmentedControlOption<T>[];
+  fullWidth?: boolean;
   onChange: (value: T) => void;
 };
 
@@ -16,6 +17,7 @@ export const SegmentedControl = <T extends string>({
   ariaLabel,
   value,
   options,
+  fullWidth = false,
   onChange,
 }: SegmentedControlProps<T>) => {
   const colors = useColors();
@@ -28,6 +30,8 @@ export const SegmentedControl = <T extends string>({
         display: "inline-flex",
         alignItems: "center",
         gap: 2,
+        width: fullWidth ? "100%" : "auto",
+        boxSizing: "border-box",
         padding: 3,
         border: `1px solid ${colors.border}`,
         borderRadius: 11,
@@ -44,7 +48,8 @@ export const SegmentedControl = <T extends string>({
             aria-pressed={isSelected}
             onClick={() => onChange(option.value)}
             css={{
-              minWidth: 72,
+              minWidth: fullWidth ? 0 : 72,
+              flex: fullWidth ? 1 : "0 0 auto",
               height: 32,
               padding: "0 12px",
               border: 0,

@@ -7,12 +7,14 @@ import { type MealPlan } from "./api";
 type PlanSelectorProps = {
   plans: MealPlan[];
   selectedPlanIds: number[];
+  fullWidth?: boolean;
   onChange: (planIds: number[]) => void;
 };
 
 export const PlanSelector = ({
   plans,
   selectedPlanIds,
+  fullWidth = false,
   onChange,
 }: PlanSelectorProps) => {
   const colors = useColors();
@@ -66,7 +68,10 @@ export const PlanSelector = ({
   };
 
   return (
-    <details ref={detailsRef} css={{ position: "relative" }}>
+    <details
+      ref={detailsRef}
+      css={{ position: "relative", width: fullWidth ? "100%" : "auto" }}
+    >
       <summary
         css={{
           display: "flex",
@@ -74,7 +79,8 @@ export const PlanSelector = ({
           justifyContent: "space-between",
           gap: 8,
           minWidth: 116,
-          maxWidth: 180,
+          width: fullWidth ? "100%" : "auto",
+          maxWidth: fullWidth ? "none" : 180,
           height: 40,
           boxSizing: "border-box",
           padding: "0 11px",
@@ -115,7 +121,7 @@ export const PlanSelector = ({
           zIndex: 20,
           top: "calc(100% + 6px)",
           left: 0,
-          width: 260,
+          width: fullWidth ? "min(260px, calc(200% + 8px))" : 260,
           boxSizing: "border-box",
           padding: 6,
           border: `1px solid ${colors.border}`,
