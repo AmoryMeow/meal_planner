@@ -3,7 +3,7 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
-from groups.models import Group, Membership
+from groups.models import Group, Invite, Membership
 
 
 class GroupsAdminTests(TestCase):
@@ -27,6 +27,7 @@ class GroupsAdminTests(TestCase):
     def test_group_models_are_registered(self):
         self.assertTrue(admin.site.is_registered(Group))
         self.assertTrue(admin.site.is_registered(Membership))
+        self.assertTrue(admin.site.is_registered(Invite))
 
     def test_group_admin_lists_groups(self):
         response = self.client.get(reverse("admin:groups_group_changelist"))
@@ -42,3 +43,17 @@ class GroupsAdminTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.owner.email)
+
+    def test_group_admin_displays_invites_inline(self):
+        invite = Invite.objects.create(
+            group=self.group,
+            email="member@example.com",
+            invited_by=self.owner,
+        )
+
+        response = self.client.get(
+            reverse("admin:groups_group_change", args=(self.group.id,))
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, invite.email)

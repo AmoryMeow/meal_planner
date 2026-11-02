@@ -1,9 +1,18 @@
+from datetime import timedelta
+
 from django.core.exceptions import ValidationError
 from django.db import IntegrityError, transaction
 from django.test import TestCase
+from django.utils import timezone
 
 from accounts.models import User
-from groups.models import DEFAULT_GROUP_COLOR, Group, Membership
+from groups.models import (
+    DEFAULT_GROUP_COLOR,
+    INVITE_LIFETIME_DAYS,
+    Group,
+    Invite,
+    Membership,
+)
 
 
 class GroupModelTests(TestCase):
@@ -83,3 +92,87 @@ class GroupModelTests(TestCase):
         self.group.delete()
 
         self.assertFalse(Membership.objects.filter(pk=membership.pk).exists())
+
+
+class InviteModelTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.group = Group.objects.create(name="Family")
+
+    def test_invite_uses_secure_defaults(self):
+        before_creation = timezone.now()
+
+        invite = Invite.objects.create(
+            group=self.group,
+            email="member@example.com",
+            invited_by=self.owner,
+        )
+
+        expected_expiration = before_creation + timedelta(days=INVITE_LIFETIME_DAYS)
+        self.assertEqual(invite.status, Invite.Status.PENDING)
+        self.assertIsNotNone(invite.token)
+        self.assertFalse(invite.is_expired)
+        self.assertGreaterEqual(invite.expires_at, expected_expiration)
+
+    def test_group_cannot_have_duplicate_pending_invites_for_email(self):
+        Invite.objects.create(
+            group=self.group,
+            email="Member@example.com",
+            invited_by=self.owner,
+        )
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Invite.objects.create(
+                group=self.group,
+                email="member@example.com",
+                invited_by=self.owner,
+            )
+
+    def test_group_can_reinvite_after_previous_invite_is_revoked(self):
+        Invite.objects.create(
+            group=self.group,
+            email="member@example.com",
+            invited_by=self.owner,
+            status=Invite.Status.REVOKED,
+        )
+
+        invite = Invite.objects.create(
+            group=self.group,
+            email="member@example.com",
+            invited_by=self.owner,
+        )
+
+        self.assertEqual(invite.status, Invite.Status.PENDING)
+
+    def test_accepted_invite_requires_acceptance_time(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Invite.objects.create(
+                group=self.group,
+                email="member@example.com",
+                invited_by=self.owner,
+                status=Invite.Status.ACCEPTED,
+            )
+
+    def test_expired_pending_invite_is_marked_as_expired(self):
+        invite = Invite.objects.create(
+            group=self.group,
+            email="member@example.com",
+            invited_by=self.owner,
+            expires_at=timezone.now() - timedelta(seconds=1),
+        )
+
+        self.assertTrue(invite.is_expired)
+
+    def test_deleting_group_deletes_invites(self):
+        invite = Invite.objects.create(
+            group=self.group,
+            email="member@example.com",
+            invited_by=self.owner,
+        )
+
+        self.group.delete()
+
+        self.assertFalse(Invite.objects.filter(pk=invite.pk).exists())
