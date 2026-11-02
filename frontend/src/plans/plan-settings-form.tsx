@@ -1,4 +1,4 @@
-import { type FormEvent, useEffect, useId, useState } from "react";
+import { type FormEvent, useEffect, useState } from "react";
 
 import {
   type MealPlan,
@@ -6,15 +6,20 @@ import {
   type UpdatePlanInput,
   useUpdatePlanMutation,
 } from "@package/plan";
-import { Button, hexToRgba, Input, useColors } from "@package/ui";
+import {
+  Button,
+  ColorInput,
+  HEX_COLOR_PATTERN,
+  hexToRgba,
+  Input,
+  useColors,
+} from "@package/ui";
 
 const mealTypeOptions: { value: MealType; label: string }[] = [
   { value: "breakfast", label: "Breakfast" },
   { value: "lunch", label: "Lunch" },
   { value: "dinner", label: "Dinner" },
 ];
-
-const colorPattern = /^#[0-9A-Fa-f]{6}$/;
 
 type PlanFormErrors = Partial<Record<keyof UpdatePlanInput, string>>;
 
@@ -38,7 +43,7 @@ export const PlanSettingsForm = ({ plan }: { plan: MealPlan }) => {
     color !== plan.color ||
     mealTypes.length !== plan.enabled_meal_types.length ||
     mealTypes.some((mealType, index) => plan.enabled_meal_types[index] !== mealType);
-  const previewColor = colorPattern.test(color) ? color : plan.color;
+  const previewColor = HEX_COLOR_PATTERN.test(color) ? color : plan.color;
   const mealTypesError =
     formErrors.enabled_meal_types ?? mutation.apiFieldErrors.enabled_meal_types;
 
@@ -75,7 +80,7 @@ export const PlanSettingsForm = ({ plan }: { plan: MealPlan }) => {
     const nextErrors: PlanFormErrors = {};
 
     if (!normalizedName) nextErrors.name = "Required";
-    if (!colorPattern.test(normalizedColor)) nextErrors.color = "Use #RRGGBB";
+    if (!HEX_COLOR_PATTERN.test(normalizedColor)) nextErrors.color = "Use #RRGGBB";
     if (mealTypes.length === 0) nextErrors.enabled_meal_types = "Required";
 
     setFormErrors(nextErrors);
@@ -122,7 +127,8 @@ export const PlanSettingsForm = ({ plan }: { plan: MealPlan }) => {
             setName(event.target.value);
           }}
         />
-        <ColorField
+        <ColorInput
+          name="plan-color"
           value={color}
           disabled={mutation.isPending}
           error={formErrors.color ?? mutation.apiFieldErrors.color}
@@ -230,104 +236,5 @@ export const PlanSettingsForm = ({ plan }: { plan: MealPlan }) => {
         </Button>
       </div>
     </form>
-  );
-};
-
-const ColorField = ({
-  value,
-  disabled,
-  error,
-  onChange,
-}: {
-  value: string;
-  disabled: boolean;
-  error?: string;
-  onChange: (value: string) => void;
-}) => {
-  const colors = useColors();
-  const fieldId = useId();
-  const errorId = useId();
-  const pickerValue = colorPattern.test(value) ? value : "#000000";
-
-  return (
-    <div>
-      <label
-        htmlFor={fieldId}
-        css={{
-          display: "block",
-          marginBottom: 8,
-          color: colors.textPrimary,
-          fontSize: 14,
-          fontWeight: 600,
-        }}
-      >
-        Color
-      </label>
-      <div css={{ display: "flex", gap: 8 }}>
-        <input
-          type="color"
-          value={pickerValue}
-          disabled={disabled}
-          aria-label="Choose plan color"
-          aria-describedby={error ? errorId : undefined}
-          onChange={event => onChange(event.target.value.toUpperCase())}
-          css={{
-            width: 48,
-            height: 44,
-            flex: "0 0 auto",
-            boxSizing: "border-box",
-            padding: 4,
-            border: error ? `1px solid ${colors.danger}` : `1px solid ${colors.border}`,
-            borderRadius: 8,
-            background: colors.background,
-            cursor: disabled ? "not-allowed" : "pointer",
-            "&:focus-visible": {
-              outline: `3px solid ${hexToRgba(colors.focus, 0.35)}`,
-              outlineOffset: 1,
-            },
-          }}
-        />
-        <input
-          id={fieldId}
-          type="text"
-          name="plan-color"
-          value={value}
-          disabled={disabled}
-          required
-          maxLength={7}
-          placeholder="#0EA5E9"
-          aria-invalid={Boolean(error)}
-          aria-describedby={error ? errorId : undefined}
-          onChange={event => onChange(event.target.value)}
-          css={{
-            width: "100%",
-            height: 44,
-            boxSizing: "border-box",
-            padding: "0 12px",
-            border: error ? `1px solid ${colors.danger}` : `1px solid ${colors.border}`,
-            borderRadius: 8,
-            background: disabled ? colors.surfaceAlt : colors.background,
-            color: colors.textPrimary,
-            font: "inherit",
-            fontSize: 15,
-            textTransform: "uppercase",
-            "&:focus": {
-              outline: "none",
-              borderColor: error ? colors.danger : colors.primary,
-              boxShadow: `0 0 0 3px ${hexToRgba(error ? colors.danger : colors.primary, 0.1)}`,
-            },
-          }}
-        />
-      </div>
-      {error ? (
-        <p
-          id={errorId}
-          role="alert"
-          css={{ margin: "6px 0 0", color: colors.danger, fontSize: 12 }}
-        >
-          {error}
-        </p>
-      ) : null}
-    </div>
   );
 };

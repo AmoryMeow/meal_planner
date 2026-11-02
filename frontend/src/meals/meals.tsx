@@ -1,6 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 
-import { Button, getContentContainerStyles, useColors, useIsMobile } from "@package/ui";
+import {
+  Button,
+  getContentContainerStyles,
+  PlusIcon,
+  useColors,
+  useIsMobile,
+} from "@package/ui";
 
 import { type Meal, type MealSource } from "./api";
 import { CreateMealDialog } from "./create-meal-dialog";
@@ -112,21 +118,6 @@ export const Meals = () => {
     </main>
   );
 };
-
-const PlusIcon = () => (
-  <svg
-    aria-hidden="true"
-    width="16"
-    height="16"
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2"
-    strokeLinecap="round"
-  >
-    <path d="M12 5v14M5 12h14" />
-  </svg>
-);
 
 const MealCard = ({ meal, onEdit }: { meal: Meal; onEdit: (meal: Meal) => void }) => {
   const colors = useColors();
