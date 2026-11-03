@@ -11,6 +11,14 @@ class InviteServiceError(Exception):
     pass
 
 
+class MembershipServiceError(Exception):
+    pass
+
+
+class GroupOwnerRemovalError(MembershipServiceError):
+    pass
+
+
 class ActiveInviteExistsError(InviteServiceError):
     pass
 
@@ -68,6 +76,12 @@ def update_group(*, group: Group, name: str, color: str) -> Group:
     plan.full_clean()
     plan.save()
     return group
+
+
+def remove_group_member(*, membership: Membership) -> None:
+    if membership.role == Membership.Role.OWNER:
+        raise GroupOwnerRemovalError("The group owner cannot be removed.")
+    membership.delete()
 
 
 @transaction.atomic

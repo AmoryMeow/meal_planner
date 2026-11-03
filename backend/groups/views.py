@@ -9,12 +9,19 @@ from rest_framework.views import APIView
 
 from .models import Group, Invite, Membership
 from .permissions import GroupOwnerPermission, GroupPermission
-from .serializers import GroupDetailSerializer, GroupSerializer, InviteSerializer
+from .serializers import (
+    GroupDetailSerializer,
+    GroupMemberSerializer,
+    GroupSerializer,
+    InviteSerializer,
+)
 from .services import (
+    GroupOwnerRemovalError,
     InviteEmailMismatchError,
     InviteExpiredError,
     InviteUnavailableError,
     accept_invite,
+    remove_group_member,
     revoke_invite,
 )
 
@@ -80,6 +87,27 @@ class GroupDetailView(generics.RetrieveUpdateAPIView):
             )
             .distinct()
         )
+
+
+class GroupMemberDetailView(generics.DestroyAPIView):
+    serializer_class = GroupMemberSerializer
+    permission_classes = (IsAuthenticated, GroupOwnerPermission)
+
+    def get_queryset(self):
+        return (
+            Membership.objects.select_related("group", "user")
+            .filter(
+                group_id=self.kwargs["group_pk"],
+                group__memberships__user=self.request.user,
+            )
+            .distinct()
+        )
+
+    def perform_destroy(self, instance):
+        try:
+            remove_group_member(membership=instance)
+        except GroupOwnerRemovalError as error:
+            raise ValidationError({"detail": str(error)}) from error
 
 
 class GroupInviteMixin:

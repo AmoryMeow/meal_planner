@@ -27,7 +27,7 @@ class GroupPermission(BasePermission):
 
 
 class GroupOwnerPermission(BasePermission):
-    message = "Only the group owner can manage invitations."
+    message = "Only the group owner can manage this group."
 
     def has_object_permission(self, request, view, obj):
         group = getattr(obj, "group", obj)

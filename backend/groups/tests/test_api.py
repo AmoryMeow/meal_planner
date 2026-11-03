@@ -189,6 +189,76 @@ class GroupApiTests(APITestCase):
         self.assertIn("color", response.data)
 
 
+class GroupMemberApiTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.member = User.objects.create_user(
+            email="member@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.group = create_group(owner=self.owner, name="Family")
+        self.membership = Membership.objects.create(
+            group=self.group,
+            user=self.member,
+            role=Membership.Role.MEMBER,
+        )
+        self.owner_membership = self.group.memberships.get(user=self.owner)
+        self.url = reverse(
+            "group-member-detail",
+            args=(self.group.id, self.membership.id),
+        )
+
+    def test_removing_member_requires_authentication(self):
+        response = self.client.delete(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_only_owner_can_remove_member(self):
+        self.client.force_authenticate(user=self.member)
+
+        response = self.client.delete(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertTrue(Membership.objects.filter(pk=self.membership.pk).exists())
+
+    def test_non_member_cannot_access_group_membership(self):
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.delete(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_owner_can_remove_member(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.delete(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(Membership.objects.filter(pk=self.membership.pk).exists())
+        self.assertTrue(Group.objects.filter(pk=self.group.pk).exists())
+        self.assertTrue(Group.objects.get(pk=self.group.pk).plan)
+
+    def test_owner_cannot_remove_owner_membership(self):
+        self.client.force_authenticate(user=self.owner)
+        url = reverse(
+            "group-member-detail",
+            args=(self.group.id, self.owner_membership.id),
+        )
+
+        response = self.client.delete(url)
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["detail"], "The group owner cannot be removed.")
+        self.assertTrue(Membership.objects.filter(pk=self.owner_membership.pk).exists())
+
+
 class GroupInviteApiTests(APITestCase):
     def setUp(self):
         self.owner = User.objects.create_user(
