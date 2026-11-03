@@ -1,6 +1,9 @@
-import { hexToRgba, useColors } from "@package/ui";
+import { useEffect, useRef, useState } from "react";
+
+import { Button, hexToRgba, useColors } from "@package/ui";
 
 import { type GroupDetails, type GroupMember } from "./api";
+import { RemoveGroupMemberDialog } from "./remove-group-member-dialog";
 
 export const GroupMembers = ({
   group,
@@ -10,6 +13,13 @@ export const GroupMembers = ({
   color?: string;
 }) => {
   const colors = useColors();
+  const removeDialogRef = useRef<HTMLDialogElement>(null);
+  const [removeTarget, setRemoveTarget] = useState<GroupMember | null>(null);
+
+  useEffect(() => {
+    const dialog = removeDialogRef.current;
+    if (removeTarget && dialog && !dialog.open) dialog.showModal();
+  }, [removeTarget]);
 
   return (
     <section
@@ -100,9 +110,25 @@ export const GroupMembers = ({
             >
               {member.role}
             </span>
+            {group.role === "owner" && member.role !== "owner" ? (
+              <Button variant="ghost" size="sm" onClick={() => setRemoveTarget(member)}>
+                Remove
+              </Button>
+            ) : null}
           </li>
         ))}
       </ul>
+
+      {removeTarget ? (
+        <RemoveGroupMemberDialog
+          dialogRef={removeDialogRef}
+          groupId={group.id}
+          groupName={group.name}
+          member={removeTarget}
+          memberName={getMemberName(removeTarget)}
+          onClose={() => setRemoveTarget(null)}
+        />
+      ) : null}
     </section>
   );
 };

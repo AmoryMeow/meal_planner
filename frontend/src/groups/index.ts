@@ -7,6 +7,7 @@ export {
   createGroupInvite,
   getGroup,
   getGroupInvites,
+  removeGroupMember,
   revokeGroupInvite,
   type CreateGroupInput,
   type CreateGroupInviteInput,
@@ -25,6 +26,7 @@ export {
   useCreateGroupMutation,
   useGroupInvitesQuery,
   useGroupQuery,
+  useRemoveGroupMemberMutation,
   useRevokeGroupInviteMutation,
 } from "./queries";
 export { GroupMembers } from "./group-members";

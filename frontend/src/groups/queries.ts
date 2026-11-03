@@ -10,10 +10,12 @@ import {
   createGroupInvite,
   getGroup,
   getGroupInvites,
+  removeGroupMember,
   revokeGroupInvite,
   type CreateGroupInput,
   type CreateGroupInviteInput,
   type GroupInvite,
+  type GroupDetails,
 } from "./api";
 
 export const groupQueryKeys = {
@@ -31,6 +33,35 @@ export const useGroupQuery = (groupId: number) => {
     queryFn: () => getGroup(request, groupId),
     enabled: Boolean(user && groupId),
   });
+};
+
+export const useRemoveGroupMemberMutation = (groupId: number) => {
+  const { request, user } = useAuthSession();
+  const queryClient = useQueryClient();
+  const queryKey = groupQueryKeys.detail(user?.id ?? null, groupId);
+
+  const mutation = useMutation({
+    mutationFn: (membershipId: number) =>
+      removeGroupMember(request, groupId, membershipId),
+    onSuccess: (_response, membershipId) => {
+      queryClient.setQueryData<GroupDetails>(
+        queryKey,
+        (current: GroupDetails | undefined) =>
+          current
+            ? {
+                ...current,
+                member_count: Math.max(0, current.member_count - 1),
+                members: current.members.filter(member => member.id !== membershipId),
+              }
+            : current
+      );
+    },
+  });
+
+  return {
+    ...mutation,
+    submitError: getSubmitError(mutation.error, {}),
+  };
 };
 
 export const useCreateGroupMutation = () => {

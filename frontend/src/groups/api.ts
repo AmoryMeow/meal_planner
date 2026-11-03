@@ -45,6 +45,15 @@ export type CreateGroupInviteInput = Pick<GroupInvite, "email">;
 export const getGroup = (request: AuthenticatedRequest, groupId: number) =>
   request<GroupDetails>(`/groups/${groupId}/`);
 
+export const removeGroupMember = (
+  request: AuthenticatedRequest,
+  groupId: number,
+  membershipId: number
+) =>
+  request<void>(`/groups/${groupId}/members/${membershipId}/`, {
+    method: "DELETE",
+  });
+
 export const createGroup = (request: AuthenticatedRequest, input: CreateGroupInput) =>
   request<MealGroup>("/groups/", {
     method: "POST",
