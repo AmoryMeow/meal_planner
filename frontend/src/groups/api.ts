@@ -42,6 +42,9 @@ export type GroupInvite = {
 export type CreateGroupInput = Pick<MealGroup, "name" | "color">;
 export type CreateGroupInviteInput = Pick<GroupInvite, "email">;
 
+export const getGroups = (request: AuthenticatedRequest) =>
+  request<MealGroup[]>("/groups/");
+
 export const getGroup = (request: AuthenticatedRequest, groupId: number) =>
   request<GroupDetails>(`/groups/${groupId}/`);
 

@@ -59,6 +59,21 @@ export type CreateMealInput = {
 
 export type UpdateMealInput = Partial<CreateMealInput>;
 
+export type MealShareAccess = "read" | "edit";
+
+export type MealShare = {
+  id: number;
+  group_id: number;
+  group_name: string;
+  group_color: string;
+  access: MealShareAccess;
+  created_at: string;
+  updated_at: string;
+};
+
+export type CreateMealShareInput = Pick<MealShare, "group_id" | "access">;
+export type UpdateMealShareInput = Pick<MealShare, "access">;
+
 export const getMeals = (request: AuthenticatedRequest) =>
   request<PaginatedResponse<Meal>>("/meals/");
 
@@ -83,6 +98,39 @@ export const updateMeal = (
 
 export const deleteMeal = (request: AuthenticatedRequest, mealId: number) =>
   request<void>(`/meals/${mealId}/`, {
+    method: "DELETE",
+  });
+
+export const getMealShares = (request: AuthenticatedRequest, mealId: number) =>
+  request<MealShare[]>(`/meals/${mealId}/shares/`);
+
+export const createMealShare = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  input: CreateMealShareInput
+) =>
+  request<MealShare>(`/meals/${mealId}/shares/`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
+export const updateMealShare = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  shareId: number,
+  input: UpdateMealShareInput
+) =>
+  request<MealShare>(`/meals/${mealId}/shares/${shareId}/`, {
+    method: "PATCH",
+    body: JSON.stringify(input),
+  });
+
+export const deleteMealShare = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  shareId: number
+) =>
+  request<void>(`/meals/${mealId}/shares/${shareId}/`, {
     method: "DELETE",
   });
 

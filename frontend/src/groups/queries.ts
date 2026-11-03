@@ -10,19 +10,32 @@ import {
   createGroupInvite,
   getGroup,
   getGroupInvites,
+  getGroups,
   removeGroupMember,
   revokeGroupInvite,
   type CreateGroupInput,
   type CreateGroupInviteInput,
   type GroupInvite,
   type GroupDetails,
+  type MealGroup,
 } from "./api";
 
 export const groupQueryKeys = {
   all: ["groups"] as const,
   byUser: (userId: number | null) => [...groupQueryKeys.all, userId] as const,
+  list: (userId: number | null) => [...groupQueryKeys.byUser(userId), "list"] as const,
   detail: (userId: number | null, groupId: number) =>
     [...groupQueryKeys.byUser(userId), "detail", groupId] as const,
+};
+
+export const useGroupsQuery = () => {
+  const { request, user } = useAuthSession();
+
+  return useQuery({
+    queryKey: groupQueryKeys.list(user?.id ?? null),
+    queryFn: () => getGroups(request),
+    enabled: Boolean(user),
+  });
 };
 
 export const useGroupQuery = (groupId: number) => {
@@ -71,8 +84,18 @@ export const useCreateGroupMutation = () => {
 
   const mutation = useMutation({
     mutationFn: (input: CreateGroupInput) => createGroup(request, input),
-    onSuccess: () =>
-      queryClient.invalidateQueries({ queryKey: planQueryKeys.list(userId) }),
+    onSuccess: group => {
+      queryClient.setQueryData<MealGroup[]>(
+        groupQueryKeys.list(userId),
+        (current: MealGroup[] | undefined) =>
+          current
+            ? [...current, group].sort((first, second) =>
+                first.name.localeCompare(second.name)
+              )
+            : current
+      );
+      return queryClient.invalidateQueries({ queryKey: planQueryKeys.list(userId) });
+    },
   });
   const apiFieldErrors = getGroupApiFieldErrors(mutation.error);
 
@@ -155,6 +178,7 @@ export const useAcceptGroupInviteMutation = (token: string) => {
     mutationFn: () => acceptGroupInvite(request, token),
     onSuccess: group => {
       void queryClient.invalidateQueries({ queryKey: planQueryKeys.list(userId) });
+      void queryClient.invalidateQueries({ queryKey: groupQueryKeys.list(userId) });
       void queryClient.invalidateQueries({
         queryKey: groupQueryKeys.detail(userId, group.id),
       });

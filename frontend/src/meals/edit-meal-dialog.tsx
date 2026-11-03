@@ -14,6 +14,7 @@ import {
   MealIngredientsEditor,
   useMealIngredientsEditor,
 } from "./meal-ingredients-editor";
+import { MealSharingEditor } from "./meal-sharing-editor";
 import { useUpdateMealMutation } from "./queries";
 
 type EditMealDialogProps = {
@@ -89,7 +90,10 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
       />
 
       {meal.is_owner ? (
-        <MealIngredientsEditor editor={ingredientsEditor} disabled={isSaving} />
+        <>
+          <MealIngredientsEditor editor={ingredientsEditor} disabled={isSaving} />
+          <MealSharingEditor mealId={meal.id} disabled={isSaving} />
+        </>
       ) : (
         <div>
           <p
