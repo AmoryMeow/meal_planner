@@ -78,10 +78,10 @@ export const useCreateGroupInviteMutation = (groupId: number) => {
     mutationFn: (input: CreateGroupInviteInput) =>
       createGroupInvite(request, groupId, input),
     onSuccess: invite => {
-      queryClient.setQueryData<GroupInvite[]>(queryKey, current => [
-        invite,
-        ...(current ?? []),
-      ]);
+      queryClient.setQueryData<GroupInvite[]>(
+        queryKey,
+        (current: GroupInvite[] | undefined) => [invite, ...(current ?? [])]
+      );
     },
   });
   const apiFieldErrors = getInviteApiFieldErrors(mutation.error);
@@ -101,8 +101,10 @@ export const useRevokeGroupInviteMutation = (groupId: number) => {
   const mutation = useMutation({
     mutationFn: (inviteId: number) => revokeGroupInvite(request, groupId, inviteId),
     onSuccess: (_response, inviteId) => {
-      queryClient.setQueryData<GroupInvite[]>(queryKey, current =>
-        current?.filter(invite => invite.id !== inviteId)
+      queryClient.setQueryData<GroupInvite[]>(
+        queryKey,
+        (current: GroupInvite[] | undefined) =>
+          current?.filter(invite => invite.id !== inviteId)
       );
     },
   });
