@@ -260,6 +260,7 @@ const getPlanItemApiFieldErrors = (error: Error | null): PlanItemApiFieldErrors 
     date: getFirstError(error.body?.date),
     meal_type: getFirstError(error.body?.meal_type),
     meal_id: getFirstError(error.body?.meal_id),
+    share_with_group: getFirstError(error.body?.share_with_group),
     servings: getFirstError(error.body?.servings),
     note: getFirstError(error.body?.note),
   };

@@ -39,6 +39,8 @@ export const AddPlanItemDialog = ({
   const [servings, setServings] = useState("1");
   const [servingsError, setServingsError] = useState("");
   const [note, setNote] = useState("");
+  const selectedPlan = plans.find(plan => plan.id === selectedPlanId);
+  const requiresShareConfirmation = Boolean(creation.apiFieldErrors.share_with_group);
 
   const resetForm = () => {
     setSelectedMeal(null);
@@ -80,6 +82,7 @@ export const AddPlanItemDialog = ({
         date: getDateKey(date),
         meal_type: selectedMealType,
         meal_id: selectedMeal.id,
+        share_with_group: requiresShareConfirmation || undefined,
         servings: servingsValue,
         note: note.trim(),
       },
@@ -108,7 +111,7 @@ export const AddPlanItemDialog = ({
             Cancel
           </Button>
           <Button type="submit" size="sm" loading={creation.isPending}>
-            Add
+            {requiresShareConfirmation ? "Share and add" : "Add"}
           </Button>
         </>
       }
@@ -145,7 +148,7 @@ export const AddPlanItemDialog = ({
         error={creation.apiFieldErrors.meal_type}
         onChange={value => {
           setSelectedMealType(value);
-          creation.reset();
+          if (!requiresShareConfirmation) creation.reset();
         }}
       />
 
@@ -157,7 +160,7 @@ export const AddPlanItemDialog = ({
         onChange={event => {
           setServings(event.target.value);
           setServingsError("");
-          creation.reset();
+          if (!requiresShareConfirmation) creation.reset();
         }}
         error={creation.apiFieldErrors.servings || servingsError}
         disabled={creation.isPending}
@@ -172,12 +175,32 @@ export const AddPlanItemDialog = ({
         value={note}
         onChange={event => {
           setNote(event.target.value);
-          creation.reset();
+          if (!requiresShareConfirmation) creation.reset();
         }}
         error={creation.apiFieldErrors.note}
         disabled={creation.isPending}
         placeholder="Optional details"
       />
+
+      {requiresShareConfirmation && selectedMeal && selectedPlan ? (
+        <div
+          role="alert"
+          css={{
+            padding: "12px 14px",
+            border: `1px solid ${colors.border}`,
+            borderRadius: 8,
+            background: colors.surfaceAlt,
+            color: colors.textPrimary,
+            fontSize: 14,
+          }}
+        >
+          <p css={{ margin: 0, fontWeight: 700 }}>Share this meal?</p>
+          <p css={{ margin: "4px 0 0", color: colors.textSecondary }}>
+            “{selectedMeal.label}” is private. To add it to “{selectedPlan.name}”, give
+            this group permission to view the meal.
+          </p>
+        </div>
+      ) : null}
 
       {creation.submitError ? (
         <div

@@ -63,6 +63,7 @@ export type CreatePlanItemInput = {
   date: string;
   meal_type: MealType;
   meal_id: number;
+  share_with_group?: boolean;
   servings?: number;
   note?: string;
 };
