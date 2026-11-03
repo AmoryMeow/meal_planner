@@ -1,7 +1,7 @@
-import { type FormEvent, type RefObject, useId, useState } from "react";
+import { type FormEvent, type RefObject, useState } from "react";
 
 import { MealCombobox, type MealOption } from "@package/meals";
-import { Button, Dialog, Input, Textarea, useColors } from "@package/ui";
+import { Button, Dialog, Input, Select, Textarea, useColors } from "@package/ui";
 
 import { type MealPlan } from "./api";
 import { getDateKey } from "./date-utils";
@@ -233,62 +233,17 @@ const PlanSelect = ({
   error?: string;
   onChange: (planId: number) => void;
 }) => {
-  const colors = useColors();
-  const selectId = useId();
-  const errorId = useId();
-
   return (
-    <div>
-      <label
-        htmlFor={selectId}
-        css={{
-          display: "block",
-          marginBottom: 8,
-          color: colors.textPrimary,
-          fontSize: 14,
-          fontWeight: 600,
-        }}
-      >
-        Plan
-      </label>
-      <select
-        id={selectId}
-        value={value}
-        disabled={disabled}
-        aria-invalid={Boolean(error)}
-        aria-describedby={error ? errorId : undefined}
-        onChange={event => onChange(Number(event.target.value))}
-        css={{
-          width: "100%",
-          height: 44,
-          boxSizing: "border-box",
-          padding: "0 12px",
-          border: error ? `1px solid ${colors.danger}` : `1px solid ${colors.border}`,
-          borderRadius: 8,
-          background: disabled ? colors.surfaceAlt : colors.background,
-          color: colors.textPrimary,
-          font: "inherit",
-          "&:focus-visible": {
-            outline: `3px solid ${colors.focus}`,
-            borderColor: colors.focus,
-          },
-        }}
-      >
-        {plans.map(plan => (
-          <option key={plan.id} value={plan.id}>
-            {plan.name} ({plan.scope === "group" ? "Group" : "Personal"})
-          </option>
-        ))}
-      </select>
-      {error ? (
-        <div
-          id={errorId}
-          role="alert"
-          css={{ marginTop: 6, color: colors.danger, fontSize: 12 }}
-        >
-          {error}
-        </div>
-      ) : null}
-    </div>
+    <Select
+      label="Plan"
+      value={String(value)}
+      disabled={disabled}
+      error={error}
+      options={plans.map(plan => ({
+        value: String(plan.id),
+        label: `${plan.name} (${plan.scope === "group" ? "Group" : "Personal"})`,
+      }))}
+      onChange={planId => onChange(Number(planId))}
+    />
   );
 };
