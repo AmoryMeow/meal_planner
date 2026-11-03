@@ -2,7 +2,9 @@ from django.db import transaction
 
 from rest_framework import serializers
 
-from meals.models import Meal
+from meals.models import Meal, MealShare
+from meals.permissions import get_readable_meals
+from meals.services import share_meal
 
 from .models import MealType, Plan, PlanItem
 from .permissions import can_manage_plan, get_accessible_plans
@@ -93,6 +95,11 @@ class PlanItemRangeSerializer(serializers.Serializer):
 
 class PlanItemSerializer(serializers.ModelSerializer):
     plan_id = serializers.IntegerField(min_value=1, required=False)
+    share_with_group = serializers.BooleanField(
+        write_only=True,
+        required=False,
+        default=False,
+    )
     meal_id = serializers.PrimaryKeyRelatedField(
         source="meal",
         queryset=Meal.objects.none(),
@@ -106,6 +113,7 @@ class PlanItemSerializer(serializers.ModelSerializer):
             "date",
             "meal_type",
             "meal_id",
+            "share_with_group",
             "servings",
             "note",
             "meal_snapshot",
@@ -123,12 +131,21 @@ class PlanItemSerializer(serializers.ModelSerializer):
         super().__init__(*args, **kwargs)
         request = self.context.get("request")
         if request and request.user.is_authenticated:
-            self.fields["meal_id"].queryset = Meal.objects.filter(owner=request.user)
+            self.fields["meal_id"].queryset = get_readable_meals(request.user)
 
+    @transaction.atomic
     def create(self, validated_data):
+        share_with_group = validated_data.pop("share_with_group", False)
+        plan = validated_data.pop("plan")
+        meal = validated_data.pop("meal")
+        self._share_meal_with_plan_group(
+            plan=plan,
+            meal=meal,
+            share_with_group=share_with_group,
+        )
         return create_plan_item(
-            plan=validated_data.pop("plan"),
-            meal=validated_data.pop("meal"),
+            plan=plan,
+            meal=meal,
             scheduled_date=validated_data.pop("date"),
             meal_type=validated_data.pop("meal_type"),
             **validated_data,
@@ -136,21 +153,95 @@ class PlanItemSerializer(serializers.ModelSerializer):
 
     def validate(self, attrs):
         plan_id = attrs.pop("plan_id", None)
-        if self.instance is not None or plan_id is None:
+        if self.instance is not None:
+            if "meal" not in attrs:
+                if attrs.get("share_with_group"):
+                    raise serializers.ValidationError(
+                        {
+                            "share_with_group": (
+                                "Select a meal before confirming group access."
+                            )
+                        }
+                    )
+                return attrs
+            plan = self.instance.plan
+        elif plan_id is None:
+            self._validate_meal_access(
+                plan=None,
+                meal=attrs["meal"],
+                share_with_group=attrs.get("share_with_group", False),
+            )
             return attrs
 
-        request = self.context.get("request")
-        try:
-            attrs["plan"] = get_accessible_plans(request.user).get(pk=plan_id)
-        except Plan.DoesNotExist as error:
-            raise serializers.ValidationError(
-                {"plan_id": "Plan is not available."}
-            ) from error
+        else:
+            request = self.context.get("request")
+            try:
+                plan = get_accessible_plans(request.user).select_related("group").get(
+                    pk=plan_id
+                )
+            except Plan.DoesNotExist as error:
+                raise serializers.ValidationError(
+                    {"plan_id": "Plan is not available."}
+                ) from error
+            attrs["plan"] = plan
+
+        self._validate_meal_access(
+            plan=plan,
+            meal=attrs["meal"],
+            share_with_group=attrs.get("share_with_group", False),
+        )
         return attrs
 
+    @transaction.atomic
     def update(self, instance, validated_data):
+        share_with_group = validated_data.pop("share_with_group", False)
         meal = validated_data.get("meal")
+        if meal is not None:
+            self._share_meal_with_plan_group(
+                plan=instance.plan,
+                meal=meal,
+                share_with_group=share_with_group,
+            )
         if meal is not None and meal.pk != instance.meal_id:
             validated_data["meal_snapshot"] = build_meal_snapshot(meal)
 
         return super().update(instance, validated_data)
+
+    def _validate_meal_access(self, *, plan, meal, share_with_group):
+        request = self.context["request"]
+        if plan is None or plan.owner_id is not None:
+            if meal.owner_id != request.user.id:
+                raise serializers.ValidationError(
+                    {"meal_id": "Meal is not available for the personal plan."}
+                )
+            if share_with_group:
+                raise serializers.ValidationError(
+                    {"share_with_group": "Personal plans do not have group access."}
+                )
+            return
+
+        is_shared = MealShare.objects.filter(meal=meal, group=plan.group).exists()
+        if is_shared:
+            return
+        if meal.owner_id != request.user.id or not share_with_group:
+            raise serializers.ValidationError(
+                {
+                    "share_with_group": (
+                        "Confirm sharing this meal with the selected group."
+                    )
+                }
+            )
+
+    def _share_meal_with_plan_group(self, *, plan, meal, share_with_group):
+        if (
+            not share_with_group
+            or plan.group_id is None
+            or MealShare.objects.filter(meal=meal, group=plan.group).exists()
+        ):
+            return
+        share_meal(
+            meal=meal,
+            group=plan.group,
+            actor=self.context["request"].user,
+            access=MealShare.Access.READ,
+        )

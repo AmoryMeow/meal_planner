@@ -8,7 +8,7 @@ from rest_framework.test import APITestCase
 from accounts.models import User
 from groups.models import Membership
 from groups.services import create_group
-from meals.models import Meal
+from meals.models import Meal, MealShare
 from planning.models import Plan, PlanItem
 from planning.services import create_plan_item
 
@@ -550,6 +550,7 @@ class PlanItemApiTests(APITestCase):
                 "date": "2026-11-02",
                 "meal_type": "lunch",
                 "meal_id": self.meal.id,
+                "share_with_group": True,
             },
             format="json",
         )
@@ -557,6 +558,50 @@ class PlanItemApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         item = PlanItem.objects.get(pk=response.data["id"])
         self.assertEqual(item.plan, self.group_plan)
+        self.assertTrue(
+            MealShare.objects.filter(
+                meal=self.meal,
+                group=self.group,
+                access=MealShare.Access.READ,
+            ).exists()
+        )
+
+    def test_create_group_item_requires_confirmation_for_private_meal(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.url,
+            {
+                "plan_id": self.group_plan.id,
+                "date": "2026-11-02",
+                "meal_type": "lunch",
+                "meal_id": self.meal.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("share_with_group", response.data)
+        self.assertFalse(PlanItem.objects.exists())
+        self.assertFalse(MealShare.objects.filter(meal=self.meal).exists())
+
+    def test_create_group_item_reuses_existing_meal_share(self):
+        MealShare.objects.create(meal=self.meal, group=self.group)
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.url,
+            {
+                "plan_id": self.group_plan.id,
+                "date": "2026-11-02",
+                "meal_type": "lunch",
+                "meal_id": self.meal.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(MealShare.objects.filter(meal=self.meal).count(), 1)
 
     def test_group_member_can_create_item_with_own_meal(self):
         Membership.objects.create(
@@ -573,6 +618,7 @@ class PlanItemApiTests(APITestCase):
                 "date": "2026-11-02",
                 "meal_type": "lunch",
                 "meal_id": self.other_meal.id,
+                "share_with_group": True,
             },
             format="json",
         )
@@ -581,6 +627,30 @@ class PlanItemApiTests(APITestCase):
         item = PlanItem.objects.get(pk=response.data["id"])
         self.assertEqual(item.plan, self.group_plan)
         self.assertEqual(item.meal, self.other_meal)
+
+    def test_group_member_can_plan_meal_shared_by_another_member(self):
+        Membership.objects.create(
+            group=self.group,
+            user=self.other_user,
+            role=Membership.Role.MEMBER,
+        )
+        MealShare.objects.create(meal=self.meal, group=self.group)
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.post(
+            self.url,
+            {
+                "plan_id": self.group_plan.id,
+                "date": "2026-11-02",
+                "meal_type": "lunch",
+                "meal_id": self.meal.id,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        item = PlanItem.objects.get(pk=response.data["id"])
+        self.assertEqual(item.meal, self.meal)
 
     def test_create_rejects_inaccessible_plan(self):
         self.client.force_authenticate(user=self.user)
