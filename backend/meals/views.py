@@ -1,9 +1,11 @@
+from django.db.models import BooleanField, Case, Exists, OuterRef, Value, When
 from django.shortcuts import get_object_or_404
 
 from rest_framework import filters, generics, mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 
 from .models import Ingredient, Meal, MealIngredient, MealShare
+from .permissions import MealPermission, get_editable_meals, get_readable_meals
 from .serializers import (
     IngredientSerializer,
     MealIngredientSerializer,
@@ -34,11 +36,29 @@ class IngredientCatalogViewSet(
 
 class MealViewSet(viewsets.ModelViewSet):
     serializer_class = MealSerializer
-    permission_classes = [IsAuthenticated]
+    permission_classes = [IsAuthenticated, MealPermission]
 
     def get_queryset(self):
+        if self.action == "destroy":
+            meals = Meal.objects.filter(owner=self.request.user)
+        elif self.action in ("update", "partial_update"):
+            meals = get_editable_meals(self.request.user)
+        else:
+            meals = get_readable_meals(self.request.user)
+
+        editable_shares = MealShare.objects.filter(
+            meal_id=OuterRef("pk"),
+            access=MealShare.Access.EDIT,
+            group__memberships__user=self.request.user,
+        )
         return (
-            Meal.objects.filter(owner=self.request.user)
+            meals.annotate(
+                user_can_edit=Case(
+                    When(owner=self.request.user, then=Value(True)),
+                    default=Exists(editable_shares),
+                    output_field=BooleanField(),
+                )
+            )
             .prefetch_related("ingredients__ingredient")
             .order_by("-created_at", "-id")
         )

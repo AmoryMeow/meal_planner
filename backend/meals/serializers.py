@@ -11,6 +11,7 @@ from .models import (
     MealShare,
     normalize_ingredient_name,
 )
+from .permissions import can_edit_meal
 from .services import MealShareServiceError, share_meal
 
 
@@ -71,6 +72,9 @@ class MealSerializer(serializers.ModelSerializer):
         default=list,
     )
     ingredients = MealIngredientSerializer(many=True, read_only=True)
+    is_owner = serializers.SerializerMethodField()
+    can_edit = serializers.SerializerMethodField()
+    can_delete = serializers.SerializerMethodField()
 
     class Meta:
         model = Meal
@@ -80,10 +84,35 @@ class MealSerializer(serializers.ModelSerializer):
             "source",
             "tags",
             "ingredients",
+            "is_owner",
+            "can_edit",
+            "can_delete",
             "created_at",
             "updated_at",
         )
-        read_only_fields = ("id", "ingredients", "created_at", "updated_at")
+        read_only_fields = (
+            "id",
+            "ingredients",
+            "is_owner",
+            "can_edit",
+            "can_delete",
+            "created_at",
+            "updated_at",
+        )
+
+    def get_is_owner(self, obj):
+        request = self.context.get("request")
+        return bool(request and obj.owner_id == request.user.id)
+
+    def get_can_edit(self, obj):
+        annotated_access = getattr(obj, "user_can_edit", None)
+        if annotated_access is not None:
+            return annotated_access
+        request = self.context.get("request")
+        return bool(request and can_edit_meal(request.user, obj))
+
+    def get_can_delete(self, obj):
+        return self.get_is_owner(obj)
 
 
 class MealShareSerializer(serializers.ModelSerializer):

@@ -52,6 +52,9 @@ class MealApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         meal = Meal.objects.get(pk=response.data["id"])
         self.assertEqual(meal.owner, self.user)
+        self.assertTrue(response.data["is_owner"])
+        self.assertTrue(response.data["can_edit"])
+        self.assertTrue(response.data["can_delete"])
 
     def test_user_can_update_own_meal(self):
         meal = Meal.objects.create(owner=self.user, name="Vegetable soup")
@@ -99,6 +102,91 @@ class MealApiTests(APITestCase):
         self.assertEqual(delete_response.status_code, status.HTTP_404_NOT_FOUND)
         meal.refresh_from_db()
         self.assertEqual(meal.name, "Private meal")
+
+    def test_group_member_can_list_and_retrieve_read_only_shared_meal(self):
+        group = create_group(owner=self.user, name="Family")
+        meal = Meal.objects.create(owner=self.other_user, name="Shared soup")
+        MealShare.objects.create(meal=meal, group=group)
+        self.client.force_authenticate(user=self.user)
+
+        list_response = self.client.get(reverse("meal-list"))
+        detail_response = self.client.get(reverse("meal-detail", args=(meal.id,)))
+
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["count"], 1)
+        self.assertEqual(list_response.data["results"][0]["id"], meal.id)
+        self.assertEqual(detail_response.status_code, status.HTTP_200_OK)
+        self.assertFalse(detail_response.data["is_owner"])
+        self.assertFalse(detail_response.data["can_edit"])
+        self.assertFalse(detail_response.data["can_delete"])
+
+    def test_group_member_cannot_update_read_only_shared_meal(self):
+        group = create_group(owner=self.user, name="Family")
+        meal = Meal.objects.create(owner=self.other_user, name="Shared soup")
+        MealShare.objects.create(meal=meal, group=group)
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("meal-detail", args=(meal.id,)),
+            {"name": "Changed soup"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        meal.refresh_from_db()
+        self.assertEqual(meal.name, "Shared soup")
+
+    def test_group_member_can_update_editable_shared_meal(self):
+        group = create_group(owner=self.user, name="Family")
+        meal = Meal.objects.create(owner=self.other_user, name="Shared soup")
+        MealShare.objects.create(
+            meal=meal,
+            group=group,
+            access=MealShare.Access.EDIT,
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.patch(
+            reverse("meal-detail", args=(meal.id,)),
+            {"name": "Changed soup"},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertFalse(response.data["is_owner"])
+        self.assertTrue(response.data["can_edit"])
+        self.assertFalse(response.data["can_delete"])
+        meal.refresh_from_db()
+        self.assertEqual(meal.name, "Changed soup")
+
+    def test_group_member_cannot_delete_editable_shared_meal(self):
+        group = create_group(owner=self.user, name="Family")
+        meal = Meal.objects.create(owner=self.other_user, name="Shared soup")
+        MealShare.objects.create(
+            meal=meal,
+            group=group,
+            access=MealShare.Access.EDIT,
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.delete(reverse("meal-detail", args=(meal.id,)))
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(Meal.objects.filter(pk=meal.id).exists())
+
+    def test_meal_shared_through_multiple_groups_appears_once(self):
+        first_group = create_group(owner=self.user, name="Family")
+        second_group = create_group(owner=self.user, name="Friends")
+        meal = Meal.objects.create(owner=self.other_user, name="Shared soup")
+        MealShare.objects.create(meal=meal, group=first_group)
+        MealShare.objects.create(meal=meal, group=second_group)
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(reverse("meal-list"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], meal.id)
 
 
 class MealShareApiTests(APITestCase):
