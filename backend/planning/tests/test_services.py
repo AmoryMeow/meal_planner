@@ -5,7 +5,7 @@ from django.core.exceptions import ValidationError
 from django.test import TestCase
 
 from accounts.models import User
-from meals.models import Ingredient, Meal, MealIngredient
+from meals.models import Ingredient, Meal, MealIngredient, Tag
 from planning.models import Plan, PlanItem
 from planning.services import (
     build_meal_snapshot,
@@ -25,8 +25,11 @@ class PlanningServiceTests(TestCase):
             owner=self.user,
             name="Vegetable soup",
             source=Meal.Source.HOME,
-            tags=["warm", "quick"],
+            instructions="Simmer until tender.",
         )
+        self.quick_tag = Tag.objects.create(owner=self.user, name="Quick")
+        self.warm_tag = Tag.objects.create(owner=self.user, name="Warm")
+        self.meal.tags.set((self.warm_tag, self.quick_tag))
         self.ingredient = Ingredient.objects.create(owner=self.user, name="Carrot")
         self.meal_ingredient = MealIngredient.objects.create(
             meal=self.meal,
@@ -52,7 +55,8 @@ class PlanningServiceTests(TestCase):
                 "meal_id": self.meal.id,
                 "name": "Vegetable soup",
                 "source": "home",
-                "tags": ["warm", "quick"],
+                "instructions": "Simmer until tender.",
+                "tags": ["Quick", "Warm"],
                 "ingredients": [
                     {
                         "ingredient_id": self.ingredient.id,
@@ -91,8 +95,8 @@ class PlanningServiceTests(TestCase):
         original_snapshot = item.meal_snapshot
 
         self.meal.name = "Updated soup"
-        self.meal.tags.append("new")
-        self.meal.save(update_fields=("name", "tags"))
+        self.meal.save(update_fields=("name",))
+        self.meal.tags.add(Tag.objects.create(owner=self.user, name="New"))
         self.meal_ingredient.quantity = Decimal("5.00")
         self.meal_ingredient.save(update_fields=("quantity",))
         item.refresh_from_db()

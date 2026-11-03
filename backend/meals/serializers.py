@@ -9,7 +9,9 @@ from .models import (
     Meal,
     MealIngredient,
     MealShare,
+    Tag,
     normalize_ingredient_name,
+    normalize_tag_name,
 )
 from .permissions import can_edit_meal
 from .services import MealShareServiceError, share_meal
@@ -43,6 +45,34 @@ class IngredientSerializer(serializers.ModelSerializer):
         return name
 
 
+class TagSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Tag
+        fields = ("id", "name", "created_at", "updated_at")
+        read_only_fields = ("id", "created_at", "updated_at")
+
+    def validate_name(self, value):
+        name = " ".join(value.split())
+        request = self.context.get("request")
+        tag_owner = self.context.get("tag_owner")
+        if tag_owner is None and self.instance is not None:
+            tag_owner = self.instance.owner
+        if tag_owner is None and request:
+            tag_owner = request.user
+        if tag_owner is None:
+            return name
+
+        tags = Tag.objects.filter(
+            owner=tag_owner,
+            normalized_name=normalize_tag_name(name),
+        )
+        if self.instance:
+            tags = tags.exclude(pk=self.instance.pk)
+        if tags.exists():
+            raise serializers.ValidationError("Tag already exists.")
+        return name
+
+
 class MealIngredientSerializer(serializers.ModelSerializer):
     ingredient_id = serializers.IntegerField()
     name = serializers.CharField(source="ingredient.name", read_only=True)
@@ -73,10 +103,11 @@ class MealIngredientSerializer(serializers.ModelSerializer):
 
 
 class MealSerializer(serializers.ModelSerializer):
-    tags = serializers.ListField(
-        child=serializers.CharField(),
+    tags = TagSerializer(many=True, read_only=True)
+    tag_ids = serializers.ListField(
+        child=serializers.IntegerField(min_value=1),
+        write_only=True,
         required=False,
-        default=list,
     )
     ingredients = MealIngredientSerializer(many=True, read_only=True)
     is_owner = serializers.SerializerMethodField()
@@ -90,6 +121,8 @@ class MealSerializer(serializers.ModelSerializer):
             "name",
             "source",
             "tags",
+            "tag_ids",
+            "instructions",
             "ingredients",
             "is_owner",
             "can_edit",
@@ -120,6 +153,31 @@ class MealSerializer(serializers.ModelSerializer):
 
     def get_can_delete(self, obj):
         return self.get_is_owner(obj)
+
+    def validate_tag_ids(self, value):
+        tag_ids = list(dict.fromkeys(value))
+        tags = self._get_tags(tag_ids)
+        if len(tags) != len(tag_ids):
+            raise serializers.ValidationError("One or more tags do not exist.")
+        return tag_ids
+
+    def create(self, validated_data):
+        tag_ids = validated_data.pop("tag_ids", [])
+        meal = super().create(validated_data)
+        meal.tags.set(self._get_tags(tag_ids))
+        return meal
+
+    def update(self, instance, validated_data):
+        tag_ids = validated_data.pop("tag_ids", None)
+        meal = super().update(instance, validated_data)
+        if tag_ids is not None:
+            meal.tags.set(self._get_tags(tag_ids))
+        return meal
+
+    def _get_tags(self, tag_ids):
+        request = self.context.get("request")
+        owner = self.instance.owner if self.instance is not None else request.user
+        return list(Tag.objects.filter(owner=owner, id__in=tag_ids))
 
 
 class MealShareSerializer(serializers.ModelSerializer):

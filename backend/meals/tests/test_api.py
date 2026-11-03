@@ -6,7 +6,7 @@ from rest_framework.test import APITestCase
 from accounts.models import User
 from groups.models import Membership
 from groups.services import create_group
-from meals.models import Ingredient, Meal, MealIngredient, MealShare
+from meals.models import Ingredient, Meal, MealIngredient, MealShare, Tag
 
 
 class MealApiTests(APITestCase):
@@ -37,6 +37,7 @@ class MealApiTests(APITestCase):
         self.assertEqual(response.data["results"][0]["id"], own_meal.id)
 
     def test_create_assigns_current_user_as_owner(self):
+        tag = Tag.objects.create(owner=self.user, name="Weekend")
         self.client.force_authenticate(user=self.user)
 
         response = self.client.post(
@@ -44,7 +45,7 @@ class MealApiTests(APITestCase):
             {
                 "name": "Pizza",
                 "source": Meal.Source.DELIVERY,
-                "tags": ["weekend"],
+                "tag_ids": [tag.id],
                 "owner": self.other_user.id,
             },
             format="json",
@@ -53,6 +54,7 @@ class MealApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         meal = Meal.objects.get(pk=response.data["id"])
         self.assertEqual(meal.owner, self.user)
+        self.assertQuerySetEqual(meal.tags.all(), [tag])
         self.assertTrue(response.data["is_owner"])
         self.assertTrue(response.data["can_edit"])
         self.assertTrue(response.data["can_delete"])
@@ -188,6 +190,121 @@ class MealApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data["count"], 1)
         self.assertEqual(response.data["results"][0]["id"], meal.id)
+
+    def test_create_and_update_include_instructions_and_reusable_tags(self):
+        quick = Tag.objects.create(owner=self.user, name="Quick")
+        family = Tag.objects.create(owner=self.user, name="Family")
+        self.client.force_authenticate(user=self.user)
+
+        create_response = self.client.post(
+            reverse("meal-list"),
+            {
+                "name": "Vegetable soup",
+                "instructions": "Simmer for 20 minutes.",
+                "tag_ids": [quick.id, family.id],
+            },
+            format="json",
+        )
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(create_response.data["instructions"], "Simmer for 20 minutes.")
+        self.assertEqual(
+            {tag["name"] for tag in create_response.data["tags"]},
+            {"Quick", "Family"},
+        )
+
+        update_response = self.client.patch(
+            reverse("meal-detail", args=(create_response.data["id"],)),
+            {"instructions": "Serve warm.", "tag_ids": [quick.id]},
+            format="json",
+        )
+
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_response.data["instructions"], "Serve warm.")
+        self.assertEqual([tag["name"] for tag in update_response.data["tags"]], ["Quick"])
+
+    def test_create_rejects_another_users_tag(self):
+        private_tag = Tag.objects.create(owner=self.other_user, name="Private")
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            reverse("meal-list"),
+            {"name": "Soup", "tag_ids": [private_tag.id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("tag_ids", response.data)
+
+    def test_list_supports_search_source_access_tag_and_ordering_filters(self):
+        quick = Tag.objects.create(owner=self.user, name="Quick")
+        warm = Tag.objects.create(owner=self.user, name="Warm")
+        soup = Meal.objects.create(
+            owner=self.user,
+            name="Vegetable soup",
+            source=Meal.Source.HOME,
+        )
+        soup.tags.set((quick, warm))
+        pizza = Meal.objects.create(
+            owner=self.user,
+            name="Pizza",
+            source=Meal.Source.DELIVERY,
+        )
+        pizza.tags.add(quick)
+
+        group = create_group(owner=self.user, name="Family")
+        shared = Meal.objects.create(
+            owner=self.other_user,
+            name="Shared soup",
+            source=Meal.Source.RESTAURANT,
+        )
+        shared_warm = Tag.objects.create(owner=self.other_user, name="Warm")
+        shared.tags.add(shared_warm)
+        MealShare.objects.create(meal=shared, group=group)
+        self.client.force_authenticate(user=self.user)
+
+        search_response = self.client.get(reverse("meal-list"), {"search": "soup"})
+        source_response = self.client.get(
+            f'{reverse("meal-list")}?source=home&source=delivery'
+        )
+        owned_response = self.client.get(reverse("meal-list"), {"access": "owned"})
+        shared_response = self.client.get(reverse("meal-list"), {"access": "shared"})
+        tag_response = self.client.get(
+            f'{reverse("meal-list")}?tag=quick&tag=warm&ordering=name'
+        )
+
+        self.assertEqual(
+            {meal["id"] for meal in search_response.data["results"]},
+            {soup.id, shared.id},
+        )
+        self.assertEqual(
+            {meal["id"] for meal in source_response.data["results"]},
+            {soup.id, pizza.id},
+        )
+        self.assertEqual(
+            {meal["id"] for meal in owned_response.data["results"]},
+            {soup.id, pizza.id},
+        )
+        self.assertEqual(
+            [meal["id"] for meal in shared_response.data["results"]],
+            [shared.id],
+        )
+        self.assertEqual(
+            [meal["id"] for meal in tag_response.data["results"]],
+            [soup.id],
+        )
+
+    def test_list_rejects_unsupported_filter_values(self):
+        self.client.force_authenticate(user=self.user)
+
+        for key, value in (
+            ("source", "unknown"),
+            ("access", "unknown"),
+            ("ordering", "unknown"),
+        ):
+            with self.subTest(key=key):
+                response = self.client.get(reverse("meal-list"), {key: value})
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
 
 class MealShareApiTests(APITestCase):
@@ -524,6 +641,168 @@ class MealIngredientCatalogApiTests(APITestCase):
         ingredient = Ingredient.objects.get(pk=response.data["id"])
         self.assertEqual(ingredient.owner, self.owner)
         self.assertEqual(ingredient.name, "Green Onion")
+
+
+class TagCatalogApiTests(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.quick = Tag.objects.create(owner=self.user, name="Quick")
+        self.other_tag = Tag.objects.create(owner=self.other_user, name="Private")
+        self.url = reverse("tag-catalog-list")
+
+    def test_catalog_requires_authentication(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_catalog_lists_searches_and_creates_only_current_users_tags(self):
+        Tag.objects.create(owner=self.user, name="Weekend")
+        self.client.force_authenticate(user=self.user)
+
+        list_response = self.client.get(self.url, {"search": "qui"})
+        create_response = self.client.post(
+            self.url,
+            {"name": "  Family   dinner "},
+            format="json",
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["count"], 1)
+        self.assertEqual(list_response.data["results"][0]["id"], self.quick.id)
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        created = Tag.objects.get(pk=create_response.data["id"])
+        self.assertEqual(created.owner, self.user)
+        self.assertEqual(created.name, "Family dinner")
+        self.assertNotEqual(created.id, self.other_tag.id)
+
+    def test_catalog_rejects_duplicate_normalized_name(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            self.url,
+            {"name": "  QUICK "},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("name", response.data)
+
+    def test_catalog_tags_cannot_be_deleted_through_api(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.delete(
+            reverse("tag-catalog-detail", args=(self.quick.id,))
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_405_METHOD_NOT_ALLOWED)
+
+
+class MealTagCatalogApiTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.editor = User.objects.create_user(
+            email="editor@example.com",
+            password="A-secure-password-123",
+        )
+        self.group = create_group(owner=self.owner, name="Family")
+        Membership.objects.create(
+            group=self.group,
+            user=self.editor,
+            role=Membership.Role.MEMBER,
+        )
+        self.meal = Meal.objects.create(owner=self.owner, name="Soup")
+        self.quick = Tag.objects.create(owner=self.owner, name="Quick")
+        self.editors_tag = Tag.objects.create(owner=self.editor, name="Private")
+        self.share = MealShare.objects.create(
+            meal=self.meal,
+            group=self.group,
+            access=MealShare.Access.EDIT,
+        )
+        self.url = reverse("meal-tag-catalog", args=(self.meal.id,))
+
+    def test_read_only_share_cannot_access_owner_tag_catalog(self):
+        self.share.access = MealShare.Access.READ
+        self.share.save(update_fields=("access", "updated_at"))
+        self.client.force_authenticate(user=self.editor)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_editor_can_search_and_create_tags_for_meal_owner(self):
+        self.client.force_authenticate(user=self.editor)
+
+        list_response = self.client.get(self.url, {"search": "qui"})
+        create_response = self.client.post(
+            self.url,
+            {"name": "Warm"},
+            format="json",
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(list_response.data["results"][0]["id"], self.quick.id)
+        self.assertNotEqual(
+            list_response.data["results"][0]["id"], self.editors_tag.id
+        )
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Tag.objects.get(pk=create_response.data["id"]).owner, self.owner)
+
+    def test_editor_can_assign_meal_owners_tag(self):
+        self.client.force_authenticate(user=self.editor)
+
+        response = self.client.patch(
+            reverse("meal-detail", args=(self.meal.id,)),
+            {"tag_ids": [self.quick.id]},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertQuerySetEqual(self.meal.tags.all(), [self.quick])
+
+
+class MealTagFilterOptionsApiTests(APITestCase):
+    def test_options_include_accessible_tags_and_merge_normalized_names(self):
+        user = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        own_meal = Meal.objects.create(owner=user, name="Soup")
+        own_warm = Tag.objects.create(owner=user, name="Warm")
+        unused = Tag.objects.create(owner=user, name="Unused")
+        own_meal.tags.add(own_warm)
+        group = create_group(owner=user, name="Family")
+        shared_meal = Meal.objects.create(owner=other_user, name="Pizza")
+        shared_warm = Tag.objects.create(owner=other_user, name="WARM")
+        shared_quick = Tag.objects.create(owner=other_user, name="Quick")
+        shared_meal.tags.set((shared_warm, shared_quick))
+        MealShare.objects.create(meal=shared_meal, group=group)
+        self.client.force_authenticate(user=user)
+
+        response = self.client.get(reverse("meal-tag-filter-options"))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            {option["value"] for option in response.data},
+            {"quick", "warm"},
+        )
+        self.assertNotIn(
+            unused.normalized_name,
+            {option["value"] for option in response.data},
+        )
 
 
 class IngredientApiTests(APITestCase):

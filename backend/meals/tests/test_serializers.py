@@ -4,7 +4,7 @@ from types import SimpleNamespace
 from django.test import TestCase
 
 from accounts.models import User
-from meals.models import Ingredient, Meal, MealIngredient
+from meals.models import Ingredient, Meal, MealIngredient, Tag
 from meals.serializers import (
     IngredientSerializer,
     MealIngredientSerializer,
@@ -104,11 +104,10 @@ class MealSerializerTests(TestCase):
         )
 
     def test_serializes_meal_with_ingredients(self):
-        meal = Meal.objects.create(
-            owner=self.owner,
-            name="Vegetable soup",
-            tags=["vegetarian", "soup"],
-        )
+        meal = Meal.objects.create(owner=self.owner, name="Vegetable soup")
+        vegetarian = Tag.objects.create(owner=self.owner, name="Vegetarian")
+        soup = Tag.objects.create(owner=self.owner, name="Soup")
+        meal.tags.set((vegetarian, soup))
         ingredient = Ingredient.objects.create(owner=self.owner, name="Carrot")
         meal_ingredient = MealIngredient.objects.create(
             meal=meal,
@@ -122,7 +121,10 @@ class MealSerializerTests(TestCase):
         self.assertEqual(data["id"], meal.id)
         self.assertEqual(data["name"], "Vegetable soup")
         self.assertEqual(data["source"], Meal.Source.HOME)
-        self.assertEqual(data["tags"], ["vegetarian", "soup"])
+        self.assertEqual(
+            [(tag["id"], tag["name"]) for tag in data["tags"]],
+            [(soup.id, "Soup"), (vegetarian.id, "Vegetarian")],
+        )
         self.assertEqual(
             data["ingredients"],
             [
@@ -143,7 +145,7 @@ class MealSerializerTests(TestCase):
         )
 
         self.assertTrue(serializer.is_valid(), serializer.errors)
-        self.assertEqual(serializer.validated_data["tags"], [])
+        self.assertNotIn("tag_ids", serializer.validated_data)
 
     def test_rejects_unknown_source(self):
         serializer = MealSerializer(data={"name": "Pizza", "source": "unknown"})
@@ -151,11 +153,11 @@ class MealSerializerTests(TestCase):
         self.assertFalse(serializer.is_valid())
         self.assertIn("source", serializer.errors)
 
-    def test_rejects_tags_that_are_not_a_list(self):
-        serializer = MealSerializer(data={"name": "Pizza", "tags": "fast-food"})
+    def test_rejects_tag_ids_that_are_not_a_list(self):
+        serializer = MealSerializer(data={"name": "Pizza", "tag_ids": "fast-food"})
 
         self.assertFalse(serializer.is_valid())
-        self.assertIn("tags", serializer.errors)
+        self.assertIn("tag_ids", serializer.errors)
 
     def test_ingredients_are_read_only(self):
         serializer = MealSerializer(

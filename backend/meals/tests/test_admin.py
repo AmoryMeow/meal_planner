@@ -4,7 +4,7 @@ from django.urls import reverse
 
 from accounts.models import User
 from groups.services import create_group
-from meals.models import Ingredient, Meal, MealIngredient, MealShare
+from meals.models import Ingredient, Meal, MealIngredient, MealShare, Tag
 
 
 class MealsAdminTests(TestCase):
@@ -19,6 +19,8 @@ class MealsAdminTests(TestCase):
         )
         self.meal = Meal.objects.create(owner=self.owner, name="Vegetable soup")
         self.ingredient = Ingredient.objects.create(owner=self.owner, name="Carrot")
+        self.tag = Tag.objects.create(owner=self.owner, name="Quick")
+        self.meal.tags.add(self.tag)
         self.meal_ingredient = MealIngredient.objects.create(
             meal=self.meal,
             ingredient=self.ingredient,
@@ -37,6 +39,7 @@ class MealsAdminTests(TestCase):
         self.assertTrue(admin.site.is_registered(Ingredient))
         self.assertTrue(admin.site.is_registered(MealIngredient))
         self.assertTrue(admin.site.is_registered(MealShare))
+        self.assertTrue(admin.site.is_registered(Tag))
 
     def test_meal_admin_lists_meals(self):
         response = self.client.get(reverse("admin:meals_meal_changelist"))
@@ -59,6 +62,12 @@ class MealsAdminTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.ingredient.name)
+
+    def test_tag_admin_lists_tags(self):
+        response = self.client.get(reverse("admin:meals_tag_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.tag.name)
 
     def test_meal_ingredient_admin_lists_associations(self):
         response = self.client.get(reverse("admin:meals_mealingredient_changelist"))

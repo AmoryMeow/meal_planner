@@ -1,4 +1,3 @@
-from copy import deepcopy
 from datetime import date
 
 from django.db import transaction
@@ -20,7 +19,8 @@ def build_meal_snapshot(meal: Meal) -> dict:
         "meal_id": meal.id,
         "name": meal.name,
         "source": meal.source,
-        "tags": deepcopy(meal.tags),
+        "instructions": meal.instructions,
+        "tags": list(meal.tags.order_by("name", "id").values_list("name", flat=True)),
         "ingredients": [
             {
                 "ingredient_id": meal_ingredient.ingredient_id,

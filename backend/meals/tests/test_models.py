@@ -7,7 +7,7 @@ from django.test import TestCase
 
 from accounts.models import User
 from groups.services import create_group
-from meals.models import Ingredient, Meal, MealIngredient, MealShare
+from meals.models import Ingredient, Meal, MealIngredient, MealShare, Tag
 
 
 class MealModelTests(TestCase):
@@ -21,7 +21,8 @@ class MealModelTests(TestCase):
         meal = Meal.objects.create(owner=self.user, name="Vegetable soup")
 
         self.assertEqual(meal.source, Meal.Source.HOME)
-        self.assertEqual(meal.tags, [])
+        self.assertEqual(meal.instructions, "")
+        self.assertFalse(meal.tags.exists())
         self.assertIsNotNone(meal.created_at)
         self.assertIsNotNone(meal.updated_at)
 
@@ -40,13 +41,12 @@ class MealModelTests(TestCase):
     def test_meals_have_independent_tag_lists(self):
         first_meal = Meal.objects.create(owner=self.user, name="First meal")
         second_meal = Meal.objects.create(owner=self.user, name="Second meal")
+        tag = Tag.objects.create(owner=self.user, name="Quick")
 
-        first_meal.tags.append("quick")
-        first_meal.save(update_fields=["tags"])
-        second_meal.refresh_from_db()
+        first_meal.tags.add(tag)
 
-        self.assertEqual(first_meal.tags, ["quick"])
-        self.assertEqual(second_meal.tags, [])
+        self.assertQuerySetEqual(first_meal.tags.all(), [tag])
+        self.assertFalse(second_meal.tags.exists())
 
     def test_user_exposes_owned_meals(self):
         meal = Meal.objects.create(owner=self.user, name="Vegetable soup")
@@ -119,6 +119,36 @@ class MealShareModelTests(TestCase):
             str(share),
             "Vegetable soup shared with Family (Edit)",
         )
+
+
+class TagModelTests(TestCase):
+    def setUp(self):
+        self.user = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+
+    def test_tag_name_is_normalized_per_owner(self):
+        tag = Tag.objects.create(owner=self.user, name="  Quick   Dinner ")
+
+        self.assertEqual(tag.name, "Quick Dinner")
+        self.assertEqual(tag.normalized_name, "quick dinner")
+
+    def test_owner_cannot_have_duplicate_normalized_tag_names(self):
+        Tag.objects.create(owner=self.user, name="Quick")
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Tag.objects.create(owner=self.user, name="  QUICK ")
+
+    def test_different_owners_can_use_same_tag_name(self):
+        first = Tag.objects.create(owner=self.user, name="Quick")
+        second = Tag.objects.create(owner=self.other_user, name="Quick")
+
+        self.assertNotEqual(first.owner, second.owner)
 
 
 class IngredientModelTests(TestCase):

@@ -20,9 +20,50 @@ class Meal(models.Model):
         choices=Source.choices,
         default=Source.HOME,
     )
-    tags = models.JSONField(default=list, blank=True)
+    instructions = models.TextField(blank=True, default="")
+    tags = models.ManyToManyField(
+        "Tag",
+        related_name="meals",
+        blank=True,
+    )
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return self.name
+
+
+def normalize_tag_name(name):
+    return " ".join(name.split()).casefold()
+
+
+class Tag(models.Model):
+    owner = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="meal_tags",
+    )
+    name = models.CharField(max_length=64)
+    normalized_name = models.CharField(max_length=64, editable=False)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("owner", "normalized_name"),
+                name="meals_tag_unique_normalized_name_per_owner",
+            ),
+        ]
+        ordering = ("name", "id")
+
+    def save(self, *args, **kwargs):
+        self.name = " ".join(self.name.split())
+        self.normalized_name = normalize_tag_name(self.name)
+        update_fields = kwargs.get("update_fields")
+        if update_fields and "name" in update_fields:
+            kwargs["update_fields"] = {*update_fields, "normalized_name"}
+        super().save(*args, **kwargs)
 
     def __str__(self):
         return self.name

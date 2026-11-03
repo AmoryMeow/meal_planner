@@ -79,3 +79,63 @@ class SplitIngredientCatalogMigrationTests(TransactionTestCase):
             list(Ingredient.objects.order_by("id").values_list("name", flat=True)),
             ["Carrot", "Carrot"],
         )
+
+
+class ReusableMealTagsMigrationTests(TransactionTestCase):
+    migrate_from = [
+        ("accounts", "0002_alter_user_managers_remove_user_username"),
+        ("meals", "0004_mealshare"),
+    ]
+    migrate_to = [
+        ("accounts", "0002_alter_user_managers_remove_user_username"),
+        ("meals", "0005_reusable_meal_tags"),
+    ]
+
+    def setUp(self):
+        super().setUp()
+        self.executor = MigrationExecutor(connection)
+        self.executor.migrate(self.migrate_from)
+        old_apps = self.executor.loader.project_state(self.migrate_from).apps
+
+        User = old_apps.get_model("accounts", "User")
+        Meal = old_apps.get_model("meals", "Meal")
+        owner = User.objects.create(email="owner@example.com")
+        Meal.objects.create(
+            owner=owner,
+            name="Soup",
+            tags=[" Quick ", "WARM", "quick"],
+        )
+        Meal.objects.create(owner=owner, name="Salad", tags=["warm", "Fresh"])
+
+        self.executor = MigrationExecutor(connection)
+        self.executor.migrate(self.migrate_to)
+        self.apps = self.executor.loader.project_state(self.migrate_to).apps
+
+    def tearDown(self):
+        self.executor = MigrationExecutor(connection)
+        self.executor.migrate(self.executor.loader.graph.leaf_nodes())
+        super().tearDown()
+
+    def test_migration_reuses_normalized_tags_per_owner(self):
+        Meal = self.apps.get_model("meals", "Meal")
+        Tag = self.apps.get_model("meals", "Tag")
+
+        self.assertEqual(Tag.objects.count(), 3)
+        soup = Meal.objects.get(name="Soup")
+        salad = Meal.objects.get(name="Salad")
+        self.assertEqual(
+            set(soup.tags.values_list("normalized_name", flat=True)),
+            {"quick", "warm"},
+        )
+        self.assertEqual(
+            set(salad.tags.values_list("normalized_name", flat=True)),
+            {"fresh", "warm"},
+        )
+
+    def test_migration_is_reversible(self):
+        self.executor = MigrationExecutor(connection)
+        self.executor.migrate(self.migrate_from)
+        old_apps = self.executor.loader.project_state(self.migrate_from).apps
+        Meal = old_apps.get_model("meals", "Meal")
+
+        self.assertEqual(set(Meal.objects.get(name="Soup").tags), {"Quick", "WARM"})

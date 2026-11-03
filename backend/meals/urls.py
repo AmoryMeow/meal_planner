@@ -7,14 +7,18 @@ from .views import (
     IngredientDetailView,
     IngredientListCreateView,
     MealIngredientCatalogView,
+    MealTagCatalogView,
+    MealTagFilterOptionsView,
     MealShareDetailView,
     MealShareListCreateView,
     MealViewSet,
+    TagCatalogViewSet,
 )
 
 router = DefaultRouter()
 router.register("meals", MealViewSet, basename="meal")
 router.register("ingredients", IngredientCatalogViewSet, basename="ingredient-catalog")
+router.register("tags", TagCatalogViewSet, basename="tag-catalog")
 
 urlpatterns = [
     path(
@@ -31,6 +35,16 @@ urlpatterns = [
         "meals/<int:meal_pk>/ingredient-catalog/",
         MealIngredientCatalogView.as_view(),
         name="meal-ingredient-catalog",
+    ),
+    path(
+        "meals/<int:meal_pk>/tag-catalog/",
+        MealTagCatalogView.as_view(),
+        name="meal-tag-catalog",
+    ),
+    path(
+        "meal-tags/",
+        MealTagFilterOptionsView.as_view(),
+        name="meal-tag-filter-options",
     ),
     path(
         "meals/<int:meal_pk>/ingredients/",

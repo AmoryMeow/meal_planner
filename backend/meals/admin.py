@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count
 
-from .models import Ingredient, Meal, MealIngredient, MealShare
+from .models import Ingredient, Meal, MealIngredient, MealShare, Tag
 
 
 class IngredientInline(admin.TabularInline):
@@ -33,13 +33,14 @@ class MealAdmin(admin.ModelAdmin):
     list_select_related = ("owner",)
     ordering = ("-created_at",)
     readonly_fields = ("created_at", "updated_at")
+    filter_horizontal = ("tags",)
     inlines = (IngredientInline, MealShareInline)
 
     def get_queryset(self, request):
         return (
             super()
             .get_queryset(request)
-            .annotate(ingredient_total=Count("ingredients"))
+            .annotate(ingredient_total=Count("ingredients", distinct=True))
         )
 
     @admin.display(ordering="ingredient_total", description="Ingredients")
@@ -49,6 +50,15 @@ class MealAdmin(admin.ModelAdmin):
 
 @admin.register(Ingredient)
 class IngredientAdmin(admin.ModelAdmin):
+    list_display = ("name", "owner", "created_at", "updated_at")
+    search_fields = ("name", "owner__email")
+    list_select_related = ("owner",)
+    ordering = ("name",)
+    readonly_fields = ("normalized_name", "created_at", "updated_at")
+
+
+@admin.register(Tag)
+class TagAdmin(admin.ModelAdmin):
     list_display = ("name", "owner", "created_at", "updated_at")
     search_fields = ("name", "owner__email")
     list_select_related = ("owner",)
