@@ -38,12 +38,16 @@ export const Dialog = ({
     <>
       <header
         css={{
+          position: "sticky",
+          zIndex: 20,
+          top: 0,
           display: "flex",
           alignItems: "center",
           justifyContent: "space-between",
           gap: 16,
           padding: "16px 20px",
           borderBottom: `1px solid ${colors.divider}`,
+          background: colors.surface,
         }}
       >
         <h2 id={titleId} css={{ margin: 0, fontSize: 20 }}>
@@ -73,11 +77,15 @@ export const Dialog = ({
       {actions ? (
         <footer
           css={{
+            position: "sticky",
+            zIndex: 20,
+            bottom: 0,
             display: "flex",
             justifyContent: "flex-end",
             gap: 10,
             padding: "16px 20px",
             borderTop: `1px solid ${colors.divider}`,
+            background: colors.surface,
           }}
         >
           {actions}
@@ -94,8 +102,11 @@ export const Dialog = ({
       onCancel={onCancel}
       css={{
         width: `min(${typeof width === "number" ? `${width}px` : width}, calc(100% - 32px))`,
+        maxHeight: "calc(100dvh - 32px)",
         boxSizing: "border-box",
-        overflow: "visible",
+        overflowX: "hidden",
+        overflowY: "auto",
+        overscrollBehavior: "contain",
         padding: 0,
         border: `1px solid ${colors.border}`,
         borderRadius: 16,
