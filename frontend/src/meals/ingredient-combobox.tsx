@@ -4,11 +4,12 @@ import { Combobox, type ComboboxOption } from "@package/ui";
 
 import { type Ingredient } from "./api";
 import {
-  useCreateIngredientMutation,
-  useIngredientSearchQuery,
+  useCreateMealCatalogIngredientMutation,
+  useMealIngredientSearchQuery,
 } from "./ingredient-queries";
 
 type IngredientComboboxProps = {
+  mealId: number;
   selectedIngredients: Ingredient[];
   disabled?: boolean;
   error?: string;
@@ -18,6 +19,7 @@ type IngredientComboboxProps = {
 };
 
 export const IngredientCombobox = ({
+  mealId,
   selectedIngredients,
   disabled = false,
   error: externalError,
@@ -27,8 +29,8 @@ export const IngredientCombobox = ({
 }: IngredientComboboxProps) => {
   const [inputValue, setInputValue] = useState("");
   const debouncedSearch = useDebouncedValue(inputValue.trim(), 250);
-  const search = useIngredientSearchQuery(debouncedSearch);
-  const creation = useCreateIngredientMutation();
+  const search = useMealIngredientSearchQuery(mealId, debouncedSearch);
+  const creation = useCreateMealCatalogIngredientMutation(mealId);
   const waitingForSearch = inputValue.trim() !== debouncedSearch;
   const ingredients = waitingForSearch ? [] : (search.data?.results ?? []);
   const options = ingredients.map(toOption);

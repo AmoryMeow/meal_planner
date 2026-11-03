@@ -28,7 +28,7 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
   const [formData, setFormData] = useState(() => getMealFormData(meal));
   const [formErrors, setFormErrors] = useState<MealFormErrors>({});
   const update = useUpdateMealMutation();
-  const ingredientsEditor = useMealIngredientsEditor(meal.id, meal.is_owner);
+  const ingredientsEditor = useMealIngredientsEditor(meal.id, meal.can_edit);
   const isSaving = update.isPending || ingredientsEditor.isPending;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -40,12 +40,12 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
       setFormErrors({ name: "Enter a meal name." });
       return;
     }
-    if (meal.is_owner && !ingredientsEditor.validate()) return;
+    if (meal.can_edit && !ingredientsEditor.validate()) return;
 
     setFormErrors({});
     try {
       await update.mutateAsync({ mealId: meal.id, input });
-      const ingredientsSaved = meal.is_owner ? await ingredientsEditor.save() : true;
+      const ingredientsSaved = meal.can_edit ? await ingredientsEditor.save() : true;
       if (ingredientsSaved) dialogRef.current?.close();
     } catch {
       // Mutation errors are rendered by their corresponding form sections.
@@ -89,10 +89,12 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
         }}
       />
 
-      {meal.is_owner ? (
+      {meal.can_edit ? (
         <>
           <MealIngredientsEditor editor={ingredientsEditor} disabled={isSaving} />
-          <MealSharingEditor mealId={meal.id} disabled={isSaving} />
+          {meal.is_owner ? (
+            <MealSharingEditor mealId={meal.id} disabled={isSaving} />
+          ) : null}
         </>
       ) : (
         <div>
@@ -103,7 +105,8 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
               fontSize: 13,
             }}
           >
-            Ingredients are currently managed by the meal owner.
+            You have view-only access to this meal. Ingredients are managed by its owner
+            and editors.
           </p>
           <MealIngredientsSummary ingredients={meal.ingredients} />
         </div>

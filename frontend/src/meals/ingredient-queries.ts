@@ -10,10 +10,12 @@ import { useAuthSession } from "@package/auth";
 
 import {
   createIngredient,
+  createMealCatalogIngredient,
   createMealIngredient,
   deleteMealIngredient,
   getIngredient,
   getIngredientCatalog,
+  getMealIngredientCatalog,
   getMealIngredient,
   getMealIngredients,
   updateIngredient,
@@ -52,6 +54,18 @@ export const mealIngredientQueryKeys = {
     ] as const,
 };
 
+export const mealIngredientCatalogQueryKeys = {
+  all: ["meal-ingredient-catalog"] as const,
+  byUser: (userId: number | null) =>
+    [...mealIngredientCatalogQueryKeys.all, userId] as const,
+  byMeal: (userId: number | null, mealId: number) =>
+    [...mealIngredientCatalogQueryKeys.byUser(userId), mealId] as const,
+  searches: (userId: number | null, mealId: number) =>
+    [...mealIngredientCatalogQueryKeys.byMeal(userId, mealId), "search"] as const,
+  search: (userId: number | null, mealId: number, search: string) =>
+    [...mealIngredientCatalogQueryKeys.searches(userId, mealId), search] as const,
+};
+
 export const useIngredientSearchQuery = (search = "") => {
   const { request, user } = useAuthSession();
   const normalizedSearch = search.trim();
@@ -87,6 +101,45 @@ export const useCreateIngredientMutation = () => {
       );
       return invalidateIngredientCatalogSearches(queryClient, userId);
     },
+  });
+  const apiFieldErrors = getApiFieldErrors<CreateIngredientInput>(mutation.error, [
+    "name",
+  ]);
+
+  return {
+    ...mutation,
+    apiFieldErrors,
+    submitError: getSubmitError(mutation.error, apiFieldErrors),
+  };
+};
+
+export const useMealIngredientSearchQuery = (mealId: number, search = "") => {
+  const { request, user } = useAuthSession();
+  const normalizedSearch = search.trim();
+
+  return useQuery({
+    queryKey: mealIngredientCatalogQueryKeys.search(
+      user?.id ?? null,
+      mealId,
+      normalizedSearch
+    ),
+    queryFn: () => getMealIngredientCatalog(request, mealId, normalizedSearch),
+    enabled: Boolean(user && mealId),
+  });
+};
+
+export const useCreateMealCatalogIngredientMutation = (mealId: number) => {
+  const { request, user } = useAuthSession();
+  const queryClient = useQueryClient();
+  const userId = user?.id ?? null;
+
+  const mutation = useMutation({
+    mutationFn: (input: CreateIngredientInput) =>
+      createMealCatalogIngredient(request, mealId, input),
+    onSuccess: () =>
+      queryClient.invalidateQueries({
+        queryKey: mealIngredientCatalogQueryKeys.searches(userId, mealId),
+      }),
   });
   const apiFieldErrors = getApiFieldErrors<CreateIngredientInput>(mutation.error, [
     "name",

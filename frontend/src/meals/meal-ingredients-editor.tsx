@@ -176,6 +176,7 @@ export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
   };
 
   return {
+    mealId,
     ingredientsQuery,
     creation,
     updating,
@@ -208,6 +209,7 @@ export const MealIngredientsEditor = ({
 }: MealIngredientsEditorProps) => {
   const colors = useColors();
   const {
+    mealId,
     ingredientsQuery,
     creation,
     updating,
@@ -233,6 +235,7 @@ export const MealIngredientsEditor = ({
   return (
     <section aria-label="Meal ingredients">
       <IngredientCombobox
+        mealId={mealId}
         selectedIngredients={selectedIngredients}
         disabled={disabled || isPending}
         error={selectionError}

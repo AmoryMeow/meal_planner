@@ -1,5 +1,6 @@
 export {
   createIngredient,
+  createMealCatalogIngredient,
   createMeal,
   createMealIngredient,
   createMealShare,
@@ -8,6 +9,7 @@ export {
   deleteMealShare,
   getIngredient,
   getIngredientCatalog,
+  getMealIngredientCatalog,
   getMeal,
   getMealIngredient,
   getMealIngredients,
@@ -42,13 +44,16 @@ export {
 } from "./meal-share-queries";
 export {
   ingredientCatalogQueryKeys,
+  mealIngredientCatalogQueryKeys,
   mealIngredientQueryKeys,
   useCreateIngredientMutation,
+  useCreateMealCatalogIngredientMutation,
   useCreateMealIngredientMutation,
   useDeleteMealIngredientMutation,
   useIngredientQuery,
   useIngredientSearchQuery,
   useMealIngredientQuery,
+  useMealIngredientSearchQuery,
   useMealIngredientsQuery,
   useUpdateIngredientMutation,
   useUpdateMealIngredientMutation,

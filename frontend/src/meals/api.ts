@@ -154,6 +154,30 @@ export const createIngredient = (
     body: JSON.stringify(input),
   });
 
+export const getMealIngredientCatalog = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  search = ""
+) => {
+  const query = new URLSearchParams();
+  if (search) query.set("search", search);
+  const suffix = query.size ? `?${query.toString()}` : "";
+
+  return request<PaginatedResponse<Ingredient>>(
+    `/meals/${mealId}/ingredient-catalog/${suffix}`
+  );
+};
+
+export const createMealCatalogIngredient = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  input: CreateIngredientInput
+) =>
+  request<Ingredient>(`/meals/${mealId}/ingredient-catalog/`, {
+    method: "POST",
+    body: JSON.stringify(input),
+  });
+
 export const updateIngredient = (
   request: AuthenticatedRequest,
   ingredientId: number,
