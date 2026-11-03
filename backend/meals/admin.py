@@ -1,7 +1,7 @@
 from django.contrib import admin
 from django.db.models import Count
 
-from .models import Ingredient, Meal, MealIngredient
+from .models import Ingredient, Meal, MealIngredient, MealShare
 
 
 class IngredientInline(admin.TabularInline):
@@ -9,6 +9,13 @@ class IngredientInline(admin.TabularInline):
     extra = 0
     fields = ("ingredient", "quantity", "unit")
     autocomplete_fields = ("ingredient",)
+
+
+class MealShareInline(admin.TabularInline):
+    model = MealShare
+    extra = 0
+    fields = ("group", "access")
+    autocomplete_fields = ("group",)
 
 
 @admin.register(Meal)
@@ -26,7 +33,7 @@ class MealAdmin(admin.ModelAdmin):
     list_select_related = ("owner",)
     ordering = ("-created_at",)
     readonly_fields = ("created_at", "updated_at")
-    inlines = (IngredientInline,)
+    inlines = (IngredientInline, MealShareInline)
 
     def get_queryset(self, request):
         return (
@@ -57,3 +64,14 @@ class MealIngredientAdmin(admin.ModelAdmin):
     list_select_related = ("ingredient", "meal", "meal__owner")
     autocomplete_fields = ("ingredient", "meal")
     ordering = ("meal__name", "ingredient__name")
+
+
+@admin.register(MealShare)
+class MealShareAdmin(admin.ModelAdmin):
+    list_display = ("meal", "group", "access", "created_at", "updated_at")
+    list_filter = ("access", "created_at", "updated_at")
+    search_fields = ("meal__name", "meal__owner__email", "group__name")
+    list_select_related = ("meal", "meal__owner", "group")
+    autocomplete_fields = ("meal", "group")
+    ordering = ("meal__name", "group__name")
+    readonly_fields = ("created_at", "updated_at")

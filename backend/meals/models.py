@@ -28,6 +28,42 @@ class Meal(models.Model):
         return self.name
 
 
+class MealShare(models.Model):
+    class Access(models.TextChoices):
+        READ = "read", "Read"
+        EDIT = "edit", "Edit"
+
+    meal = models.ForeignKey(
+        Meal,
+        on_delete=models.CASCADE,
+        related_name="shares",
+    )
+    group = models.ForeignKey(
+        "groups.Group",
+        on_delete=models.CASCADE,
+        related_name="meal_shares",
+    )
+    access = models.CharField(
+        max_length=16,
+        choices=Access.choices,
+        default=Access.READ,
+    )
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("meal", "group"),
+                name="meals_mealshare_unique_meal_group",
+            ),
+        ]
+        ordering = ("meal_id", "group_id")
+
+    def __str__(self):
+        return f"{self.meal} shared with {self.group} ({self.get_access_display()})"
+
+
 def normalize_ingredient_name(name):
     return " ".join(name.split()).casefold()
 

@@ -3,7 +3,8 @@ from django.test import TestCase
 from django.urls import reverse
 
 from accounts.models import User
-from meals.models import Ingredient, Meal, MealIngredient
+from groups.services import create_group
+from meals.models import Ingredient, Meal, MealIngredient, MealShare
 
 
 class MealsAdminTests(TestCase):
@@ -24,12 +25,18 @@ class MealsAdminTests(TestCase):
             quantity="2.00",
             unit="piece",
         )
+        self.group = create_group(owner=self.owner, name="Family")
+        self.meal_share = MealShare.objects.create(
+            meal=self.meal,
+            group=self.group,
+        )
         self.client.force_login(self.admin_user)
 
     def test_meal_and_ingredient_models_are_registered(self):
         self.assertTrue(admin.site.is_registered(Meal))
         self.assertTrue(admin.site.is_registered(Ingredient))
         self.assertTrue(admin.site.is_registered(MealIngredient))
+        self.assertTrue(admin.site.is_registered(MealShare))
 
     def test_meal_admin_lists_meals(self):
         response = self.client.get(reverse("admin:meals_meal_changelist"))
@@ -45,6 +52,7 @@ class MealsAdminTests(TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.ingredient.name)
+        self.assertContains(response, self.group.name)
 
     def test_ingredient_admin_lists_ingredients(self):
         response = self.client.get(reverse("admin:meals_ingredient_changelist"))
@@ -58,3 +66,10 @@ class MealsAdminTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertContains(response, self.ingredient.name)
         self.assertContains(response, self.meal.name)
+
+    def test_meal_share_admin_lists_shares(self):
+        response = self.client.get(reverse("admin:meals_mealshare_changelist"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, self.meal.name)
+        self.assertContains(response, self.group.name)

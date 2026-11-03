@@ -6,7 +6,8 @@ from django.db.models.deletion import RestrictedError
 from django.test import TestCase
 
 from accounts.models import User
-from meals.models import Ingredient, Meal, MealIngredient
+from groups.services import create_group
+from meals.models import Ingredient, Meal, MealIngredient, MealShare
 
 
 class MealModelTests(TestCase):
@@ -63,6 +64,61 @@ class MealModelTests(TestCase):
         self.user.delete()
 
         self.assertFalse(Meal.objects.filter(pk=meal.pk).exists())
+
+
+class MealShareModelTests(TestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.group = create_group(owner=self.owner, name="Family")
+        self.meal = Meal.objects.create(owner=self.owner, name="Vegetable soup")
+
+    def test_meal_share_defaults_to_read_access(self):
+        share = MealShare.objects.create(meal=self.meal, group=self.group)
+
+        self.assertEqual(share.access, MealShare.Access.READ)
+        self.assertQuerySetEqual(self.meal.shares.all(), [share])
+        self.assertQuerySetEqual(self.group.meal_shares.all(), [share])
+
+    def test_meal_share_accepts_edit_access(self):
+        share = MealShare(
+            meal=self.meal,
+            group=self.group,
+            access=MealShare.Access.EDIT,
+        )
+
+        share.full_clean()
+
+    def test_meal_cannot_be_shared_with_group_twice(self):
+        MealShare.objects.create(meal=self.meal, group=self.group)
+
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            MealShare.objects.create(
+                meal=self.meal,
+                group=self.group,
+                access=MealShare.Access.EDIT,
+            )
+
+    def test_deleting_meal_deletes_its_shares(self):
+        share = MealShare.objects.create(meal=self.meal, group=self.group)
+
+        self.meal.delete()
+
+        self.assertFalse(MealShare.objects.filter(pk=share.pk).exists())
+
+    def test_string_representation_describes_share(self):
+        share = MealShare(
+            meal=self.meal,
+            group=self.group,
+            access=MealShare.Access.EDIT,
+        )
+
+        self.assertEqual(
+            str(share),
+            "Vegetable soup shared with Family (Edit)",
+        )
 
 
 class IngredientModelTests(TestCase):
