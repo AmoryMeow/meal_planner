@@ -46,6 +46,7 @@ export const EditPlanItemDialog = ({
   const [formData, setFormData] = useState(() => getInitialFormData(planItem));
   const [formErrors, setFormErrors] = useState<PlanItemFormErrors>({});
   const update = useUpdatePlanItemMutation();
+  const requiresShareConfirmation = Boolean(update.apiFieldErrors.share_with_group);
 
   const resetForm = () => {
     setSelectedMeal({
@@ -67,7 +68,7 @@ export const EditPlanItemDialog = ({
     const { name, value } = event.target;
     setFormData(current => ({ ...current, [name]: value }));
     setFormErrors({});
-    update.reset();
+    if (!requiresShareConfirmation) update.reset();
   };
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
@@ -96,6 +97,7 @@ export const EditPlanItemDialog = ({
           date: formData.date,
           meal_type: formData.mealType,
           meal_id: Number(selectedMeal.id),
+          share_with_group: requiresShareConfirmation || undefined,
           servings,
           note: formData.note.trim(),
         },
@@ -143,7 +145,7 @@ export const EditPlanItemDialog = ({
               Cancel
             </Button>
             <Button type="submit" size="sm" loading={update.isPending}>
-              Save
+              {requiresShareConfirmation ? "Share and save" : "Save"}
             </Button>
           </div>
         </div>
@@ -177,7 +179,7 @@ export const EditPlanItemDialog = ({
         error={update.apiFieldErrors.meal_type}
         onChange={value => {
           setFormData(current => ({ ...current, mealType: value }));
-          update.reset();
+          if (!requiresShareConfirmation) update.reset();
         }}
       />
 
@@ -200,11 +202,31 @@ export const EditPlanItemDialog = ({
         value={formData.note}
         onChange={event => {
           setFormData(current => ({ ...current, note: event.target.value }));
-          update.reset();
+          if (!requiresShareConfirmation) update.reset();
         }}
         error={update.apiFieldErrors.note}
         disabled={update.isPending}
       />
+
+      {requiresShareConfirmation && selectedMeal ? (
+        <div
+          role="alert"
+          css={{
+            padding: "12px 14px",
+            border: `1px solid ${colors.border}`,
+            borderRadius: 8,
+            background: colors.surfaceAlt,
+            color: colors.textPrimary,
+            fontSize: 14,
+          }}
+        >
+          <p css={{ margin: 0, fontWeight: 700 }}>Share this meal?</p>
+          <p css={{ margin: "4px 0 0", color: colors.textSecondary }}>
+            “{selectedMeal.label}” is private. Give this group permission to view the
+            meal before saving it in the group plan.
+          </p>
+        </div>
+      ) : null}
 
       {update.submitError ? (
         <div
