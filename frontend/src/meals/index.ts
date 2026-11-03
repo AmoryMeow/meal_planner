@@ -1,20 +1,25 @@
 export {
   createIngredient,
   createMealCatalogIngredient,
+  createMealCatalogTag,
   createMeal,
   createMealIngredient,
   createMealShare,
+  createTag,
   deleteMeal,
   deleteMealIngredient,
   deleteMealShare,
   getIngredient,
   getIngredientCatalog,
   getMealIngredientCatalog,
+  getMealTagCatalog,
+  getMealTagFilterOptions,
   getMeal,
   getMealIngredient,
   getMealIngredients,
   getMealShares,
   getMeals,
+  getTagCatalog,
   updateIngredient,
   updateMeal,
   updateMealIngredient,
@@ -25,10 +30,14 @@ export {
   type CreateMealShareInput,
   type Ingredient,
   type Meal,
+  type MealAccessFilter,
+  type MealFilters,
   type MealIngredient,
   type MealShare,
   type MealShareAccess,
   type MealSource,
+  type MealTag,
+  type MealTagFilterOption,
   type PaginatedResponse,
   type UpdateIngredientInput,
   type UpdateMealIngredientInput,
@@ -67,4 +76,6 @@ export {
   useUpdateMealMutation,
 } from "./queries";
 export { Meals } from "./meals";
+export { CreateMealPage } from "./create-meal-page";
+export { MealDetailsPage } from "./meal-details-page";
 export { MealCombobox, type MealOption } from "./meal-combobox";

@@ -10,6 +10,7 @@ import {
   getMeals,
   updateMeal,
   type CreateMealInput,
+  type MealFilters,
   type UpdateMealInput,
 } from "./api";
 
@@ -17,16 +18,18 @@ export const mealQueryKeys = {
   all: ["meals"] as const,
   byUser: (userId: number | null) => [...mealQueryKeys.all, userId] as const,
   lists: (userId: number | null) => [...mealQueryKeys.byUser(userId), "list"] as const,
+  list: (userId: number | null, filters: MealFilters) =>
+    [...mealQueryKeys.lists(userId), filters] as const,
   detail: (userId: number | null, mealId: number) =>
     [...mealQueryKeys.byUser(userId), "detail", mealId] as const,
 };
 
-export const useMealsQuery = () => {
+export const useMealsQuery = (filters: MealFilters = {}) => {
   const { request, user } = useAuthSession();
 
   return useQuery({
-    queryKey: mealQueryKeys.lists(user?.id ?? null),
-    queryFn: () => getMeals(request),
+    queryKey: mealQueryKeys.list(user?.id ?? null, filters),
+    queryFn: () => getMeals(request, filters),
     enabled: Boolean(user),
   });
 };
@@ -113,7 +116,8 @@ const getMealApiFieldErrors = (error: Error | null): MealApiFieldErrors => {
   return {
     name: getFirstError(error.body?.name),
     source: getFirstError(error.body?.source),
-    tags: getFirstError(error.body?.tags),
+    tag_ids: getFirstError(error.body?.tag_ids),
+    instructions: getFirstError(error.body?.instructions),
   };
 };
 

@@ -1,7 +1,7 @@
 import { useId, useMemo } from "react";
 
 import { useGroupsQuery } from "@package/groups";
-import { Button, useColors } from "@package/ui";
+import { Button, Select, useColors } from "@package/ui";
 
 import { type MealShareAccess } from "./api";
 import {
@@ -161,40 +161,26 @@ export const MealSharingEditor = ({
                     </span>
                   </label>
 
-                  <label>
-                    <span css={visuallyHiddenStyles}>Access for {group.name}</span>
-                    <select
-                      value={share?.access ?? "read"}
-                      disabled={!share || isDisabled}
-                      onChange={event => {
-                        if (!share) return;
-                        resetMutations();
-                        updating.mutate({
-                          shareId: share.id,
-                          input: { access: event.target.value as MealShareAccess },
-                        });
-                      }}
-                      css={{
-                        width: "100%",
-                        height: 36,
-                        padding: "0 10px",
-                        border: `1px solid ${colors.border}`,
-                        borderRadius: 8,
-                        background: colors.background,
-                        color: colors.textPrimary,
-                        font: "inherit",
-                        fontSize: 13,
-                        cursor: !share || isDisabled ? "not-allowed" : "pointer",
-                        "&:focus-visible": {
-                          outline: `3px solid ${colors.focus}`,
-                          outlineOffset: 1,
-                        },
-                      }}
-                    >
-                      <option value="read">Can view</option>
-                      <option value="edit">Can edit</option>
-                    </select>
-                  </label>
+                  <Select
+                    label={`Access for ${group.name}`}
+                    value={share?.access ?? "read"}
+                    options={[
+                      { value: "read", label: "Can view" },
+                      { value: "edit", label: "Can edit" },
+                    ]}
+                    size="sm"
+                    hideLabel
+                    fullWidth
+                    disabled={!share || isDisabled}
+                    onChange={access => {
+                      if (!share) return;
+                      resetMutations();
+                      updating.mutate({
+                        shareId: share.id,
+                        input: { access: access as MealShareAccess },
+                      });
+                    }}
+                  />
                 </li>
               );
             })}
@@ -209,15 +195,4 @@ export const MealSharingEditor = ({
       ) : null}
     </section>
   );
-};
-
-const visuallyHiddenStyles = {
-  position: "absolute" as const,
-  width: 1,
-  height: 1,
-  padding: 0,
-  overflow: "hidden",
-  clip: "rect(0, 0, 0, 0)",
-  whiteSpace: "nowrap" as const,
-  border: 0,
 };

@@ -8,7 +8,7 @@ import {
   Register,
 } from "@package/auth";
 import { InviteAcceptance } from "@package/groups";
-import { Meals } from "@package/meals";
+import { CreateMealPage, MealDetailsPage, Meals } from "@package/meals";
 import { Plan } from "@package/plan";
 import { PlanDetails, Plans } from "@package/plans";
 import { ThemeProvider, useColors } from "@package/ui";
@@ -60,6 +60,8 @@ const AppContent = () => {
             <Route path="/plans" element={<Plans />} />
             <Route path="/plans/:planId" element={<PlanDetails />} />
             <Route path="/meals" element={<Meals />} />
+            <Route path="/meals/new" element={<CreateMealPage />} />
+            <Route path="/meals/:mealId" element={<MealDetailsPage />} />
           </Route>
         </Route>
 

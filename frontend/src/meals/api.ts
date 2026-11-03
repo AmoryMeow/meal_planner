@@ -17,6 +17,18 @@ export type MealIngredient = {
   unit: string;
 };
 
+export type MealTag = {
+  id: number;
+  name: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type MealTagFilterOption = {
+  value: string;
+  label: string;
+};
+
 export type CreateIngredientInput = {
   name: string;
 };
@@ -35,7 +47,8 @@ export type Meal = {
   id: number;
   name: string;
   source: MealSource;
-  tags: string[];
+  tags: MealTag[];
+  instructions: string;
   ingredients: MealIngredient[];
   is_owner: boolean;
   can_edit: boolean;
@@ -54,10 +67,23 @@ export type PaginatedResponse<T> = {
 export type CreateMealInput = {
   name: string;
   source?: MealSource;
-  tags?: string[];
+  tag_ids?: number[];
+  instructions?: string;
 };
 
 export type UpdateMealInput = Partial<CreateMealInput>;
+
+export type MealAccessFilter = "all" | "owned" | "shared";
+export type MealOrdering = "recent" | "name";
+
+export type MealFilters = {
+  search?: string;
+  sources?: MealSource[];
+  tags?: string[];
+  access?: MealAccessFilter;
+  ordering?: MealOrdering;
+  page?: number;
+};
 
 export type MealShareAccess = "read" | "edit";
 
@@ -74,8 +100,20 @@ export type MealShare = {
 export type CreateMealShareInput = Pick<MealShare, "group_id" | "access">;
 export type UpdateMealShareInput = Pick<MealShare, "access">;
 
-export const getMeals = (request: AuthenticatedRequest) =>
-  request<PaginatedResponse<Meal>>("/meals/");
+export const getMeals = (request: AuthenticatedRequest, filters: MealFilters = {}) => {
+  const query = new URLSearchParams();
+  if (filters.search) query.set("search", filters.search);
+  filters.sources?.forEach(source => query.append("source", source));
+  filters.tags?.forEach(tag => query.append("tag", tag));
+  if (filters.access && filters.access !== "all") query.set("access", filters.access);
+  if (filters.ordering && filters.ordering !== "recent") {
+    query.set("ordering", filters.ordering);
+  }
+  if (filters.page && filters.page > 1) query.set("page", String(filters.page));
+  const suffix = query.size ? `?${query.toString()}` : "";
+
+  return request<PaginatedResponse<Meal>>(`/meals/${suffix}`);
+};
 
 export const getMeal = (request: AuthenticatedRequest, mealId: number) =>
   request<Meal>(`/meals/${mealId}/`);
@@ -226,3 +264,40 @@ export const deleteMealIngredient = (
   request<void>(`/meals/${mealId}/ingredients/${mealIngredientId}/`, {
     method: "DELETE",
   });
+
+const getCatalogSuffix = (search: string) => {
+  const query = new URLSearchParams();
+  if (search) query.set("search", search);
+  return query.size ? `?${query.toString()}` : "";
+};
+
+export const getTagCatalog = (request: AuthenticatedRequest, search = "") =>
+  request<PaginatedResponse<MealTag>>(`/tags/${getCatalogSuffix(search)}`);
+
+export const createTag = (request: AuthenticatedRequest, name: string) =>
+  request<MealTag>("/tags/", {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+
+export const getMealTagCatalog = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  search = ""
+) =>
+  request<PaginatedResponse<MealTag>>(
+    `/meals/${mealId}/tag-catalog/${getCatalogSuffix(search)}`
+  );
+
+export const createMealCatalogTag = (
+  request: AuthenticatedRequest,
+  mealId: number,
+  name: string
+) =>
+  request<MealTag>(`/meals/${mealId}/tag-catalog/`, {
+    method: "POST",
+    body: JSON.stringify({ name }),
+  });
+
+export const getMealTagFilterOptions = (request: AuthenticatedRequest, search = "") =>
+  request<MealTagFilterOption[]>(`/meal-tags/${getCatalogSuffix(search)}`);
