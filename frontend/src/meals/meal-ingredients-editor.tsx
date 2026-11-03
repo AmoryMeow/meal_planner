@@ -1,11 +1,12 @@
 import { type ChangeEvent, useEffect, useId, useState } from "react";
 
-import { hexToRgba, useColors } from "@package/ui";
+import { Button, hexToRgba, useColors } from "@package/ui";
 
 import { type Ingredient, type MealIngredient } from "./api";
 import { IngredientCombobox } from "./ingredient-combobox";
 import {
   useCreateMealIngredientMutation,
+  useDeleteMealIngredientMutation,
   useMealIngredientsQuery,
   useUpdateMealIngredientMutation,
 } from "./ingredient-queries";
@@ -36,13 +37,18 @@ export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
   const ingredientsQuery = useMealIngredientsQuery(mealId, enabled);
   const creation = useCreateMealIngredientMutation(mealId);
   const updating = useUpdateMealIngredientMutation(mealId);
+  const removal = useDeleteMealIngredientMutation(mealId);
   const [drafts, setDrafts] = useState<IngredientDraft[]>([]);
   const [draftErrors, setDraftErrors] = useState<DraftErrors>({});
   const [savedDrafts, setSavedDrafts] = useState<SavedIngredientDraft[]>([]);
+  const [removedSavedDraftIds, setRemovedSavedDraftIds] = useState<number[]>([]);
   const [savedDraftErrors, setSavedDraftErrors] = useState<DraftErrors>({});
   const [selectionError, setSelectionError] = useState("");
   const selectedIngredients = drafts.map(draft => draft.ingredient);
   const existingIngredients = ingredientsQuery.data?.results ?? [];
+  const visibleSavedDrafts = savedDrafts.filter(
+    draft => !removedSavedDraftIds.includes(draft.id)
+  );
 
   useEffect(() => {
     if (!ingredientsQuery.data) return;
@@ -58,9 +64,17 @@ export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
 
   const addDraft = (ingredient: Ingredient) => {
     setSelectionError("");
-    if (
-      existingIngredients.some(existing => existing.ingredient_id === ingredient.id)
-    ) {
+    const existingIngredient = existingIngredients.find(
+      existing => existing.ingredient_id === ingredient.id
+    );
+    if (existingIngredient && removedSavedDraftIds.includes(existingIngredient.id)) {
+      setRemovedSavedDraftIds(current =>
+        current.filter(id => id !== existingIngredient.id)
+      );
+      removal.reset();
+      return;
+    }
+    if (existingIngredient) {
       setSelectionError("This ingredient is already added to the meal.");
       return;
     }
@@ -79,6 +93,18 @@ export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
       delete nextErrors[ingredientId];
       return nextErrors;
     });
+  };
+
+  const removeSavedDraft = (mealIngredientId: number) => {
+    setRemovedSavedDraftIds(current =>
+      current.includes(mealIngredientId) ? current : [...current, mealIngredientId]
+    );
+    setSavedDraftErrors(current => {
+      const nextErrors = { ...current };
+      delete nextErrors[mealIngredientId];
+      return nextErrors;
+    });
+    removal.reset();
   };
 
   const updateDraft = (
@@ -125,7 +151,7 @@ export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
         unit: draft.unit,
       }))
     );
-    const existingErrors = validateDrafts(savedDrafts);
+    const existingErrors = validateDrafts(visibleSavedDrafts);
     setDraftErrors(newErrors);
     setSavedDraftErrors(existingErrors);
     return (
@@ -147,7 +173,7 @@ export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
       }
     }
 
-    for (const draft of savedDrafts.filter(isSavedDraftDirty)) {
+    for (const draft of visibleSavedDrafts.filter(isSavedDraftDirty)) {
       try {
         await updating.mutateAsync({
           mealIngredientId: draft.id,
@@ -172,6 +198,23 @@ export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
         return false;
       }
     }
+
+    for (const mealIngredientId of removedSavedDraftIds) {
+      try {
+        await removal.mutateAsync(mealIngredientId);
+        setSavedDrafts(current =>
+          current.filter(draft => draft.id !== mealIngredientId)
+        );
+        setRemovedSavedDraftIds(current =>
+          current.filter(id => id !== mealIngredientId)
+        );
+      } catch {
+        setRemovedSavedDraftIds(current =>
+          current.filter(id => id !== mealIngredientId)
+        );
+        return false;
+      }
+    }
     return true;
   };
 
@@ -180,15 +223,17 @@ export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
     ingredientsQuery,
     creation,
     updating,
-    isPending: creation.isPending || updating.isPending,
+    removal,
+    isPending: creation.isPending || updating.isPending || removal.isPending,
     drafts,
     draftErrors,
-    savedDrafts,
+    savedDrafts: visibleSavedDrafts,
     savedDraftErrors,
     selectionError,
     selectedIngredients,
     addDraft,
     removeDraft,
+    removeSavedDraft,
     updateDraft,
     updateSavedDraft,
     clearDrafts: () => {
@@ -213,6 +258,7 @@ export const MealIngredientsEditor = ({
     ingredientsQuery,
     creation,
     updating,
+    removal,
     isPending,
     drafts,
     draftErrors,
@@ -222,6 +268,7 @@ export const MealIngredientsEditor = ({
     selectedIngredients,
     addDraft,
     removeDraft,
+    removeSavedDraft,
     updateDraft,
     updateSavedDraft,
     clearDrafts,
@@ -229,7 +276,8 @@ export const MealIngredientsEditor = ({
   const apiError =
     Object.values(creation.apiFieldErrors).find(Boolean) ||
     Object.values(updating.apiFieldErrors).find(Boolean);
-  const submitError = creation.submitError || updating.submitError;
+  const submitError =
+    creation.submitError || updating.submitError || removal.submitError;
   const amountCount = savedDrafts.length + drafts.length;
 
   return (
@@ -285,6 +333,7 @@ export const MealIngredientsEditor = ({
                   updateSavedDraft(draft.id, "quantity", event)
                 }
                 onUnitChange={event => updateSavedDraft(draft.id, "unit", event)}
+                onRemove={() => removeSavedDraft(draft.id)}
               />
             ))}
             {drafts.map((draft, index) => (
@@ -300,6 +349,7 @@ export const MealIngredientsEditor = ({
                   updateDraft(draft.ingredient.id, "quantity", event)
                 }
                 onUnitChange={event => updateDraft(draft.ingredient.id, "unit", event)}
+                onRemove={() => removeDraft(draft.ingredient.id)}
               />
             ))}
           </div>
@@ -343,6 +393,7 @@ const AmountRow = ({
   showDivider,
   onQuantityChange,
   onUnitChange,
+  onRemove,
 }: {
   name: string;
   quantity: string;
@@ -352,6 +403,7 @@ const AmountRow = ({
   showDivider: boolean;
   onQuantityChange: (event: ChangeEvent<HTMLInputElement>) => void;
   onUnitChange: (event: ChangeEvent<HTMLInputElement>) => void;
+  onRemove: () => void;
 }) => {
   const colors = useColors();
 
@@ -371,20 +423,38 @@ const AmountRow = ({
         },
       }}
     >
-      <strong
-        title={name}
+      <div
         css={{
-          alignSelf: "center",
-          overflow: "hidden",
-          color: colors.textPrimary,
-          fontSize: 13,
-          fontWeight: 600,
-          textOverflow: "ellipsis",
-          whiteSpace: "nowrap",
+          minWidth: 0,
+          display: "flex",
+          alignItems: "center",
+          gap: 2,
         }}
       >
-        {name}
-      </strong>
+        <strong
+          title={name}
+          css={{
+            minWidth: 0,
+            flex: 1,
+            overflow: "hidden",
+            color: colors.textPrimary,
+            fontSize: 13,
+            fontWeight: 600,
+            textOverflow: "ellipsis",
+            whiteSpace: "nowrap",
+          }}
+        >
+          {name}
+        </strong>
+        <Button
+          variant="ghost"
+          size="sm"
+          icon={<RemoveIngredientIcon />}
+          ariaLabel={`Remove ${name} from meal`}
+          disabled={disabled}
+          onClick={onRemove}
+        />
+      </div>
       <CompactInput
         label={`Quantity for ${name}`}
         value={quantity}
@@ -492,6 +562,25 @@ const CompactInput = ({
     </label>
   );
 };
+
+const RemoveIngredientIcon = () => (
+  <svg
+    aria-hidden="true"
+    width="16"
+    height="16"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M3 6h18" />
+    <path d="M8 6V4h8v2" />
+    <path d="m19 6-1 14H6L5 6" />
+    <path d="M10 11v5M14 11v5" />
+  </svg>
+);
 
 const validateDrafts = (
   drafts: Array<{ id: number; quantity: string; unit: string }>
