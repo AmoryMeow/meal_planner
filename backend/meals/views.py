@@ -2,7 +2,7 @@ from django.db.models import BooleanField, Case, Exists, OuterRef, Value, When
 from django.shortcuts import get_object_or_404
 
 from rest_framework import filters, generics, mixins, viewsets
-from rest_framework.permissions import IsAuthenticated
+from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 
 from .models import Ingredient, Meal, MealIngredient, MealShare
 from .permissions import MealPermission, get_editable_meals, get_readable_meals
@@ -103,17 +103,61 @@ class MealShareDetailView(MealShareMixin, generics.RetrieveUpdateDestroyAPIView)
         revoke_meal_share(share=instance, actor=self.request.user)
 
 
-class IngredientListCreateView(generics.ListCreateAPIView):
+class MealIngredientAccessMixin:
     serializer_class = MealIngredientSerializer
     permission_classes = [IsAuthenticated]
 
     def get_meal(self):
-        return get_object_or_404(
-            Meal,
-            pk=self.kwargs["meal_pk"],
-            owner=self.request.user,
-        )
+        if not hasattr(self, "_meal"):
+            meals = (
+                get_readable_meals(self.request.user)
+                if self.request.method in SAFE_METHODS
+                else get_editable_meals(self.request.user)
+            )
+            self._meal = get_object_or_404(
+                meals.select_related("owner"),
+                pk=self.kwargs["meal_pk"],
+            )
+        return self._meal
 
+    def get_serializer_context(self):
+        return {
+            **super().get_serializer_context(),
+            "meal": self.get_meal(),
+        }
+
+
+class MealIngredientCatalogView(generics.ListCreateAPIView):
+    serializer_class = IngredientSerializer
+    permission_classes = [IsAuthenticated]
+    filter_backends = [filters.SearchFilter]
+    search_fields = ["name"]
+
+    def get_meal(self):
+        if not hasattr(self, "_meal"):
+            self._meal = get_object_or_404(
+                get_editable_meals(self.request.user).select_related("owner"),
+                pk=self.kwargs["meal_pk"],
+            )
+        return self._meal
+
+    def get_queryset(self):
+        return Ingredient.objects.filter(owner=self.get_meal().owner)
+
+    def get_serializer_context(self):
+        return {
+            **super().get_serializer_context(),
+            "ingredient_owner": self.get_meal().owner,
+        }
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.get_meal().owner)
+
+
+class IngredientListCreateView(
+    MealIngredientAccessMixin,
+    generics.ListCreateAPIView,
+):
     def get_queryset(self):
         return (
             MealIngredient.objects.filter(meal=self.get_meal())
@@ -125,12 +169,11 @@ class IngredientListCreateView(generics.ListCreateAPIView):
         serializer.save(meal=self.get_meal())
 
 
-class IngredientDetailView(generics.RetrieveUpdateDestroyAPIView):
-    serializer_class = MealIngredientSerializer
-    permission_classes = [IsAuthenticated]
-
+class IngredientDetailView(
+    MealIngredientAccessMixin,
+    generics.RetrieveUpdateDestroyAPIView,
+):
     def get_queryset(self):
-        return MealIngredient.objects.filter(
-            meal_id=self.kwargs["meal_pk"],
-            meal__owner=self.request.user,
-        ).select_related("ingredient")
+        return MealIngredient.objects.filter(meal=self.get_meal()).select_related(
+            "ingredient"
+        )

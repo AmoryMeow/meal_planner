@@ -4,6 +4,7 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
+from groups.models import Membership
 from groups.services import create_group
 from meals.models import Ingredient, Meal, MealIngredient, MealShare
 
@@ -452,6 +453,79 @@ class IngredientCatalogApiTests(APITestCase):
         self.assertTrue(Ingredient.objects.filter(pk=self.ingredient.id).exists())
 
 
+class MealIngredientCatalogApiTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.editor = User.objects.create_user(
+            email="editor@example.com",
+            password="A-secure-password-123",
+        )
+        self.group = create_group(owner=self.owner, name="Family", color="#A78BFA")
+        Membership.objects.create(
+            group=self.group,
+            user=self.editor,
+            role=Membership.Role.MEMBER,
+        )
+        self.meal = Meal.objects.create(owner=self.owner, name="Vegetable soup")
+        self.carrot = Ingredient.objects.create(owner=self.owner, name="Carrot")
+        self.rice = Ingredient.objects.create(owner=self.owner, name="Rice")
+        self.editors_ingredient = Ingredient.objects.create(
+            owner=self.editor,
+            name="Private ingredient",
+        )
+        self.share = MealShare.objects.create(
+            meal=self.meal,
+            group=self.group,
+            access=MealShare.Access.EDIT,
+        )
+        self.url = reverse("meal-ingredient-catalog", args=[self.meal.id])
+
+    def test_catalog_requires_authentication(self):
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_read_only_share_cannot_access_owner_catalog(self):
+        self.share.access = MealShare.Access.READ
+        self.share.save(update_fields=("access", "updated_at"))
+        self.client.force_authenticate(user=self.editor)
+
+        response = self.client.get(self.url)
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_editor_can_search_meal_owners_catalog(self):
+        self.client.force_authenticate(user=self.editor)
+
+        response = self.client.get(self.url, {"search": "carr"})
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data["count"], 1)
+        self.assertEqual(response.data["results"][0]["id"], self.carrot.id)
+        self.assertNotEqual(response.data["results"][0]["id"], self.rice.id)
+        self.assertNotEqual(
+            response.data["results"][0]["id"],
+            self.editors_ingredient.id,
+        )
+
+    def test_editor_can_create_ingredient_for_meal_owner(self):
+        self.client.force_authenticate(user=self.editor)
+
+        response = self.client.post(
+            self.url,
+            {"name": "  Green   Onion  "},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        ingredient = Ingredient.objects.get(pk=response.data["id"])
+        self.assertEqual(ingredient.owner, self.owner)
+        self.assertEqual(ingredient.name, "Green Onion")
+
+
 class IngredientApiTests(APITestCase):
     def setUp(self):
         self.user = User.objects.create_user(
@@ -471,6 +545,16 @@ class IngredientApiTests(APITestCase):
         self.other_ingredient = Ingredient.objects.create(
             owner=self.other_user,
             name="Private ingredient",
+        )
+        self.group = create_group(
+            owner=self.user,
+            name="Family",
+            color="#A78BFA",
+        )
+        Membership.objects.create(
+            group=self.group,
+            user=self.other_user,
+            role=Membership.Role.MEMBER,
         )
 
     def test_list_requires_authentication(self):
@@ -606,6 +690,107 @@ class IngredientApiTests(APITestCase):
 
     def test_user_cannot_add_another_users_catalog_ingredient(self):
         self.client.force_authenticate(user=self.user)
+
+        response = self.client.post(
+            reverse("ingredient-list", args=[self.meal.id]),
+            {
+                "ingredient_id": self.other_ingredient.id,
+                "quantity": "1.00",
+                "unit": "piece",
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertIn("ingredient_id", response.data)
+
+    def test_read_only_editor_can_list_but_cannot_change_meal_ingredients(self):
+        meal_ingredient = MealIngredient.objects.create(
+            meal=self.meal,
+            ingredient=self.ingredient,
+            quantity="2.00",
+            unit="piece",
+        )
+        MealShare.objects.create(
+            meal=self.meal,
+            group=self.group,
+            access=MealShare.Access.READ,
+        )
+        self.client.force_authenticate(user=self.other_user)
+
+        list_response = self.client.get(
+            reverse("ingredient-list", args=[self.meal.id])
+        )
+        create_response = self.client.post(
+            reverse("ingredient-list", args=[self.meal.id]),
+            {
+                "ingredient_id": self.ingredient.id,
+                "quantity": "1.00",
+                "unit": "piece",
+            },
+            format="json",
+        )
+        detail_url = reverse(
+            "ingredient-detail",
+            args=[self.meal.id, meal_ingredient.id],
+        )
+        update_response = self.client.patch(
+            detail_url,
+            {"quantity": "3.00"},
+            format="json",
+        )
+        delete_response = self.client.delete(detail_url)
+
+        self.assertEqual(list_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(create_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(update_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(delete_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertTrue(MealIngredient.objects.filter(pk=meal_ingredient.id).exists())
+
+    def test_editor_can_create_update_and_delete_meal_ingredient(self):
+        MealShare.objects.create(
+            meal=self.meal,
+            group=self.group,
+            access=MealShare.Access.EDIT,
+        )
+        self.client.force_authenticate(user=self.other_user)
+        list_url = reverse("ingredient-list", args=[self.meal.id])
+
+        create_response = self.client.post(
+            list_url,
+            {
+                "ingredient_id": self.ingredient.id,
+                "quantity": "1.00",
+                "unit": "piece",
+            },
+            format="json",
+        )
+        detail_url = reverse(
+            "ingredient-detail",
+            args=[self.meal.id, create_response.data["id"]],
+        )
+        update_response = self.client.patch(
+            detail_url,
+            {"quantity": "3.00"},
+            format="json",
+        )
+        delete_response = self.client.delete(detail_url)
+
+        self.assertEqual(create_response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(update_response.status_code, status.HTTP_200_OK)
+        self.assertEqual(update_response.data["quantity"], "3.00")
+        self.assertEqual(delete_response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(
+            MealIngredient.objects.filter(pk=create_response.data["id"]).exists()
+        )
+
+    def test_editor_cannot_attach_ingredient_from_their_own_catalog(self):
+        MealShare.objects.create(
+            meal=self.meal,
+            group=self.group,
+            access=MealShare.Access.EDIT,
+        )
+        self.client.force_authenticate(user=self.other_user)
 
         response = self.client.post(
             reverse("ingredient-list", args=[self.meal.id]),

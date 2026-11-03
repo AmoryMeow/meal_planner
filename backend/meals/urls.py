@@ -6,6 +6,7 @@ from .views import (
     IngredientCatalogViewSet,
     IngredientDetailView,
     IngredientListCreateView,
+    MealIngredientCatalogView,
     MealShareDetailView,
     MealShareListCreateView,
     MealViewSet,
@@ -25,6 +26,11 @@ urlpatterns = [
         "meals/<int:meal_pk>/shares/<int:pk>/",
         MealShareDetailView.as_view(),
         name="meal-share-detail",
+    ),
+    path(
+        "meals/<int:meal_pk>/ingredient-catalog/",
+        MealIngredientCatalogView.as_view(),
+        name="meal-ingredient-catalog",
     ),
     path(
         "meals/<int:meal_pk>/ingredients/",

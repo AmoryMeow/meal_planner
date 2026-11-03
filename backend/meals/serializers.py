@@ -24,11 +24,16 @@ class IngredientSerializer(serializers.ModelSerializer):
     def validate_name(self, value):
         name = " ".join(value.split())
         request = self.context.get("request")
-        if not request:
+        ingredient_owner = self.context.get("ingredient_owner")
+        if ingredient_owner is None and self.instance is not None:
+            ingredient_owner = self.instance.owner
+        if ingredient_owner is None and request:
+            ingredient_owner = request.user
+        if ingredient_owner is None:
             return name
 
         ingredients = Ingredient.objects.filter(
-            owner=request.user,
+            owner=ingredient_owner,
             normalized_name=normalize_ingredient_name(name),
         )
         if self.instance:
@@ -54,11 +59,13 @@ class MealIngredientSerializer(serializers.ModelSerializer):
 
     def validate_ingredient_id(self, value):
         request = self.context.get("request")
+        meal = self.context.get("meal")
+        ingredient_owner = meal.owner if meal is not None else getattr(request, "user", None)
         if (
-            not request
+            ingredient_owner is None
             or not Ingredient.objects.filter(
                 pk=value,
-                owner=request.user,
+                owner=ingredient_owner,
             ).exists()
         ):
             raise serializers.ValidationError("Ingredient does not exist.")
