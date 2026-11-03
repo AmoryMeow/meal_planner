@@ -3,6 +3,7 @@ import { type FormEvent, type RefObject, useState } from "react";
 import { Button, Dialog, useColors } from "@package/ui";
 
 import { type Meal } from "./api";
+import { MealIngredientsSummary } from "./meal-details-dialog";
 import {
   getMealFormData,
   getMealInput,
@@ -26,7 +27,7 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
   const [formData, setFormData] = useState(() => getMealFormData(meal));
   const [formErrors, setFormErrors] = useState<MealFormErrors>({});
   const update = useUpdateMealMutation();
-  const ingredientsEditor = useMealIngredientsEditor(meal.id);
+  const ingredientsEditor = useMealIngredientsEditor(meal.id, meal.is_owner);
   const isSaving = update.isPending || ingredientsEditor.isPending;
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
@@ -38,12 +39,12 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
       setFormErrors({ name: "Enter a meal name." });
       return;
     }
-    if (!ingredientsEditor.validate()) return;
+    if (meal.is_owner && !ingredientsEditor.validate()) return;
 
     setFormErrors({});
     try {
       await update.mutateAsync({ mealId: meal.id, input });
-      const ingredientsSaved = await ingredientsEditor.save();
+      const ingredientsSaved = meal.is_owner ? await ingredientsEditor.save() : true;
       if (ingredientsSaved) dialogRef.current?.close();
     } catch {
       // Mutation errors are rendered by their corresponding form sections.
@@ -87,7 +88,22 @@ export const EditMealDialog = ({ dialogRef, meal, onClose }: EditMealDialogProps
         }}
       />
 
-      <MealIngredientsEditor editor={ingredientsEditor} disabled={isSaving} />
+      {meal.is_owner ? (
+        <MealIngredientsEditor editor={ingredientsEditor} disabled={isSaving} />
+      ) : (
+        <div>
+          <p
+            css={{
+              margin: "0 0 10px",
+              color: colors.textSecondary,
+              fontSize: 13,
+            }}
+          >
+            Ingredients are currently managed by the meal owner.
+          </p>
+          <MealIngredientsSummary ingredients={meal.ingredients} />
+        </div>
+      )}
 
       {update.submitError ? (
         <div

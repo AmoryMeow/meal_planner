@@ -37,6 +37,9 @@ export type Meal = {
   source: MealSource;
   tags: string[];
   ingredients: MealIngredient[];
+  is_owner: boolean;
+  can_edit: boolean;
+  can_delete: boolean;
   created_at: string;
   updated_at: string;
 };

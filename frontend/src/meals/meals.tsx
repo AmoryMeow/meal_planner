@@ -11,6 +11,7 @@ import {
 import { type Meal, type MealSource } from "./api";
 import { CreateMealDialog } from "./create-meal-dialog";
 import { EditMealDialog } from "./edit-meal-dialog";
+import { MealDetailsDialog } from "./meal-details-dialog";
 import { useMealsQuery } from "./queries";
 
 const sourceLabels: Record<MealSource, string> = {
@@ -25,12 +26,12 @@ export const Meals = () => {
   const mealsQuery = useMealsQuery();
   const createMealDialogRef = useRef<HTMLDialogElement>(null);
   const editMealDialogRef = useRef<HTMLDialogElement>(null);
-  const [mealToEdit, setMealToEdit] = useState<Meal | null>(null);
+  const [selectedMeal, setSelectedMeal] = useState<Meal | null>(null);
 
   useEffect(() => {
     const dialog = editMealDialogRef.current;
-    if (mealToEdit && dialog && !dialog.open) dialog.showModal();
-  }, [mealToEdit]);
+    if (selectedMeal && dialog && !dialog.open) dialog.showModal();
+  }, [selectedMeal]);
 
   return (
     <main
@@ -71,7 +72,7 @@ export const Meals = () => {
             Meals
           </h1>
           <p css={{ margin: 0, color: colors.textSecondary, fontSize: 14 }}>
-            Your personal collection of meals and recipes.
+            Your meals and recipes shared with you.
           </p>
         </div>
 
@@ -85,12 +86,20 @@ export const Meals = () => {
       </header>
 
       <CreateMealDialog dialogRef={createMealDialogRef} />
-      {mealToEdit ? (
-        <EditMealDialog
-          dialogRef={editMealDialogRef}
-          meal={mealToEdit}
-          onClose={() => setMealToEdit(null)}
-        />
+      {selectedMeal ? (
+        selectedMeal.can_edit ? (
+          <EditMealDialog
+            dialogRef={editMealDialogRef}
+            meal={selectedMeal}
+            onClose={() => setSelectedMeal(null)}
+          />
+        ) : (
+          <MealDetailsDialog
+            dialogRef={editMealDialogRef}
+            meal={selectedMeal}
+            onClose={() => setSelectedMeal(null)}
+          />
+        )
       ) : null}
 
       {mealsQuery.isPending ? <MealsLoading /> : null}
@@ -110,7 +119,7 @@ export const Meals = () => {
             }}
           >
             {mealsQuery.data.results.map(meal => (
-              <MealCard key={meal.id} meal={meal} onEdit={setMealToEdit} />
+              <MealCard key={meal.id} meal={meal} onOpen={setSelectedMeal} />
             ))}
           </div>
         </section>
@@ -119,7 +128,7 @@ export const Meals = () => {
   );
 };
 
-const MealCard = ({ meal, onEdit }: { meal: Meal; onEdit: (meal: Meal) => void }) => {
+const MealCard = ({ meal, onOpen }: { meal: Meal; onOpen: (meal: Meal) => void }) => {
   const colors = useColors();
   const ingredientCount = meal.ingredients.length;
 
@@ -144,8 +153,8 @@ const MealCard = ({ meal, onEdit }: { meal: Meal; onEdit: (meal: Meal) => void }
     >
       <button
         type="button"
-        aria-label={`Edit ${meal.name}`}
-        onClick={() => onEdit(meal)}
+        aria-label={`${meal.can_edit ? "Edit" : "View"} ${meal.name}`}
+        onClick={() => onOpen(meal)}
         css={{
           position: "absolute",
           inset: 0,
@@ -184,19 +193,42 @@ const MealCard = ({ meal, onEdit }: { meal: Meal; onEdit: (meal: Meal) => void }
         >
           {meal.name}
         </h2>
-        <span
+        <div
           css={{
+            display: "flex",
+            alignItems: "flex-end",
+            flexDirection: "column",
             flexShrink: 0,
-            padding: "4px 8px",
-            borderRadius: 999,
-            background: colors.chip,
-            color: colors.textPrimary,
-            fontSize: 12,
-            fontWeight: 700,
+            gap: 6,
           }}
         >
-          {sourceLabels[meal.source]}
-        </span>
+          <span
+            css={{
+              padding: "4px 8px",
+              borderRadius: 999,
+              background: colors.chip,
+              color: colors.textPrimary,
+              fontSize: 12,
+              fontWeight: 700,
+            }}
+          >
+            {sourceLabels[meal.source]}
+          </span>
+          {!meal.is_owner ? (
+            <span
+              css={{
+                padding: "4px 8px",
+                borderRadius: 999,
+                background: meal.can_edit ? colors.accentBg : colors.infoBg,
+                color: meal.can_edit ? colors.accent : colors.info,
+                fontSize: 11,
+                fontWeight: 700,
+              }}
+            >
+              {meal.can_edit ? "Shared · Can edit" : "Shared · Read only"}
+            </span>
+          ) : null}
+        </div>
       </div>
 
       {meal.tags.length > 0 ? (
@@ -309,7 +341,7 @@ const MealsEmpty = () => {
     >
       <h2 css={{ margin: 0, color: colors.textPrimary, fontSize: 20 }}>No meals yet</h2>
       <p css={{ margin: "8px 0 0", color: colors.textSecondary }}>
-        Your saved meals will appear here.
+        Your meals and recipes shared with you will appear here.
       </p>
     </section>
   );

@@ -32,8 +32,8 @@ type SavedIngredientDraft = {
 
 type DraftErrors = Record<number, { quantity?: string; unit?: string }>;
 
-export const useMealIngredientsEditor = (mealId: number) => {
-  const ingredientsQuery = useMealIngredientsQuery(mealId);
+export const useMealIngredientsEditor = (mealId: number, enabled = true) => {
+  const ingredientsQuery = useMealIngredientsQuery(mealId, enabled);
   const creation = useCreateMealIngredientMutation(mealId);
   const updating = useUpdateMealIngredientMutation(mealId);
   const [drafts, setDrafts] = useState<IngredientDraft[]>([]);

@@ -131,13 +131,13 @@ export const useUpdateIngredientMutation = () => {
   };
 };
 
-export const useMealIngredientsQuery = (mealId: number) => {
+export const useMealIngredientsQuery = (mealId: number, enabled = true) => {
   const { request, user } = useAuthSession();
 
   return useQuery({
     queryKey: mealIngredientQueryKeys.list(user?.id ?? null, mealId),
     queryFn: () => getMealIngredients(request, mealId),
-    enabled: Boolean(user),
+    enabled: Boolean(user && enabled),
   });
 };
 
