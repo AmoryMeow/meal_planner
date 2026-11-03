@@ -2,7 +2,16 @@ from decimal import Decimal
 
 from rest_framework import serializers
 
-from .models import Ingredient, Meal, MealIngredient, normalize_ingredient_name
+from groups.models import Group
+
+from .models import (
+    Ingredient,
+    Meal,
+    MealIngredient,
+    MealShare,
+    normalize_ingredient_name,
+)
+from .services import MealShareServiceError, share_meal
 
 
 class IngredientSerializer(serializers.ModelSerializer):
@@ -75,3 +84,83 @@ class MealSerializer(serializers.ModelSerializer):
             "updated_at",
         )
         read_only_fields = ("id", "ingredients", "created_at", "updated_at")
+
+
+class MealShareSerializer(serializers.ModelSerializer):
+    group_id = serializers.IntegerField(required=False)
+    group_name = serializers.CharField(source="group.name", read_only=True)
+    group_color = serializers.CharField(source="group.color", read_only=True)
+
+    class Meta:
+        model = MealShare
+        fields = (
+            "id",
+            "group_id",
+            "group_name",
+            "group_color",
+            "access",
+            "created_at",
+            "updated_at",
+        )
+        read_only_fields = (
+            "id",
+            "group_name",
+            "group_color",
+            "created_at",
+            "updated_at",
+        )
+
+    def validate_group_id(self, value):
+        request = self.context.get("request")
+        group = (
+            Group.objects.filter(pk=value, memberships__user=request.user)
+            .distinct()
+            .first()
+            if request
+            else None
+        )
+        if group is None:
+            raise serializers.ValidationError("Group does not exist.")
+        if self.instance and self.instance.group_id != group.id:
+            raise serializers.ValidationError("Group cannot be changed.")
+
+        meal = self.context.get("meal")
+        if (
+            self.instance is None
+            and meal
+            and MealShare.objects.filter(meal=meal, group=group).exists()
+        ):
+            raise serializers.ValidationError("Meal is already shared with this group.")
+
+        self.validated_group = group
+        return value
+
+    def validate(self, attrs):
+        if self.instance is None and "group_id" not in attrs:
+            raise serializers.ValidationError({"group_id": "This field is required."})
+        return attrs
+
+    def create(self, validated_data):
+        validated_data.pop("group_id")
+        return self.save_share(
+            group=self.validated_group,
+            access=validated_data.get("access", MealShare.Access.READ),
+        )
+
+    def update(self, instance, validated_data):
+        validated_data.pop("group_id", None)
+        return self.save_share(
+            group=instance.group,
+            access=validated_data.get("access", instance.access),
+        )
+
+    def save_share(self, *, group, access):
+        try:
+            return share_meal(
+                meal=self.context["meal"],
+                group=group,
+                actor=self.context["request"].user,
+                access=access,
+            )
+        except MealShareServiceError as error:
+            raise serializers.ValidationError({"detail": str(error)}) from error

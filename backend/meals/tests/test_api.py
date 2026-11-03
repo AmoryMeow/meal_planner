@@ -4,7 +4,8 @@ from rest_framework import status
 from rest_framework.test import APITestCase
 
 from accounts.models import User
-from meals.models import Ingredient, Meal, MealIngredient
+from groups.services import create_group
+from meals.models import Ingredient, Meal, MealIngredient, MealShare
 
 
 class MealApiTests(APITestCase):
@@ -98,6 +99,159 @@ class MealApiTests(APITestCase):
         self.assertEqual(delete_response.status_code, status.HTTP_404_NOT_FOUND)
         meal.refresh_from_db()
         self.assertEqual(meal.name, "Private meal")
+
+
+class MealShareApiTests(APITestCase):
+    def setUp(self):
+        self.owner = User.objects.create_user(
+            email="owner@example.com",
+            password="A-secure-password-123",
+        )
+        self.other_user = User.objects.create_user(
+            email="other@example.com",
+            password="A-secure-password-123",
+        )
+        self.group = create_group(owner=self.owner, name="Family", color="#A78BFA")
+        self.other_group = create_group(owner=self.other_user, name="Friends")
+        self.meal = Meal.objects.create(owner=self.owner, name="Vegetable soup")
+        self.other_meal = Meal.objects.create(
+            owner=self.other_user,
+            name="Private meal",
+        )
+        self.list_url = reverse("meal-share-list", args=(self.meal.id,))
+
+    def test_shares_require_authentication(self):
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_401_UNAUTHORIZED)
+
+    def test_owner_can_list_meal_shares(self):
+        share = MealShare.objects.create(meal=self.meal, group=self.group)
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(self.list_url)
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data), 1)
+        self.assertEqual(
+            response.data[0],
+            {
+                "id": share.id,
+                "group_id": self.group.id,
+                "group_name": "Family",
+                "group_color": "#A78BFA",
+                "access": MealShare.Access.READ,
+                "created_at": response.data[0]["created_at"],
+                "updated_at": response.data[0]["updated_at"],
+            },
+        )
+
+    def test_owner_can_share_meal_with_their_group(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {"group_id": self.group.id, "access": MealShare.Access.EDIT},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        share = MealShare.objects.get(pk=response.data["id"])
+        self.assertEqual(share.meal, self.meal)
+        self.assertEqual(share.group, self.group)
+        self.assertEqual(share.access, MealShare.Access.EDIT)
+
+    def test_owner_cannot_share_with_group_they_do_not_belong_to(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {"group_id": self.other_group.id, "access": MealShare.Access.READ},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["group_id"][0], "Group does not exist.")
+        self.assertFalse(MealShare.objects.exists())
+
+    def test_owner_cannot_create_duplicate_share(self):
+        MealShare.objects.create(meal=self.meal, group=self.group)
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {"group_id": self.group.id, "access": MealShare.Access.EDIT},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data["group_id"][0],
+            "Meal is already shared with this group.",
+        )
+
+    def test_owner_can_change_share_access(self):
+        share = MealShare.objects.create(meal=self.meal, group=self.group)
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.patch(
+            reverse("meal-share-detail", args=(self.meal.id, share.id)),
+            {"access": MealShare.Access.EDIT},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        share.refresh_from_db()
+        self.assertEqual(share.access, MealShare.Access.EDIT)
+
+    def test_share_group_cannot_be_changed(self):
+        second_group = create_group(owner=self.owner, name="Parents")
+        share = MealShare.objects.create(meal=self.meal, group=self.group)
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.patch(
+            reverse("meal-share-detail", args=(self.meal.id, share.id)),
+            {"group_id": second_group.id},
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["group_id"][0], "Group cannot be changed.")
+
+    def test_owner_can_revoke_share(self):
+        share = MealShare.objects.create(meal=self.meal, group=self.group)
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.delete(
+            reverse("meal-share-detail", args=(self.meal.id, share.id))
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertFalse(MealShare.objects.filter(pk=share.pk).exists())
+
+    def test_non_owner_cannot_manage_meal_shares(self):
+        share = MealShare.objects.create(meal=self.meal, group=self.group)
+        self.client.force_authenticate(user=self.other_user)
+
+        list_response = self.client.get(self.list_url)
+        update_response = self.client.patch(
+            reverse("meal-share-detail", args=(self.meal.id, share.id)),
+            {"access": MealShare.Access.EDIT},
+            format="json",
+        )
+
+        self.assertEqual(list_response.status_code, status.HTTP_404_NOT_FOUND)
+        self.assertEqual(update_response.status_code, status.HTTP_404_NOT_FOUND)
+
+    def test_share_must_belong_to_meal_from_url(self):
+        share = MealShare.objects.create(meal=self.other_meal, group=self.other_group)
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.get(
+            reverse("meal-share-detail", args=(self.meal.id, share.id))
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_404_NOT_FOUND)
 
 
 class IngredientCatalogApiTests(APITestCase):

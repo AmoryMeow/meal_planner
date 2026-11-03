@@ -6,6 +6,8 @@ from .views import (
     IngredientCatalogViewSet,
     IngredientDetailView,
     IngredientListCreateView,
+    MealShareDetailView,
+    MealShareListCreateView,
     MealViewSet,
 )
 
@@ -14,6 +16,16 @@ router.register("meals", MealViewSet, basename="meal")
 router.register("ingredients", IngredientCatalogViewSet, basename="ingredient-catalog")
 
 urlpatterns = [
+    path(
+        "meals/<int:meal_pk>/shares/",
+        MealShareListCreateView.as_view(),
+        name="meal-share-list",
+    ),
+    path(
+        "meals/<int:meal_pk>/shares/<int:pk>/",
+        MealShareDetailView.as_view(),
+        name="meal-share-detail",
+    ),
     path(
         "meals/<int:meal_pk>/ingredients/",
         IngredientListCreateView.as_view(),

@@ -3,8 +3,14 @@ from django.shortcuts import get_object_or_404
 from rest_framework import filters, generics, mixins, viewsets
 from rest_framework.permissions import IsAuthenticated
 
-from .models import Ingredient, Meal, MealIngredient
-from .serializers import IngredientSerializer, MealIngredientSerializer, MealSerializer
+from .models import Ingredient, Meal, MealIngredient, MealShare
+from .serializers import (
+    IngredientSerializer,
+    MealIngredientSerializer,
+    MealSerializer,
+    MealShareSerializer,
+)
+from .services import revoke_meal_share
 
 
 class IngredientCatalogViewSet(
@@ -39,6 +45,42 @@ class MealViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
+
+
+class MealShareMixin:
+    serializer_class = MealShareSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_meal(self):
+        if not hasattr(self, "_meal"):
+            self._meal = get_object_or_404(
+                Meal,
+                pk=self.kwargs["meal_pk"],
+                owner=self.request.user,
+            )
+        return self._meal
+
+    def get_queryset(self):
+        return (
+            MealShare.objects.filter(meal=self.get_meal())
+            .select_related("group")
+            .order_by("group__name", "group_id")
+        )
+
+    def get_serializer_context(self):
+        return {
+            **super().get_serializer_context(),
+            "meal": self.get_meal(),
+        }
+
+
+class MealShareListCreateView(MealShareMixin, generics.ListCreateAPIView):
+    pagination_class = None
+
+
+class MealShareDetailView(MealShareMixin, generics.RetrieveUpdateDestroyAPIView):
+    def perform_destroy(self, instance):
+        revoke_meal_share(share=instance, actor=self.request.user)
 
 
 class IngredientListCreateView(generics.ListCreateAPIView):
