@@ -201,7 +201,17 @@ DB_PORT=5432
 SECRET_KEY=your-secret-key-here
 DEBUG=False
 ALLOWED_HOSTS=localhost,127.0.0.1,backend,nginx
+
+# Invitation links and email delivery
+FRONTEND_URL=http://localhost
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+DEFAULT_FROM_EMAIL=Mealendar <noreply@localhost>
 ```
+
+The console email backend prints invitation messages to backend logs during local
+development. For delivery through an email provider, set `EMAIL_BACKEND` to
+`django.core.mail.backends.smtp.EmailBackend` and configure `EMAIL_HOST`,
+`EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `EMAIL_USE_TLS`.
 
 ## Docker Commands
 

@@ -1,0 +1,9 @@
+Hello,
+
+{% if invited_by %}{{ invited_by }} invited you{% else %}You were invited{% endif %} to join "{{ group_name }}" on Mealendar.
+
+Accept the invitation:
+{{ invite_url }}
+
+This invitation expires on {{ expires_at|date:"M j, Y, H:i" }} UTC.
+If you were not expecting this invitation, you can ignore this email.

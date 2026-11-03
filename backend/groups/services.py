@@ -3,6 +3,7 @@ from django.utils import timezone
 
 from planning.models import Plan
 
+from .emails import schedule_invite_email
 from .models import DEFAULT_GROUP_COLOR, Group, Invite, Membership
 
 
@@ -104,6 +105,7 @@ def create_invite(*, group: Group, invited_by, email: str) -> Invite:
         raise ActiveInviteExistsError(
             "An active invitation already exists for this email."
         ) from error
+    schedule_invite_email(invite.id)
     return invite
 
 
