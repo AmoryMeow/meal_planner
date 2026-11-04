@@ -1,4 +1,4 @@
-import { Select, useColors } from "@package/ui";
+import { HorizontalScroller, Select, useColors } from "@package/ui";
 
 import {
   type MealAccessFilter,
@@ -20,19 +20,7 @@ export const MealFiltersBar = ({ filters, onChange }: MealFiltersProps) => {
     onChange({ ...filters, ...patch, page: undefined });
 
   return (
-    <section
-      aria-label="Meal filters"
-      css={{
-        display: "flex",
-        alignItems: "center",
-        gap: 8,
-        marginBottom: 16,
-        paddingBottom: 2,
-        overflowX: "auto",
-        scrollbarWidth: "thin",
-        WebkitOverflowScrolling: "touch",
-      }}
-    >
+    <HorizontalScroller ariaLabel="Meal filters" marginBottom={16}>
       <label css={{ flex: "1 1 220px", minWidth: 180 }}>
         <span css={visuallyHiddenStyles}>Search meals</span>
         <input
@@ -93,7 +81,7 @@ export const MealFiltersBar = ({ filters, onChange }: MealFiltersProps) => {
           ["name", "Name"],
         ]}
       />
-    </section>
+    </HorizontalScroller>
   );
 };
 

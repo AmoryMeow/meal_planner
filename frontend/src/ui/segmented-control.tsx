@@ -31,6 +31,7 @@ export const SegmentedControl = <T extends string>({
       css={{
         display: "inline-flex",
         alignItems: "center",
+        flex: "0 0 auto",
         gap: 2,
         width: fullWidth ? "100%" : "auto",
         boxSizing: "border-box",

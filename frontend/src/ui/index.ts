@@ -8,6 +8,10 @@ export { Combobox, type ComboboxOption, type ComboboxProps } from "./combobox";
 export { Select, type SelectOption, type SelectProps } from "./select";
 export { Dialog, type DialogProps } from "./dialog";
 export { Input, type InputProps } from "./input";
+export {
+  HorizontalScroller,
+  type HorizontalScrollerProps,
+} from "./horizontal-scroller";
 export { PlusIcon } from "./icons";
 export {
   SegmentedControl,

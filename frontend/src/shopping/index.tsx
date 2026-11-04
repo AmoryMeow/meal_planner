@@ -4,6 +4,7 @@ import { PlanSelector, usePlansQuery } from "@package/plan";
 import {
   Button,
   getContentContainerStyles,
+  HorizontalScroller,
   SegmentedControl,
   useColors,
   useIsMobile,
@@ -84,18 +85,9 @@ export const ShoppingList = () => {
         </p>
       </header>
 
-      <section
-        aria-label="Shopping list filters"
-        css={{
-          display: "flex",
-          alignItems: "center",
-          gap: 8,
-          marginBottom: validRange ? 16 : 6,
-          paddingBottom: 2,
-          overflowX: "auto",
-          scrollbarWidth: "thin",
-          WebkitOverflowScrolling: "touch",
-        }}
+      <HorizontalScroller
+        ariaLabel="Shopping list filters"
+        marginBottom={validRange ? 16 : 6}
       >
         <SegmentedControl<PeriodPreset>
           ariaLabel="Quick period"
@@ -108,7 +100,7 @@ export const ShoppingList = () => {
           onChange={selectPeriod}
         />
 
-        <label css={{ flex: "0 0 auto" }}>
+        <label css={{ position: "relative", flex: "0 0 auto" }}>
           <span css={visuallyHiddenStyles}>Start date</span>
           <input
             type="date"
@@ -120,7 +112,7 @@ export const ShoppingList = () => {
         <span aria-hidden="true" css={{ color: colors.textMuted }}>
           –
         </span>
-        <label css={{ flex: "0 0 auto" }}>
+        <label css={{ position: "relative", flex: "0 0 auto" }}>
           <span css={visuallyHiddenStyles}>End date</span>
           <input
             type="date"
@@ -141,7 +133,7 @@ export const ShoppingList = () => {
             />
           </div>
         ) : null}
-      </section>
+      </HorizontalScroller>
 
       {!validRange ? (
         <p
@@ -317,6 +309,8 @@ const getFilterControlStyles = (
 
 const visuallyHiddenStyles = {
   position: "absolute" as const,
+  top: 0,
+  left: 0,
   width: 1,
   height: 1,
   padding: 0,
