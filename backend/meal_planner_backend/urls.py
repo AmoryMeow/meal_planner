@@ -7,5 +7,6 @@ urlpatterns = [
     path("api/", include("groups.urls")),
     path("api/", include("meals.urls")),
     path("api/", include("planning.urls")),
+    path("api/", include("shopping.urls")),
     path("api/", include("meal_planner_backend.docs_urls")),
 ]
