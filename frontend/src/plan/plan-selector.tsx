@@ -7,6 +7,7 @@ import { type MealPlan } from "./api";
 type PlanSelectorProps = {
   plans: MealPlan[];
   selectedPlanIds: number[];
+  size?: "sm" | "md";
   fullWidth?: boolean;
   onChange: (planIds: number[]) => void;
 };
@@ -14,6 +15,7 @@ type PlanSelectorProps = {
 export const PlanSelector = ({
   plans,
   selectedPlanIds,
+  size = "md",
   fullWidth = false,
   onChange,
 }: PlanSelectorProps) => {
@@ -81,7 +83,7 @@ export const PlanSelector = ({
           minWidth: 116,
           width: fullWidth ? "100%" : "auto",
           maxWidth: fullWidth ? "none" : 180,
-          height: 40,
+          height: size === "sm" ? 36 : 40,
           boxSizing: "border-box",
           padding: "0 11px",
           border: `1px solid ${colors.border}`,

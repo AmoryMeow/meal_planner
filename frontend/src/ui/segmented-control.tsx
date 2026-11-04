@@ -9,6 +9,7 @@ export type SegmentedControlProps<T extends string> = {
   ariaLabel: string;
   value: T;
   options: readonly SegmentedControlOption<T>[];
+  size?: "sm" | "md";
   fullWidth?: boolean;
   onChange: (value: T) => void;
 };
@@ -17,6 +18,7 @@ export const SegmentedControl = <T extends string>({
   ariaLabel,
   value,
   options,
+  size = "md",
   fullWidth = false,
   onChange,
 }: SegmentedControlProps<T>) => {
@@ -48,10 +50,10 @@ export const SegmentedControl = <T extends string>({
             aria-pressed={isSelected}
             onClick={() => onChange(option.value)}
             css={{
-              minWidth: fullWidth ? 0 : 72,
+              minWidth: fullWidth ? 0 : size === "sm" ? 64 : 72,
               flex: fullWidth ? 1 : "0 0 auto",
-              height: 32,
-              padding: "0 12px",
+              height: size === "sm" ? 28 : 32,
+              padding: size === "sm" ? "0 10px" : "0 12px",
               border: 0,
               borderRadius: 8,
               background: isSelected ? colors.primary : "transparent",

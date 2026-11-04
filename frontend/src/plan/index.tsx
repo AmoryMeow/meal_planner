@@ -59,6 +59,7 @@ export {
   useUpdatePlanItemMutation,
 } from "./queries";
 export { type CalendarView, type MealType, type PlanColorMap } from "./types";
+export { PlanSelector } from "./plan-selector";
 
 const currentYearWeekFormatter = new Intl.DateTimeFormat(undefined, {
   day: "numeric",

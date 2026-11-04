@@ -21,7 +21,11 @@ const config: MenuType[] = [
     label: "Meals",
     icon: <span aria-hidden>🍽️</span>,
   },
-  { link: "/plan/list", label: "List", icon: <span aria-hidden>🛒</span> },
+  {
+    link: "/shopping-list",
+    label: "Shopping",
+    icon: <span aria-hidden>🛒</span>,
+  },
   {
     link: "/plans",
     label: "Plans",
