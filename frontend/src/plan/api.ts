@@ -21,20 +21,13 @@ export type UpdatePlanInput = Partial<
   Pick<MealPlan, "name" | "color" | "enabled_meal_types">
 >;
 
-export type MealSnapshotIngredient = {
-  ingredient_id: number;
-  name: string;
-  quantity: string;
-  unit: string;
-};
-
 export type MealSnapshot = {
   meal_id: number;
   name: string;
   source: MealSource;
   servings: number;
+  instructions: string;
   tags: string[];
-  ingredients: MealSnapshotIngredient[];
 };
 
 export type PlanItem = {

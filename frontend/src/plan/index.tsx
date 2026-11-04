@@ -39,7 +39,6 @@ export {
   type CreatePlanItemInput,
   type MealPlan,
   type MealSnapshot,
-  type MealSnapshotIngredient,
   type PlanItem,
   type PlanItemQuery,
   type PlanItemRange,
