@@ -19,6 +19,7 @@ def build_meal_snapshot(meal: Meal) -> dict:
         "meal_id": meal.id,
         "name": meal.name,
         "source": meal.source,
+        "servings": meal.servings,
         "instructions": meal.instructions,
         "tags": list(meal.tags.order_by("name", "id").values_list("name", flat=True)),
         "ingredients": [

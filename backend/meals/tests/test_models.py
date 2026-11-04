@@ -21,6 +21,7 @@ class MealModelTests(TestCase):
         meal = Meal.objects.create(owner=self.user, name="Vegetable soup")
 
         self.assertEqual(meal.source, Meal.Source.HOME)
+        self.assertEqual(meal.servings, 1)
         self.assertEqual(meal.instructions, "")
         self.assertFalse(meal.tags.exists())
         self.assertIsNotNone(meal.created_at)
@@ -37,6 +38,16 @@ class MealModelTests(TestCase):
 
         with self.assertRaises(ValidationError):
             meal.full_clean()
+
+    def test_meal_rejects_non_positive_servings(self):
+        meal = Meal(owner=self.user, name="Test meal", servings=0)
+
+        with self.assertRaises(ValidationError):
+            meal.full_clean()
+
+    def test_meal_database_rejects_non_positive_servings(self):
+        with self.assertRaises(IntegrityError), transaction.atomic():
+            Meal.objects.create(owner=self.user, name="Test meal", servings=0)
 
     def test_meals_have_independent_tag_lists(self):
         first_meal = Meal.objects.create(owner=self.user, name="First meal")

@@ -25,6 +25,7 @@ class PlanningServiceTests(TestCase):
             owner=self.user,
             name="Vegetable soup",
             source=Meal.Source.HOME,
+            servings=4,
             instructions="Simmer until tender.",
         )
         self.quick_tag = Tag.objects.create(owner=self.user, name="Quick")
@@ -55,6 +56,7 @@ class PlanningServiceTests(TestCase):
                 "meal_id": self.meal.id,
                 "name": "Vegetable soup",
                 "source": "home",
+                "servings": 4,
                 "instructions": "Simmer until tender.",
                 "tags": ["Quick", "Warm"],
                 "ingredients": [
@@ -95,7 +97,8 @@ class PlanningServiceTests(TestCase):
         original_snapshot = item.meal_snapshot
 
         self.meal.name = "Updated soup"
-        self.meal.save(update_fields=("name",))
+        self.meal.servings = 6
+        self.meal.save(update_fields=("name", "servings"))
         self.meal.tags.add(Tag.objects.create(owner=self.user, name="New"))
         self.meal_ingredient.quantity = Decimal("5.00")
         self.meal_ingredient.save(update_fields=("quantity",))

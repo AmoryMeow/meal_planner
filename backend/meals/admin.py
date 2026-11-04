@@ -24,6 +24,7 @@ class MealAdmin(admin.ModelAdmin):
         "name",
         "owner",
         "source",
+        "servings",
         "ingredient_count",
         "created_at",
         "updated_at",

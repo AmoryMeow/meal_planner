@@ -45,6 +45,7 @@ class MealApiTests(APITestCase):
             {
                 "name": "Pizza",
                 "source": Meal.Source.DELIVERY,
+                "servings": 4,
                 "tag_ids": [tag.id],
                 "owner": self.other_user.id,
             },
@@ -54,6 +55,8 @@ class MealApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         meal = Meal.objects.get(pk=response.data["id"])
         self.assertEqual(meal.owner, self.user)
+        self.assertEqual(meal.servings, 4)
+        self.assertEqual(response.data["servings"], 4)
         self.assertQuerySetEqual(meal.tags.all(), [tag])
         self.assertTrue(response.data["is_owner"])
         self.assertTrue(response.data["can_edit"])

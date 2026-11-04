@@ -120,6 +120,7 @@ class MealSerializer(serializers.ModelSerializer):
             "id",
             "name",
             "source",
+            "servings",
             "tags",
             "tag_ids",
             "instructions",

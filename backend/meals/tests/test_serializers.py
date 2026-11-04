@@ -121,6 +121,7 @@ class MealSerializerTests(TestCase):
         self.assertEqual(data["id"], meal.id)
         self.assertEqual(data["name"], "Vegetable soup")
         self.assertEqual(data["source"], Meal.Source.HOME)
+        self.assertEqual(data["servings"], 1)
         self.assertEqual(
             [(tag["id"], tag["name"]) for tag in data["tags"]],
             [(soup.id, "Soup"), (vegetarian.id, "Vegetarian")],
@@ -152,6 +153,12 @@ class MealSerializerTests(TestCase):
 
         self.assertFalse(serializer.is_valid())
         self.assertIn("source", serializer.errors)
+
+    def test_rejects_non_positive_servings(self):
+        serializer = MealSerializer(data={"name": "Pizza", "servings": 0})
+
+        self.assertFalse(serializer.is_valid())
+        self.assertIn("servings", serializer.errors)
 
     def test_rejects_tag_ids_that_are_not_a_list(self):
         serializer = MealSerializer(data={"name": "Pizza", "tag_ids": "fast-food"})

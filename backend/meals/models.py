@@ -1,5 +1,6 @@
 from django.conf import settings
 from django.core.exceptions import ValidationError
+from django.core.validators import MinValueValidator
 from django.db import models
 
 
@@ -20,6 +21,10 @@ class Meal(models.Model):
         choices=Source.choices,
         default=Source.HOME,
     )
+    servings = models.PositiveSmallIntegerField(
+        default=1,
+        validators=(MinValueValidator(1),),
+    )
     instructions = models.TextField(blank=True, default="")
     tags = models.ManyToManyField(
         "Tag",
@@ -31,6 +36,14 @@ class Meal(models.Model):
 
     def __str__(self):
         return self.name
+
+    class Meta:
+        constraints = [
+            models.CheckConstraint(
+                check=models.Q(servings__gt=0),
+                name="meals_meal_servings_gt_zero",
+            ),
+        ]
 
 
 def normalize_tag_name(name):
