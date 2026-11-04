@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 
 import { Button, Combobox, useColors } from "@package/ui";
 
@@ -23,14 +23,16 @@ export const MealCombobox = ({
   error,
 }: MealComboboxProps) => {
   const colors = useColors();
-  const mealsQuery = useMealsQuery({ ordering: "name" });
   const [inputValue, setInputValue] = useState(value?.label ?? "");
-  const meals = useMemo(() => mealsQuery.data?.results ?? [], [mealsQuery.data]);
-  const normalizedInput =
-    inputValue === value?.label ? "" : inputValue.trim().toLocaleLowerCase();
-  const options = meals
-    .filter(meal => meal.name.toLocaleLowerCase().includes(normalizedInput))
-    .map(meal => ({ id: meal.id, label: meal.name }));
+  const searchValue = inputValue === value?.label ? "" : inputValue.trim();
+  const debouncedSearch = useDebouncedValue(searchValue, 250);
+  const waitingForSearch = searchValue !== debouncedSearch;
+  const mealsQuery = useMealsQuery({
+    ordering: "name",
+    search: debouncedSearch || undefined,
+  });
+  const meals = waitingForSearch ? [] : (mealsQuery.data?.results ?? []);
+  const options = meals.map(meal => ({ id: meal.id, label: meal.name }));
 
   return (
     <>
@@ -40,13 +42,13 @@ export const MealCombobox = ({
         options={options}
         selectedOptions={value ? [value] : []}
         placeholder="Search meals"
-        loading={mealsQuery.isPending}
+        loading={waitingForSearch || mealsQuery.isPending}
         disabled={disabled}
         error={error}
         emptyMessage={
           mealsQuery.isError
             ? "Unable to load meals."
-            : meals.length === 0
+            : !debouncedSearch && meals.length === 0
               ? "No meals available."
               : "No matching meals."
         }
@@ -87,4 +89,15 @@ export const MealCombobox = ({
       ) : null}
     </>
   );
+};
+
+const useDebouncedValue = <T,>(value: T, delay: number): T => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const timeout = globalThis.setTimeout(() => setDebouncedValue(value), delay);
+    return () => globalThis.clearTimeout(timeout);
+  }, [delay, value]);
+
+  return debouncedValue;
 };
