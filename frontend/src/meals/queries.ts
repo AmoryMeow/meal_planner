@@ -116,6 +116,7 @@ const getMealApiFieldErrors = (error: Error | null): MealApiFieldErrors => {
   return {
     name: getFirstError(error.body?.name),
     source: getFirstError(error.body?.source),
+    servings: getFirstError(error.body?.servings),
     tag_ids: getFirstError(error.body?.tag_ids),
     instructions: getFirstError(error.body?.instructions),
   };

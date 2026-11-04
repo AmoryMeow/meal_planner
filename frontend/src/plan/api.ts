@@ -32,6 +32,7 @@ export type MealSnapshot = {
   meal_id: number;
   name: string;
   source: MealSource;
+  servings: number;
   tags: string[];
   ingredients: MealSnapshotIngredient[];
 };

@@ -47,6 +47,7 @@ export type Meal = {
   id: number;
   name: string;
   source: MealSource;
+  servings: number;
   tags: MealTag[];
   instructions: string;
   ingredients: MealIngredient[];
@@ -67,6 +68,7 @@ export type PaginatedResponse<T> = {
 export type CreateMealInput = {
   name: string;
   source?: MealSource;
+  servings?: number;
   tag_ids?: number[];
   instructions?: string;
 };

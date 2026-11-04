@@ -15,6 +15,7 @@ import {
   getMealInput,
   MealForm,
   type MealFormErrors,
+  validateMealFormData,
 } from "./meal-form";
 import { useCreateMealMutation } from "./queries";
 import { TagCombobox } from "./tag-combobox";
@@ -35,8 +36,9 @@ export const CreateMealPage = () => {
       formData,
       selectedTags.map(tag => tag.id)
     );
-    if (!input.name) {
-      setFormErrors({ name: "Enter a meal name." });
+    const errors = validateMealFormData(formData);
+    if (Object.keys(errors).length) {
+      setFormErrors(errors);
       return;
     }
 

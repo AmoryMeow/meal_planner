@@ -15,6 +15,7 @@ import {
   getMealFormData,
   getMealInput,
   type MealFormErrors,
+  validateMealFormData,
 } from "./meal-form";
 import {
   MealIngredientsEditor,
@@ -91,8 +92,9 @@ const MealEditor = ({ meal }: { meal: Meal }) => {
       formData,
       selectedTags.map(tag => tag.id)
     );
-    if (!input.name) {
-      setFormErrors({ name: "Enter a meal name." });
+    const errors = validateMealFormData(formData);
+    if (Object.keys(errors).length) {
+      setFormErrors(errors);
       return;
     }
     if (!ingredientsEditor.validate()) return;
@@ -245,6 +247,10 @@ const ReadOnlyMeal = ({ meal }: { meal: Meal }) => {
           >
             <dt css={termStyles(colors)}>Source</dt>
             <dd css={valueStyles(colors)}>{sourceLabels[meal.source]}</dd>
+            <dt css={termStyles(colors)}>Recipe yield</dt>
+            <dd css={valueStyles(colors)}>
+              {meal.servings} {meal.servings === 1 ? "serving" : "servings"}
+            </dd>
             <dt css={termStyles(colors)}>Tags</dt>
             <dd css={valueStyles(colors)}>
               {meal.tags.length ? meal.tags.map(tag => tag.name).join(", ") : "—"}
