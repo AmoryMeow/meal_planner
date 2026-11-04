@@ -127,6 +127,7 @@ export const Select = ({
   return (
     <div
       css={{
+        position: "relative",
         display: "grid",
         width: fullWidth ? "100%" : "max-content",
         minWidth: 0,
@@ -328,6 +329,8 @@ const CheckIcon = () => (
 
 const visuallyHiddenStyles = {
   position: "absolute" as const,
+  top: 0,
+  left: 0,
   width: 1,
   height: 1,
   padding: 0,

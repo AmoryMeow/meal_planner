@@ -20,5 +20,7 @@ body {
 }
 /* Safe area support on iOS for bottom nav */
 :root {
+  --header-h: 64px;
+  --nav-h: 48px;
   --safe-bottom: env(safe-area-inset-bottom);
 }

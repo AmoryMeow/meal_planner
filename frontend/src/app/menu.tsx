@@ -1,4 +1,5 @@
 import { ReactNode } from "react";
+import { createPortal } from "react-dom";
 import { useLocation, Link } from "react-router-dom";
 
 import {
@@ -49,8 +50,11 @@ export const Menu = ({ variant }: Props) => {
 
   const isTopDesktop = variant === "top" && !isMobile;
   const isBottomMobile = variant === "bottom" && isMobile;
+  const shouldRender = isTopDesktop || isBottomMobile;
 
-  return (
+  if (!shouldRender) return null;
+
+  const menu = (
     <nav
       css={
         variant === "top"
@@ -61,7 +65,7 @@ export const Menu = ({ variant }: Props) => {
               zIndex: 900,
               position: "sticky",
               top: "var(--header-h)",
-              display: isMobile ? "none" : "block",
+              display: "block",
             }
           : {
               background: colors.surface,
@@ -72,8 +76,13 @@ export const Menu = ({ variant }: Props) => {
               bottom: 0,
               left: 0,
               right: 0,
-              display: isMobile ? "flex" : "none",
-              height: "var(--nav-h)",
+              display: "flex",
+              width: "100%",
+              maxWidth: "100dvw",
+              height: "calc(var(--nav-h) + var(--safe-bottom))",
+              boxSizing: "border-box",
+              paddingBottom: "var(--safe-bottom)",
+              overflowX: "clip",
             }
       }
       aria-label="Main navigation"
@@ -84,6 +93,7 @@ export const Menu = ({ variant }: Props) => {
           display: "flex",
           alignItems: "center",
           justifyContent: isTopDesktop ? "center" : "space-around",
+          height: isBottomMobile ? "var(--nav-h)" : "auto",
           paddingTop: isTopDesktop ? 4 : 2,
           paddingBottom: isTopDesktop ? 4 : 2,
           gap: isTopDesktop ? 12 : 0,
@@ -116,7 +126,9 @@ export const Menu = ({ variant }: Props) => {
                 fontWeight: active ? 700 : 500,
                 fontSize: isTopDesktop ? 14 : 13,
                 letterSpacing: "-0.01em",
-                minHeight: isTopDesktop ? 32 : 28,
+                minHeight: isTopDesktop ? 32 : 0,
+                height: isBottomMobile ? "calc(var(--nav-h) - 8px)" : "auto",
+                boxSizing: "border-box",
                 position: "relative",
                 transition: "all 0.2s cubic-bezier(0.4, 0, 0.2, 1)",
                 "&::after":
@@ -169,4 +181,6 @@ export const Menu = ({ variant }: Props) => {
       </div>
     </nav>
   );
+
+  return isBottomMobile ? createPortal(menu, document.body) : menu;
 };

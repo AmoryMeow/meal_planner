@@ -34,8 +34,6 @@ const AppContent = () => {
   return (
     <div
       css={{
-        "--header-h": "64px",
-        "--nav-h": "40px",
         minHeight: "100dvh",
         background: colors.background,
         color: colors.textPrimary,
