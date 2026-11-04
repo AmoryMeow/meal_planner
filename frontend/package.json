@@ -9,6 +9,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "capture:landing": "node scripts/capture-landing.mjs",
     "preview": "vite preview",
     "test:typescript": "./node_modules/.bin/tsc -p .",
     "test:eslint": "eslint --config eslint.config.js src/",

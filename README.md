@@ -61,6 +61,29 @@ A modern full-stack application for meal planning with React frontend and Django
    docker-compose exec backend python manage.py createsuperuser
    ```
 
+### Landing Page Screenshots
+
+The landing page uses reproducible demo data and real application screenshots. This
+workflow is available only in local development with `DEBUG=True`.
+
+1. Set `DEMO_USER_PASSWORD` in `docker/.env`, rebuild the backend, and seed the data:
+   ```bash
+   docker compose -f docker/docker-compose.yml up -d --build backend
+   docker compose -f docker/docker-compose.yml exec backend \
+     python manage.py seed_demo_data --force
+   ```
+
+2. Export the same password for the local capture script and generate both themes:
+   ```bash
+   cd frontend
+   export DEMO_USER_PASSWORD=your-local-demo-password
+   yarn capture:landing
+   ```
+
+The capture script forces the `en-US` locale and writes light and dark desktop/mobile
+images to `frontend/public/landing/`. Running the seed command again safely recreates
+the same demo users and content for the current week.
+
 ### Access the Application
 
 - **Frontend:** http://localhost
