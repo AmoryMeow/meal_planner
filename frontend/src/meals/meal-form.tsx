@@ -70,8 +70,8 @@ export const MealForm = ({
         value={data.source}
         options={[
           { value: "home", label: "Home" },
-          { value: "restaurant", label: "Restaurant" },
           { value: "delivery", label: "Delivery" },
+          { value: "restaurant", label: "Restaurant" },
         ]}
         disabled={disabled}
         error={errors.source}

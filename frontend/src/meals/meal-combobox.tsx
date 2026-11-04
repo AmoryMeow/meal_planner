@@ -23,7 +23,7 @@ export const MealCombobox = ({
   error,
 }: MealComboboxProps) => {
   const colors = useColors();
-  const mealsQuery = useMealsQuery();
+  const mealsQuery = useMealsQuery({ ordering: "name" });
   const [inputValue, setInputValue] = useState(value?.label ?? "");
   const meals = useMemo(() => mealsQuery.data?.results ?? [], [mealsQuery.data]);
   const normalizedInput =

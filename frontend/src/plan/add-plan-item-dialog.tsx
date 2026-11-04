@@ -239,10 +239,14 @@ const PlanSelect = ({
       value={String(value)}
       disabled={disabled}
       error={error}
-      options={plans.map(plan => ({
-        value: String(plan.id),
-        label: `${plan.name} (${plan.scope === "group" ? "Group" : "Personal"})`,
-      }))}
+      options={[...plans]
+        .sort((first, second) =>
+          first.name.localeCompare(second.name, undefined, { sensitivity: "base" })
+        )
+        .map(plan => ({
+          value: String(plan.id),
+          label: `${plan.name} (${plan.scope === "group" ? "Group" : "Personal"})`,
+        }))}
       onChange={planId => onChange(Number(planId))}
     />
   );

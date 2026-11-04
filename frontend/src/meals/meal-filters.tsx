@@ -55,8 +55,8 @@ export const MealFiltersBar = ({ filters, onChange }: MealFiltersProps) => {
         options={[
           ["all", "All sources"],
           ["home", "Home"],
-          ["restaurant", "Restaurant"],
           ["delivery", "Delivery"],
+          ["restaurant", "Restaurant"],
         ]}
       />
 
