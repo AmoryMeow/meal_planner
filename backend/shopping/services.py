@@ -7,17 +7,17 @@ def build_shopping_list(plan_items):
     totals = {}
 
     for plan_item in plan_items:
-        snapshot = plan_item.meal_snapshot or {}
-        recipe_servings = _positive_decimal(snapshot.get("servings")) or Decimal(1)
+        meal = plan_item.meal
+        recipe_servings = _positive_decimal(meal.servings) or Decimal(1)
         planned_servings = _positive_decimal(plan_item.servings)
         if planned_servings is None:
             continue
 
         multiplier = planned_servings / recipe_servings
-        for ingredient in snapshot.get("ingredients", []):
-            name = _clean_label(ingredient.get("name"))
-            unit = _clean_label(ingredient.get("unit"))
-            quantity = _positive_decimal(ingredient.get("quantity"))
+        for meal_ingredient in meal.ingredients.all():
+            name = _clean_label(meal_ingredient.ingredient.name)
+            unit = _clean_label(meal_ingredient.unit)
+            quantity = _positive_decimal(meal_ingredient.quantity)
             if not name or not unit or quantity is None:
                 continue
 

@@ -13,8 +13,6 @@ def get_or_create_personal_plan(user):
 
 
 def build_meal_snapshot(meal: Meal) -> dict:
-    ingredients = meal.ingredients.select_related("ingredient").order_by("id")
-
     return {
         "meal_id": meal.id,
         "name": meal.name,
@@ -22,15 +20,6 @@ def build_meal_snapshot(meal: Meal) -> dict:
         "servings": meal.servings,
         "instructions": meal.instructions,
         "tags": list(meal.tags.order_by("name", "id").values_list("name", flat=True)),
-        "ingredients": [
-            {
-                "ingredient_id": meal_ingredient.ingredient_id,
-                "name": meal_ingredient.ingredient.name,
-                "quantity": str(meal_ingredient.quantity),
-                "unit": meal_ingredient.unit,
-            }
-            for meal_ingredient in ingredients
-        ],
     }
 
 

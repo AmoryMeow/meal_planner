@@ -31,7 +31,8 @@ class ShoppingListView(APIView):
                     query.validated_data["date_to"],
                 ),
             )
-            .only("servings", "meal_snapshot")
+            .select_related("meal")
+            .prefetch_related("meal__ingredients__ingredient")
             .order_by("date", "id")
         )
 

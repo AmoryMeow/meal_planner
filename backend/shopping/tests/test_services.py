@@ -7,12 +7,21 @@ from shopping.services import build_shopping_list
 
 class ShoppingListServiceTests(SimpleTestCase):
     def make_item(self, *, servings, recipe_servings=1, ingredients=None):
+        meal_ingredients = [
+            SimpleNamespace(
+                ingredient=SimpleNamespace(name=ingredient["name"]),
+                quantity=ingredient["quantity"],
+                unit=ingredient["unit"],
+            )
+            for ingredient in ingredients or []
+        ]
         return SimpleNamespace(
             servings=servings,
-            meal_snapshot={
-                "servings": recipe_servings,
-                "ingredients": ingredients or [],
-            },
+            meal=SimpleNamespace(
+                servings=recipe_servings,
+                ingredients=SimpleNamespace(all=lambda: meal_ingredients),
+            ),
+            meal_snapshot={},
         )
 
     def test_scales_ingredient_quantity_by_planned_servings(self):
@@ -65,13 +74,14 @@ class ShoppingListServiceTests(SimpleTestCase):
             ],
         )
 
-    def test_old_snapshot_without_recipe_servings_uses_one_serving(self):
-        item = SimpleNamespace(
+    def test_uses_current_recipe_instead_of_stale_snapshot(self):
+        item = self.make_item(
             servings=3,
-            meal_snapshot={
-                "ingredients": [{"name": "Rice", "quantity": "0.50", "unit": "kg"}]
-            },
+            ingredients=[{"name": "Rice", "quantity": "0.50", "unit": "kg"}],
         )
+        item.meal_snapshot = {
+            "ingredients": [{"name": "Sugar", "quantity": "5.00", "unit": "kg"}]
+        }
 
         result = build_shopping_list([item])
 

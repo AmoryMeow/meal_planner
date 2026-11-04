@@ -58,7 +58,7 @@ class ShoppingListApiTests(APITestCase):
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
         self.assertIn("non_field_errors", response.data)
 
-    def test_calculates_list_from_personal_plan_snapshots(self):
+    def test_calculates_list_from_current_personal_plan_recipes(self):
         create_plan_item(
             plan=self.plan,
             meal=self.meal,
@@ -77,6 +77,39 @@ class ShoppingListApiTests(APITestCase):
         self.assertEqual(
             response.data,
             [{"name": "Carrot", "quantity": "3.00", "unit": "piece"}],
+        )
+
+    def test_uses_ingredients_added_after_meal_was_planned(self):
+        meal = Meal.objects.create(
+            owner=self.user,
+            name="Omelette",
+            servings=1,
+        )
+        create_plan_item(
+            plan=self.plan,
+            meal=meal,
+            scheduled_date=date(2026, 11, 4),
+            meal_type=PlanItem.MealType.BREAKFAST,
+            servings=2,
+        )
+        egg = Ingredient.objects.create(owner=self.user, name="Egg")
+        MealIngredient.objects.create(
+            meal=meal,
+            ingredient=egg,
+            quantity=Decimal("2.00"),
+            unit="piece",
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(
+            self.url,
+            {"date_from": "2026-11-04", "date_to": "2026-11-04"},
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(
+            response.data,
+            [{"name": "Egg", "quantity": "4.00", "unit": "piece"}],
         )
 
     def test_uses_only_requested_dates(self):

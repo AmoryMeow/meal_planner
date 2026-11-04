@@ -47,7 +47,7 @@ class PlanningServiceTests(TestCase):
         self.assertEqual(second, self.plan)
         self.assertEqual(Plan.objects.filter(owner=self.user).count(), 1)
 
-    def test_build_meal_snapshot_captures_shopping_data(self):
+    def test_build_meal_snapshot_captures_historical_meal_data(self):
         snapshot = build_meal_snapshot(self.meal)
 
         self.assertEqual(
@@ -59,14 +59,6 @@ class PlanningServiceTests(TestCase):
                 "servings": 4,
                 "instructions": "Simmer until tender.",
                 "tags": ["Quick", "Warm"],
-                "ingredients": [
-                    {
-                        "ingredient_id": self.ingredient.id,
-                        "name": "Carrot",
-                        "quantity": "2.00",
-                        "unit": "piece",
-                    }
-                ],
             },
         )
 
