@@ -278,6 +278,15 @@ with the backend virtual environment activated:
 make api-schema
 ```
 
+To update both the backend contract and the generated frontend types, run:
+
+```bash
+make api-types
+```
+
+Generated types are written to `frontend/src/api/generated/schema.ts` and should not
+be edited manually.
+
 ## Deployment
 
 The static landing-page showcase is built from `main` by GitHub Actions and published
