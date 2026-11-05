@@ -12,6 +12,15 @@ from .permissions import can_manage_plan, get_accessible_plans
 from .services import build_meal_snapshot, create_plan_item
 
 
+class MealSnapshotSerializer(serializers.Serializer):
+    meal_id = serializers.IntegerField()
+    name = serializers.CharField()
+    source = serializers.ChoiceField(choices=Meal.Source.choices)
+    servings = serializers.IntegerField(min_value=1)
+    instructions = serializers.CharField()
+    tags = serializers.ListField(child=serializers.CharField())
+
+
 class PlanSerializer(serializers.ModelSerializer):
     scope = serializers.SerializerMethodField()
     group_id = serializers.IntegerField(read_only=True, allow_null=True)
@@ -105,6 +114,7 @@ class PlanItemRangeSerializer(serializers.Serializer):
 
 class PlanItemSerializer(serializers.ModelSerializer):
     plan_id = serializers.IntegerField(min_value=1, required=False)
+    meal_snapshot = MealSnapshotSerializer(read_only=True)
     share_with_group = serializers.BooleanField(
         write_only=True,
         required=False,

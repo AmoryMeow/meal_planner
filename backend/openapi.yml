@@ -2123,6 +2123,59 @@ components:
           type: integer
         access:
           $ref: '#/components/schemas/AccessEnum'
+    MealSnapshot:
+      type: object
+      properties:
+        meal_id:
+          type: integer
+        name:
+          type: string
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        servings:
+          type: integer
+          minimum: 1
+        instructions:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+      required:
+      - instructions
+      - meal_id
+      - name
+      - servings
+      - source
+      - tags
+    MealSnapshotRequest:
+      type: object
+      properties:
+        meal_id:
+          type: integer
+        name:
+          type: string
+          minLength: 1
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        servings:
+          type: integer
+          minimum: 1
+        instructions:
+          type: string
+          minLength: 1
+        tags:
+          type: array
+          items:
+            type: string
+            minLength: 1
+      required:
+      - instructions
+      - meal_id
+      - name
+      - servings
+      - source
+      - tags
     MealTagFilterOption:
       type: object
       properties:
@@ -2451,6 +2504,8 @@ components:
         note:
           type: string
         meal_snapshot:
+          allOf:
+          - $ref: '#/components/schemas/MealSnapshot'
           readOnly: true
         created_at:
           type: string
