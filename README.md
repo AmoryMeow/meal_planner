@@ -2,6 +2,13 @@
 
 A modern full-stack application for meal planning with React frontend and Django backend.
 
+## Live Demo
+
+Explore the static product showcase on
+[GitHub Pages](https://amorymeow.github.io/meal_planner/). It includes the landing
+page and theme-aware screenshots of the application. The showcase does not connect
+to the Django API.
+
 ## Features
 
 **Status:** Work in progress.
@@ -280,5 +287,8 @@ To access the documentation:
 
 ## Deployment
 
-A public deployment is not available yet. Run the complete application locally with
-Docker Compose using the instructions in [Quick Start](#quick-start).
+The GitHub Pages showcase is built automatically from `main` by the GitHub Actions
+workflow.
+
+The complete application requires Django and PostgreSQL. Run it locally with Docker
+Compose using the instructions in [Quick Start](#quick-start).
