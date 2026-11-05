@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from .models import Group, Invite, Membership
@@ -48,10 +49,14 @@ class GroupSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
+    @extend_schema_field(
+        serializers.ChoiceField(choices=Membership.Role.choices, allow_null=True)
+    )
     def get_role(self, obj):
         request = self.context.get("request")
         return get_group_role(request.user, obj) if request else None
 
+    @extend_schema_field(serializers.IntegerField(min_value=0))
     def get_member_count(self, obj):
         annotated_count = getattr(obj, "member_total", None)
         return (

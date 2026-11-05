@@ -239,5 +239,8 @@ SPECTACULAR_SETTINGS = {
         "displayOperationId": True,
     },
     "COMPONENT_SPLIT_REQUEST": True,
+    "ENUM_NAME_OVERRIDES": {
+        "MealTypeEnum": "planning.models.MealType.choices",
+    },
     "SORT_OPERATIONS": False,
 }

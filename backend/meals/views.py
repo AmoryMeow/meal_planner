@@ -1,6 +1,7 @@
 from django.db.models import BooleanField, Case, Exists, OuterRef, Value, When
 from django.shortcuts import get_object_or_404
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import filters, generics, mixins, serializers, viewsets
 from rest_framework.permissions import SAFE_METHODS, IsAuthenticated
 from rest_framework.response import Response
@@ -12,6 +13,7 @@ from .serializers import (
     MealIngredientSerializer,
     MealSerializer,
     MealShareSerializer,
+    MealTagFilterOptionSerializer,
     TagSerializer,
 )
 from .services import revoke_meal_share
@@ -24,6 +26,7 @@ class IngredientCatalogViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
+    queryset = Ingredient.objects.none()
     serializer_class = IngredientSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -43,6 +46,7 @@ class TagCatalogViewSet(
     mixins.UpdateModelMixin,
     viewsets.GenericViewSet,
 ):
+    queryset = Tag.objects.none()
     serializer_class = TagSerializer
     permission_classes = [IsAuthenticated]
     filter_backends = [filters.SearchFilter]
@@ -56,6 +60,7 @@ class TagCatalogViewSet(
 
 
 class MealViewSet(viewsets.ModelViewSet):
+    queryset = Meal.objects.none()
     serializer_class = MealSerializer
     permission_classes = [IsAuthenticated, MealPermission]
 
@@ -241,8 +246,11 @@ class MealTagCatalogView(generics.ListCreateAPIView):
 
 
 class MealTagFilterOptionsView(generics.GenericAPIView):
+    serializer_class = MealTagFilterOptionSerializer
     permission_classes = [IsAuthenticated]
+    pagination_class = None
 
+    @extend_schema(responses=MealTagFilterOptionSerializer(many=True))
     def get(self, request, *args, **kwargs):
         search = request.query_params.get("search", "").strip()
         tags = Tag.objects.filter(meals__in=get_readable_meals(request.user))

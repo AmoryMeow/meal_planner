@@ -1,5 +1,6 @@
 from django.db import transaction
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from meals.models import Meal, MealShare
@@ -39,9 +40,18 @@ class PlanSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
+    @extend_schema_field(
+        serializers.ChoiceField(
+            choices=(
+                ("personal", "Personal"),
+                ("group", "Group"),
+            )
+        )
+    )
     def get_scope(self, obj):
         return "group" if obj.group_id is not None else "personal"
 
+    @extend_schema_field(serializers.BooleanField())
     def get_can_manage(self, obj):
         request = self.context.get("request")
         return bool(request and can_manage_plan(request.user, obj))
@@ -176,8 +186,10 @@ class PlanItemSerializer(serializers.ModelSerializer):
         else:
             request = self.context.get("request")
             try:
-                plan = get_accessible_plans(request.user).select_related("group").get(
-                    pk=plan_id
+                plan = (
+                    get_accessible_plans(request.user)
+                    .select_related("group")
+                    .get(pk=plan_id)
                 )
             except Plan.DoesNotExist as error:
                 raise serializers.ValidationError(

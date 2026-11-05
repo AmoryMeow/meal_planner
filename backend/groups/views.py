@@ -1,6 +1,7 @@
 from django.db.models import Case, Count, IntegerField, Prefetch, Value, When
 from django.shortcuts import get_object_or_404
 
+from drf_spectacular.utils import extend_schema
 from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -159,6 +160,7 @@ class GroupInviteDetailView(GroupInviteMixin, generics.DestroyAPIView):
 class InviteAcceptView(APIView):
     permission_classes = (IsAuthenticated,)
 
+    @extend_schema(request=None, responses=GroupSerializer)
     def post(self, request, token):
         invite = get_object_or_404(
             Invite.objects.select_related("group__plan"),

@@ -2,6 +2,7 @@ from contextlib import suppress
 
 from django.conf import settings
 
+from drf_spectacular.utils import OpenApiResponse, extend_schema
 from rest_framework import generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -12,6 +13,9 @@ from rest_framework_simplejwt.views import TokenObtainPairView, TokenRefreshView
 
 from .models import User
 from .serializers import (
+    AccessTokenSerializer,
+    LoginRequestSerializer,
+    RegistrationResponseSerializer,
     UserProfileSerializer,
     UserRegistrationSerializer,
     UserSerializer,
@@ -28,6 +32,10 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=UserRegistrationSerializer,
+        responses={status.HTTP_201_CREATED: RegistrationResponseSerializer},
+    )
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
@@ -49,6 +57,10 @@ class RegisterView(generics.CreateAPIView):
 class LoginView(TokenObtainPairView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=LoginRequestSerializer,
+        responses={status.HTTP_200_OK: AccessTokenSerializer},
+    )
     def post(self, request, *args, **kwargs):
         response = super().post(request, *args, **kwargs)
         refresh = response.data.pop("refresh")
@@ -60,6 +72,10 @@ class LoginView(TokenObtainPairView):
 class RefreshView(TokenRefreshView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=None,
+        responses={status.HTTP_200_OK: AccessTokenSerializer},
+    )
     def post(self, request, *args, **kwargs):
         refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME)
         if not refresh:
@@ -82,6 +98,14 @@ class RefreshView(TokenRefreshView):
 class LogoutView(APIView):
     permission_classes = [AllowAny]
 
+    @extend_schema(
+        request=None,
+        responses={
+            status.HTTP_204_NO_CONTENT: OpenApiResponse(
+                description="Refresh token revoked and cookie removed."
+            )
+        },
+    )
     def post(self, request):
         refresh = request.COOKIES.get(settings.AUTH_REFRESH_COOKIE_NAME)
         if refresh:

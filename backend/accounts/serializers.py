@@ -53,3 +53,16 @@ class UserProfileSerializer(serializers.ModelSerializer):
         model = User
         fields = ("id", "email", "first_name", "last_name", "date_joined")
         read_only_fields = ("id", "date_joined")
+
+
+class LoginRequestSerializer(serializers.Serializer):
+    email = serializers.EmailField()
+    password = serializers.CharField(write_only=True)
+
+
+class AccessTokenSerializer(serializers.Serializer):
+    access = serializers.CharField(read_only=True)
+
+
+class RegistrationResponseSerializer(AccessTokenSerializer):
+    user = UserSerializer(read_only=True)

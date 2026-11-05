@@ -1,3 +1,4 @@
+from drf_spectacular.utils import extend_schema
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -6,12 +7,17 @@ from planning.models import PlanItem
 from planning.permissions import get_accessible_plans
 from planning.serializers import PlanItemRangeSerializer
 
+from .serializers import ShoppingListItemSerializer
 from .services import build_shopping_list
 
 
 class ShoppingListView(APIView):
     permission_classes = [IsAuthenticated]
 
+    @extend_schema(
+        parameters=[PlanItemRangeSerializer],
+        responses=ShoppingListItemSerializer(many=True),
+    )
     def get(self, request):
         query = PlanItemRangeSerializer(data=request.query_params)
         query.is_valid(raise_exception=True)

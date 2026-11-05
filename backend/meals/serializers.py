@@ -1,5 +1,6 @@
 from decimal import Decimal
 
+from drf_spectacular.utils import extend_schema_field
 from rest_framework import serializers
 
 from groups.models import Group
@@ -90,7 +91,9 @@ class MealIngredientSerializer(serializers.ModelSerializer):
     def validate_ingredient_id(self, value):
         request = self.context.get("request")
         meal = self.context.get("meal")
-        ingredient_owner = meal.owner if meal is not None else getattr(request, "user", None)
+        ingredient_owner = (
+            meal.owner if meal is not None else getattr(request, "user", None)
+        )
         if (
             ingredient_owner is None
             or not Ingredient.objects.filter(
@@ -141,10 +144,12 @@ class MealSerializer(serializers.ModelSerializer):
             "updated_at",
         )
 
+    @extend_schema_field(serializers.BooleanField())
     def get_is_owner(self, obj):
         request = self.context.get("request")
         return bool(request and obj.owner_id == request.user.id)
 
+    @extend_schema_field(serializers.BooleanField())
     def get_can_edit(self, obj):
         annotated_access = getattr(obj, "user_can_edit", None)
         if annotated_access is not None:
@@ -152,6 +157,7 @@ class MealSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         return bool(request and can_edit_meal(request.user, obj))
 
+    @extend_schema_field(serializers.BooleanField())
     def get_can_delete(self, obj):
         return self.get_is_owner(obj)
 
@@ -179,6 +185,11 @@ class MealSerializer(serializers.ModelSerializer):
         request = self.context.get("request")
         owner = self.instance.owner if self.instance is not None else request.user
         return list(Tag.objects.filter(owner=owner, id__in=tag_ids))
+
+
+class MealTagFilterOptionSerializer(serializers.Serializer):
+    value = serializers.CharField()
+    label = serializers.CharField()
 
 
 class MealShareSerializer(serializers.ModelSerializer):
