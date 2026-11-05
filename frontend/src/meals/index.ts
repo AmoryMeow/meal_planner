@@ -38,7 +38,6 @@ export {
   type MealSource,
   type MealTag,
   type MealTagFilterOption,
-  type PaginatedResponse,
   type UpdateIngredientInput,
   type UpdateMealIngredientInput,
   type UpdateMealInput,

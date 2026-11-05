@@ -1,46 +1,24 @@
+import type { RequiredFields } from "@package/api";
+import type {
+  Group,
+  GroupDetail,
+  GroupRequest,
+  Invite,
+  InviteRequest,
+} from "@package/api/generated/schema";
 import type { AuthenticatedRequest } from "@package/auth";
 
-export type GroupRole = "owner" | "member";
+export type MealGroup = RequiredFields<Group, "color" | "role">;
+export type GroupDetails = RequiredFields<GroupDetail, "color" | "role">;
 
-export type MealGroup = {
-  id: number;
-  name: string;
-  color: string;
-  role: GroupRole;
-  plan_id: number;
-  member_count: number;
-  created_at: string;
-  updated_at: string;
-};
-
-export type GroupMember = {
-  id: number;
-  user_id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  role: GroupRole;
-  created_at: string;
-};
-
-export type GroupDetails = MealGroup & {
-  members: GroupMember[];
-};
-
-export type GroupInviteStatus = "pending" | "accepted" | "revoked";
-
-export type GroupInvite = {
-  id: number;
-  email: string;
-  token: string;
-  status: GroupInviteStatus;
-  is_expired: boolean;
-  expires_at: string;
-  created_at: string;
-};
-
-export type CreateGroupInput = Pick<MealGroup, "name" | "color">;
-export type CreateGroupInviteInput = Pick<GroupInvite, "email">;
+export type {
+  GroupMember,
+  GroupRequest as CreateGroupInput,
+  Invite as GroupInvite,
+  InviteRequest as CreateGroupInviteInput,
+  RoleEnum as GroupRole,
+  StatusEnum as GroupInviteStatus,
+} from "@package/api/generated/schema";
 
 export const getGroups = (request: AuthenticatedRequest) =>
   request<MealGroup[]>("/groups/");
@@ -57,21 +35,21 @@ export const removeGroupMember = (
     method: "DELETE",
   });
 
-export const createGroup = (request: AuthenticatedRequest, input: CreateGroupInput) =>
+export const createGroup = (request: AuthenticatedRequest, input: GroupRequest) =>
   request<MealGroup>("/groups/", {
     method: "POST",
     body: JSON.stringify(input),
   });
 
 export const getGroupInvites = (request: AuthenticatedRequest, groupId: number) =>
-  request<GroupInvite[]>(`/groups/${groupId}/invites/`);
+  request<Invite[]>(`/groups/${groupId}/invites/`);
 
 export const createGroupInvite = (
   request: AuthenticatedRequest,
   groupId: number,
-  input: CreateGroupInviteInput
+  input: InviteRequest
 ) =>
-  request<GroupInvite>(`/groups/${groupId}/invites/`, {
+  request<Invite>(`/groups/${groupId}/invites/`, {
     method: "POST",
     body: JSON.stringify(input),
   });

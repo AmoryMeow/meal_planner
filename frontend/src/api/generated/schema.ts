@@ -716,6 +716,22 @@ export interface components {
       group_id?: number;
       access?: components["schemas"]["AccessEnum"];
     };
+    MealSnapshot: {
+      meal_id: number;
+      name: string;
+      source: components["schemas"]["SourceEnum"];
+      servings: number;
+      instructions: string;
+      tags: string[];
+    };
+    MealSnapshotRequest: {
+      meal_id: number;
+      name: string;
+      source: components["schemas"]["SourceEnum"];
+      servings: number;
+      instructions: string;
+      tags: string[];
+    };
     MealTagFilterOption: {
       value: string;
       label: string;
@@ -835,7 +851,7 @@ export interface components {
       meal_type?: components["schemas"]["MealTypeEnum"];
       meal_id?: number;
       /** @default false */
-      share_with_group: boolean;
+      share_with_group?: boolean;
       servings?: number;
       note?: string;
     };
@@ -880,7 +896,7 @@ export interface components {
       meal_id: number;
       servings?: number;
       note?: string;
-      readonly meal_snapshot: unknown;
+      readonly meal_snapshot: components["schemas"]["MealSnapshot"];
       /** Format: date-time */
       readonly created_at: string;
       /** Format: date-time */
@@ -893,7 +909,7 @@ export interface components {
       meal_type: components["schemas"]["MealTypeEnum"];
       meal_id: number;
       /** @default false */
-      share_with_group: boolean;
+      share_with_group?: boolean;
       servings?: number;
       note?: string;
     };
@@ -1011,6 +1027,65 @@ export interface components {
   headers: never;
   pathItems: never;
 }
+export type AccessEnum = components["schemas"]["AccessEnum"];
+export type AccessToken = components["schemas"]["AccessToken"];
+export type Group = components["schemas"]["Group"];
+export type GroupDetail = components["schemas"]["GroupDetail"];
+export type GroupDetailRequest = components["schemas"]["GroupDetailRequest"];
+export type GroupMember = components["schemas"]["GroupMember"];
+export type GroupRequest = components["schemas"]["GroupRequest"];
+export type Ingredient = components["schemas"]["Ingredient"];
+export type IngredientRequest = components["schemas"]["IngredientRequest"];
+export type Invite = components["schemas"]["Invite"];
+export type InviteRequest = components["schemas"]["InviteRequest"];
+export type LoginRequestRequest = components["schemas"]["LoginRequestRequest"];
+export type Meal = components["schemas"]["Meal"];
+export type MealIngredient = components["schemas"]["MealIngredient"];
+export type MealIngredientRequest = components["schemas"]["MealIngredientRequest"];
+export type MealRequest = components["schemas"]["MealRequest"];
+export type MealShare = components["schemas"]["MealShare"];
+export type MealShareRequest = components["schemas"]["MealShareRequest"];
+export type MealSnapshot = components["schemas"]["MealSnapshot"];
+export type MealSnapshotRequest = components["schemas"]["MealSnapshotRequest"];
+export type MealTagFilterOption = components["schemas"]["MealTagFilterOption"];
+export type MealTypeEnum = components["schemas"]["MealTypeEnum"];
+export type NullEnum = components["schemas"]["NullEnum"];
+export type PaginatedIngredientList = components["schemas"]["PaginatedIngredientList"];
+export type PaginatedMealIngredientList =
+  components["schemas"]["PaginatedMealIngredientList"];
+export type PaginatedMealList = components["schemas"]["PaginatedMealList"];
+export type PaginatedTagList = components["schemas"]["PaginatedTagList"];
+export type PaginatedUserList = components["schemas"]["PaginatedUserList"];
+export type PatchedGroupDetailRequest =
+  components["schemas"]["PatchedGroupDetailRequest"];
+export type PatchedIngredientRequest =
+  components["schemas"]["PatchedIngredientRequest"];
+export type PatchedMealIngredientRequest =
+  components["schemas"]["PatchedMealIngredientRequest"];
+export type PatchedMealRequest = components["schemas"]["PatchedMealRequest"];
+export type PatchedMealShareRequest = components["schemas"]["PatchedMealShareRequest"];
+export type PatchedPlanItemRequest = components["schemas"]["PatchedPlanItemRequest"];
+export type PatchedPlanRequest = components["schemas"]["PatchedPlanRequest"];
+export type PatchedTagRequest = components["schemas"]["PatchedTagRequest"];
+export type PatchedUserProfileRequest =
+  components["schemas"]["PatchedUserProfileRequest"];
+export type Plan = components["schemas"]["Plan"];
+export type PlanItem = components["schemas"]["PlanItem"];
+export type PlanItemRequest = components["schemas"]["PlanItemRequest"];
+export type PlanRequest = components["schemas"]["PlanRequest"];
+export type RegistrationResponse = components["schemas"]["RegistrationResponse"];
+export type RoleEnum = components["schemas"]["RoleEnum"];
+export type ScopeEnum = components["schemas"]["ScopeEnum"];
+export type ShoppingListItem = components["schemas"]["ShoppingListItem"];
+export type SourceEnum = components["schemas"]["SourceEnum"];
+export type StatusEnum = components["schemas"]["StatusEnum"];
+export type Tag = components["schemas"]["Tag"];
+export type TagRequest = components["schemas"]["TagRequest"];
+export type TokenVerifyRequest = components["schemas"]["TokenVerifyRequest"];
+export type User = components["schemas"]["User"];
+export type UserProfile = components["schemas"]["UserProfile"];
+export type UserProfileRequest = components["schemas"]["UserProfileRequest"];
+export type UserRegistrationRequest = components["schemas"]["UserRegistrationRequest"];
 export type $defs = Record<string, never>;
 export interface operations {
   auth_login_create: {

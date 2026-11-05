@@ -1,54 +1,43 @@
-import { apiRequest } from "@package/api";
+import { apiRequest, type RequiredFields } from "@package/api";
+import type {
+  AccessToken,
+  LoginRequestRequest,
+  RegistrationResponse,
+  UserProfile,
+  UserRegistrationRequest,
+} from "@package/api/generated/schema";
 
-export type User = {
-  id: number;
-  email: string;
-  first_name: string;
-  last_name: string;
-  date_joined: string;
-};
-
-export type AccessTokenResponse = {
-  access: string;
-};
+export type User = RequiredFields<UserProfile, "first_name" | "last_name">;
 
 export type AuthenticatedRequest = <T>(
   path: string,
   options?: RequestInit
 ) => Promise<T>;
 
-export type RegistrationResponse = AccessTokenResponse & {
-  user: User;
+export type {
+  AccessToken as AccessTokenResponse,
+  LoginRequestRequest as LoginInput,
+  RegistrationResponse,
+  UserRegistrationRequest as RegistrationInput,
 };
 
-export type LoginInput = {
-  email: string;
-  password: string;
-};
+let refreshRequest: Promise<AccessToken> | null = null;
 
-export type RegistrationInput = LoginInput & {
-  first_name: string;
-  last_name: string;
-  password_confirm: string;
-};
-
-let refreshRequest: Promise<AccessTokenResponse> | null = null;
-
-export const register = (input: RegistrationInput) =>
+export const register = (input: UserRegistrationRequest) =>
   apiRequest<RegistrationResponse>("/auth/register/", {
     method: "POST",
     body: JSON.stringify(input),
   });
 
-export const login = (input: LoginInput) =>
-  apiRequest<AccessTokenResponse>("/auth/login/", {
+export const login = (input: LoginRequestRequest) =>
+  apiRequest<AccessToken>("/auth/login/", {
     method: "POST",
     body: JSON.stringify(input),
   });
 
 export const refreshToken = () => {
   if (!refreshRequest) {
-    refreshRequest = apiRequest<AccessTokenResponse>("/auth/token/refresh/", {
+    refreshRequest = apiRequest<AccessToken>("/auth/token/refresh/", {
       method: "POST",
       body: JSON.stringify({}),
     }).finally(() => {

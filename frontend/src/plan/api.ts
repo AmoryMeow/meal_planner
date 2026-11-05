@@ -1,47 +1,18 @@
+import type { RequiredFields } from "@package/api";
+import type {
+  PatchedPlanItemRequest,
+  PatchedPlanRequest,
+  Plan as GeneratedPlan,
+  PlanItem as GeneratedPlanItem,
+  PlanItemRequest,
+} from "@package/api/generated/schema";
 import type { AuthenticatedRequest } from "@package/auth";
-import type { MealSource } from "@package/meals";
 
-import type { MealType } from "./types";
-
-export type PlanScope = "personal" | "group";
-
-export type MealPlan = {
-  id: number;
-  scope: PlanScope;
-  group_id: number | null;
-  can_manage: boolean;
-  name: string;
-  color: string;
-  enabled_meal_types: MealType[];
-  created_at: string;
-  updated_at: string;
-};
-
-export type UpdatePlanInput = Partial<
-  Pick<MealPlan, "name" | "color" | "enabled_meal_types">
+export type MealPlan = RequiredFields<GeneratedPlan, "name" | "color">;
+export type PlanItem = RequiredFields<
+  GeneratedPlanItem,
+  "plan_id" | "servings" | "note"
 >;
-
-export type MealSnapshot = {
-  meal_id: number;
-  name: string;
-  source: MealSource;
-  servings: number;
-  instructions: string;
-  tags: string[];
-};
-
-export type PlanItem = {
-  id: number;
-  plan_id: number;
-  date: string;
-  meal_type: MealType;
-  meal_id: number;
-  servings: number;
-  note: string;
-  meal_snapshot: MealSnapshot;
-  created_at: string;
-  updated_at: string;
-};
 
 export type PlanItemRange = {
   dateFrom: string;
@@ -52,17 +23,13 @@ export type PlanItemQuery = PlanItemRange & {
   planIds: number[];
 };
 
-export type CreatePlanItemInput = {
-  plan_id?: number;
-  date: string;
-  meal_type: MealType;
-  meal_id: number;
-  share_with_group?: boolean;
-  servings?: number;
-  note?: string;
-};
-
-export type UpdatePlanItemInput = Partial<Omit<CreatePlanItemInput, "plan_id">>;
+export type {
+  MealSnapshot,
+  PatchedPlanItemRequest as UpdatePlanItemInput,
+  PatchedPlanRequest as UpdatePlanInput,
+  PlanItemRequest as CreatePlanItemInput,
+  ScopeEnum as PlanScope,
+} from "@package/api/generated/schema";
 
 export const getPlans = (request: AuthenticatedRequest) =>
   request<MealPlan[]>("/plans/");
@@ -73,7 +40,7 @@ export const getPlan = (request: AuthenticatedRequest, planId: number) =>
 export const updatePlan = (
   request: AuthenticatedRequest,
   planId: number,
-  input: UpdatePlanInput
+  input: PatchedPlanRequest
 ) =>
   request<MealPlan>(`/plans/${planId}/`, {
     method: "PATCH",
@@ -93,10 +60,7 @@ export const getPlanItems = (
   return request<PlanItem[]>(`/plan-items/?${query.toString()}`);
 };
 
-export const createPlanItem = (
-  request: AuthenticatedRequest,
-  input: CreatePlanItemInput
-) =>
+export const createPlanItem = (request: AuthenticatedRequest, input: PlanItemRequest) =>
   request<PlanItem>("/plan-items/", {
     method: "POST",
     body: JSON.stringify(input),
@@ -110,7 +74,7 @@ export const removePlanItem = (request: AuthenticatedRequest, planItemId: number
 export const updatePlanItem = (
   request: AuthenticatedRequest,
   planItemId: number,
-  input: UpdatePlanItemInput
+  input: PatchedPlanItemRequest
 ) =>
   request<PlanItem>(`/plan-items/${planItemId}/`, {
     method: "PATCH",

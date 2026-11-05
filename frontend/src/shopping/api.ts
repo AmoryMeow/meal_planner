@@ -1,10 +1,7 @@
+import type { ShoppingListItem } from "@package/api/generated/schema";
 import type { AuthenticatedRequest } from "@package/auth";
 
-export type ShoppingListItem = {
-  name: string;
-  quantity: string;
-  unit: string;
-};
+export type { ShoppingListItem } from "@package/api/generated/schema";
 
 export type ShoppingListQuery = {
   dateFrom: string;

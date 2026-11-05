@@ -1,106 +1,66 @@
+import type { RequiredFields } from "@package/api";
+import type {
+  Ingredient,
+  IngredientRequest,
+  Meal as GeneratedMeal,
+  MealIngredient,
+  MealIngredientRequest,
+  MealRequest,
+  MealShare as GeneratedMealShare,
+  MealShareRequest,
+  MealTagFilterOption,
+  PaginatedIngredientList,
+  PaginatedMealIngredientList,
+  PaginatedMealList,
+  PaginatedTagList,
+  PatchedIngredientRequest,
+  PatchedMealIngredientRequest,
+  PatchedMealRequest,
+  PatchedMealShareRequest,
+  SourceEnum,
+  Tag,
+} from "@package/api/generated/schema";
 import type { AuthenticatedRequest } from "@package/auth";
 
-export type MealSource = "home" | "restaurant" | "delivery";
-
-export type Ingredient = {
-  id: number;
-  name: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type MealIngredient = {
-  id: number;
-  ingredient_id: number;
-  name: string;
-  quantity: string;
-  unit: string;
-};
-
-export type MealTag = {
-  id: number;
-  name: string;
-  created_at: string;
-  updated_at: string;
-};
-
-export type MealTagFilterOption = {
-  value: string;
-  label: string;
-};
-
-export type CreateIngredientInput = {
-  name: string;
-};
-
-export type UpdateIngredientInput = Partial<CreateIngredientInput>;
-
-export type CreateMealIngredientInput = {
-  ingredient_id: number;
-  quantity: string;
-  unit: string;
-};
-
-export type UpdateMealIngredientInput = Partial<CreateMealIngredientInput>;
-
-export type Meal = {
-  id: number;
-  name: string;
-  source: MealSource;
-  servings: number;
-  tags: MealTag[];
-  instructions: string;
-  ingredients: MealIngredient[];
-  is_owner: boolean;
-  can_edit: boolean;
-  can_delete: boolean;
-  created_at: string;
-  updated_at: string;
-};
-
-export type PaginatedResponse<T> = {
-  count: number;
-  next: string | null;
-  previous: string | null;
-  results: T[];
-};
-
-export type CreateMealInput = {
-  name: string;
-  source?: MealSource;
-  servings?: number;
-  tag_ids?: number[];
-  instructions?: string;
-};
-
-export type UpdateMealInput = Partial<CreateMealInput>;
+export type Meal = RequiredFields<
+  GeneratedMeal,
+  "source" | "servings" | "instructions"
+>;
 
 export type MealAccessFilter = "all" | "owned" | "shared";
 export type MealOrdering = "recent" | "name";
 
 export type MealFilters = {
   search?: string;
-  sources?: MealSource[];
+  sources?: SourceEnum[];
   tags?: string[];
   access?: MealAccessFilter;
   ordering?: MealOrdering;
   page?: number;
 };
 
-export type MealShareAccess = "read" | "edit";
+export type MealShare = RequiredFields<GeneratedMealShare, "group_id" | "access">;
 
-export type MealShare = {
-  id: number;
-  group_id: number;
-  group_name: string;
-  group_color: string;
-  access: MealShareAccess;
-  created_at: string;
-  updated_at: string;
+type MealListResponse = Omit<PaginatedMealList, "results"> & {
+  results: Meal[];
 };
 
-export type CreateMealShareInput = Pick<MealShare, "group_id" | "access">;
-export type UpdateMealShareInput = Pick<MealShare, "access">;
+export type {
+  AccessEnum as MealShareAccess,
+  Ingredient,
+  IngredientRequest as CreateIngredientInput,
+  MealIngredient,
+  MealIngredientRequest as CreateMealIngredientInput,
+  MealRequest as CreateMealInput,
+  MealShareRequest as CreateMealShareInput,
+  MealTagFilterOption,
+  PatchedIngredientRequest as UpdateIngredientInput,
+  PatchedMealIngredientRequest as UpdateMealIngredientInput,
+  PatchedMealRequest as UpdateMealInput,
+  PatchedMealShareRequest as UpdateMealShareInput,
+  SourceEnum as MealSource,
+  Tag as MealTag,
+} from "@package/api/generated/schema";
 
 export const getMeals = (request: AuthenticatedRequest, filters: MealFilters = {}) => {
   const query = new URLSearchParams();
@@ -114,13 +74,13 @@ export const getMeals = (request: AuthenticatedRequest, filters: MealFilters = {
   if (filters.page && filters.page > 1) query.set("page", String(filters.page));
   const suffix = query.size ? `?${query.toString()}` : "";
 
-  return request<PaginatedResponse<Meal>>(`/meals/${suffix}`);
+  return request<MealListResponse>(`/meals/${suffix}`);
 };
 
 export const getMeal = (request: AuthenticatedRequest, mealId: number) =>
   request<Meal>(`/meals/${mealId}/`);
 
-export const createMeal = (request: AuthenticatedRequest, input: CreateMealInput) =>
+export const createMeal = (request: AuthenticatedRequest, input: MealRequest) =>
   request<Meal>("/meals/", {
     method: "POST",
     body: JSON.stringify(input),
@@ -129,7 +89,7 @@ export const createMeal = (request: AuthenticatedRequest, input: CreateMealInput
 export const updateMeal = (
   request: AuthenticatedRequest,
   mealId: number,
-  input: UpdateMealInput
+  input: PatchedMealRequest
 ) =>
   request<Meal>(`/meals/${mealId}/`, {
     method: "PATCH",
@@ -147,7 +107,7 @@ export const getMealShares = (request: AuthenticatedRequest, mealId: number) =>
 export const createMealShare = (
   request: AuthenticatedRequest,
   mealId: number,
-  input: CreateMealShareInput
+  input: MealShareRequest
 ) =>
   request<MealShare>(`/meals/${mealId}/shares/`, {
     method: "POST",
@@ -158,7 +118,7 @@ export const updateMealShare = (
   request: AuthenticatedRequest,
   mealId: number,
   shareId: number,
-  input: UpdateMealShareInput
+  input: PatchedMealShareRequest
 ) =>
   request<MealShare>(`/meals/${mealId}/shares/${shareId}/`, {
     method: "PATCH",
@@ -179,7 +139,7 @@ export const getIngredientCatalog = (request: AuthenticatedRequest, search = "")
   if (search) query.set("search", search);
   const suffix = query.size ? `?${query.toString()}` : "";
 
-  return request<PaginatedResponse<Ingredient>>(`/ingredients/${suffix}`);
+  return request<PaginatedIngredientList>(`/ingredients/${suffix}`);
 };
 
 export const getIngredient = (request: AuthenticatedRequest, ingredientId: number) =>
@@ -187,7 +147,7 @@ export const getIngredient = (request: AuthenticatedRequest, ingredientId: numbe
 
 export const createIngredient = (
   request: AuthenticatedRequest,
-  input: CreateIngredientInput
+  input: IngredientRequest
 ) =>
   request<Ingredient>("/ingredients/", {
     method: "POST",
@@ -203,7 +163,7 @@ export const getMealIngredientCatalog = (
   if (search) query.set("search", search);
   const suffix = query.size ? `?${query.toString()}` : "";
 
-  return request<PaginatedResponse<Ingredient>>(
+  return request<PaginatedIngredientList>(
     `/meals/${mealId}/ingredient-catalog/${suffix}`
   );
 };
@@ -211,7 +171,7 @@ export const getMealIngredientCatalog = (
 export const createMealCatalogIngredient = (
   request: AuthenticatedRequest,
   mealId: number,
-  input: CreateIngredientInput
+  input: IngredientRequest
 ) =>
   request<Ingredient>(`/meals/${mealId}/ingredient-catalog/`, {
     method: "POST",
@@ -221,7 +181,7 @@ export const createMealCatalogIngredient = (
 export const updateIngredient = (
   request: AuthenticatedRequest,
   ingredientId: number,
-  input: UpdateIngredientInput
+  input: PatchedIngredientRequest
 ) =>
   request<Ingredient>(`/ingredients/${ingredientId}/`, {
     method: "PATCH",
@@ -229,7 +189,7 @@ export const updateIngredient = (
   });
 
 export const getMealIngredients = (request: AuthenticatedRequest, mealId: number) =>
-  request<PaginatedResponse<MealIngredient>>(`/meals/${mealId}/ingredients/`);
+  request<PaginatedMealIngredientList>(`/meals/${mealId}/ingredients/`);
 
 export const getMealIngredient = (
   request: AuthenticatedRequest,
@@ -240,7 +200,7 @@ export const getMealIngredient = (
 export const createMealIngredient = (
   request: AuthenticatedRequest,
   mealId: number,
-  input: CreateMealIngredientInput
+  input: MealIngredientRequest
 ) =>
   request<MealIngredient>(`/meals/${mealId}/ingredients/`, {
     method: "POST",
@@ -251,7 +211,7 @@ export const updateMealIngredient = (
   request: AuthenticatedRequest,
   mealId: number,
   mealIngredientId: number,
-  input: UpdateMealIngredientInput
+  input: PatchedMealIngredientRequest
 ) =>
   request<MealIngredient>(`/meals/${mealId}/ingredients/${mealIngredientId}/`, {
     method: "PATCH",
@@ -274,10 +234,10 @@ const getCatalogSuffix = (search: string) => {
 };
 
 export const getTagCatalog = (request: AuthenticatedRequest, search = "") =>
-  request<PaginatedResponse<MealTag>>(`/tags/${getCatalogSuffix(search)}`);
+  request<PaginatedTagList>(`/tags/${getCatalogSuffix(search)}`);
 
 export const createTag = (request: AuthenticatedRequest, name: string) =>
-  request<MealTag>("/tags/", {
+  request<Tag>("/tags/", {
     method: "POST",
     body: JSON.stringify({ name }),
   });
@@ -287,16 +247,14 @@ export const getMealTagCatalog = (
   mealId: number,
   search = ""
 ) =>
-  request<PaginatedResponse<MealTag>>(
-    `/meals/${mealId}/tag-catalog/${getCatalogSuffix(search)}`
-  );
+  request<PaginatedTagList>(`/meals/${mealId}/tag-catalog/${getCatalogSuffix(search)}`);
 
 export const createMealCatalogTag = (
   request: AuthenticatedRequest,
   mealId: number,
   name: string
 ) =>
-  request<MealTag>(`/meals/${mealId}/tag-catalog/`, {
+  request<Tag>(`/meals/${mealId}/tag-catalog/`, {
     method: "POST",
     body: JSON.stringify({ name }),
   });
