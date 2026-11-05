@@ -20,6 +20,18 @@ type ProductShotProps = {
   compact?: boolean;
 };
 
+type LandingProps = {
+  showcase?: boolean;
+};
+
+const sourceRepositoryUrl = "https://github.com/AmoryMeow/meal_planner";
+const landingAsset = (fileName: string) =>
+  `${import.meta.env.BASE_URL}landing/${fileName}`;
+
+const openSourceRepository = () => {
+  window.open(sourceRepositoryUrl, "_blank", "noopener,noreferrer");
+};
+
 const ProductShot = ({
   alt,
   lightSrc,
@@ -210,7 +222,7 @@ const FeatureSection = ({
   );
 };
 
-export const Landing = () => {
+export const Landing = ({ showcase = false }: LandingProps) => {
   const colors = useColors();
   const isMobile = useIsMobile();
   const navigate = useNavigate();
@@ -301,17 +313,24 @@ export const Landing = () => {
                 fullWidth={isMobile}
                 icon={<ArrowIcon />}
                 iconPosition="right"
-                onClick={() => navigate("/register")}
+                onClick={showcase ? openSourceRepository : () => navigate("/register")}
               >
-                Start planning
+                {showcase ? "View source" : "Start planning"}
               </Button>
               <Button
                 variant="secondary"
                 size="lg"
                 fullWidth={isMobile}
-                onClick={() => navigate("/login")}
+                onClick={
+                  showcase
+                    ? () =>
+                        document
+                          .getElementById("features")
+                          ?.scrollIntoView({ behavior: "smooth" })
+                    : () => navigate("/login")
+                }
               >
-                Sign in
+                {showcase ? "Explore features" : "Sign in"}
               </Button>
             </div>
 
@@ -335,10 +354,10 @@ export const Landing = () => {
             Mealendar weekly meal plan preview
           </h2>
           <ProductShot
-            lightSrc="/landing/weekly-plan-light.png"
-            darkSrc="/landing/weekly-plan-dark.png"
-            mobileLightSrc="/landing/weekly-plan-mobile-light.png"
-            mobileDarkSrc="/landing/weekly-plan-mobile-dark.png"
+            lightSrc={landingAsset("weekly-plan-light.png")}
+            darkSrc={landingAsset("weekly-plan-dark.png")}
+            mobileLightSrc={landingAsset("weekly-plan-mobile-light.png")}
+            mobileDarkSrc={landingAsset("weekly-plan-mobile-dark.png")}
             alt="Mealendar weekly calendar showing personal, family, and friends’ meals"
             eager
             compact
@@ -346,6 +365,7 @@ export const Landing = () => {
         </section>
 
         <section
+          id="features"
           aria-labelledby="workflow-heading"
           css={{
             display: "grid",
@@ -405,8 +425,8 @@ export const Landing = () => {
           ]}
           image={
             <ProductShot
-              lightSrc="/landing/meals-light.png"
-              darkSrc="/landing/meals-dark.png"
+              lightSrc={landingAsset("meals-light.png")}
+              darkSrc={landingAsset("meals-dark.png")}
               alt="Mealendar meal library with search, filters, tags, and recipe cards"
             />
           }
@@ -423,8 +443,8 @@ export const Landing = () => {
           ]}
           image={
             <ProductShot
-              lightSrc="/landing/groups-light.png"
-              darkSrc="/landing/groups-dark.png"
+              lightSrc={landingAsset("groups-light.png")}
+              darkSrc={landingAsset("groups-dark.png")}
               alt="Mealendar group plan settings with meal sections, members, and invitations"
             />
           }
@@ -442,8 +462,8 @@ export const Landing = () => {
           ]}
           image={
             <ProductShot
-              lightSrc="/landing/shopping-list-light.png"
-              darkSrc="/landing/shopping-list-dark.png"
+              lightSrc={landingAsset("shopping-list-light.png")}
+              darkSrc={landingAsset("shopping-list-dark.png")}
               alt="Mealendar shopping list calculated from all selected meal plans"
             />
           }
@@ -514,16 +534,18 @@ export const Landing = () => {
               lineHeight: 1.65,
             }}
           >
-            Create an account, add a few meals, and build your first weekly plan.
+            {showcase
+              ? "Explore the source code today. A hosted full-stack demo is planned for a later deployment."
+              : "Create an account, add a few meals, and build your first weekly plan."}
           </p>
           <Button
             size="lg"
             fullWidth={isMobile}
             icon={<ArrowIcon />}
             iconPosition="right"
-            onClick={() => navigate("/register")}
+            onClick={showcase ? openSourceRepository : () => navigate("/register")}
           >
-            Create an account
+            {showcase ? "View source on GitHub" : "Create an account"}
           </Button>
         </section>
       </div>

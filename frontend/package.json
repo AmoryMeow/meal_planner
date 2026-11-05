@@ -9,8 +9,10 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
+    "build:pages": "tsc && vite build --mode pages",
     "capture:landing": "node scripts/capture-landing.mjs",
     "preview": "vite preview",
+    "preview:pages": "vite preview --mode pages",
     "test:typescript": "./node_modules/.bin/tsc -p .",
     "test:eslint": "eslint --config eslint.config.js src/",
     "format": "prettier --write src/",

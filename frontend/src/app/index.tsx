@@ -14,11 +14,21 @@ import { PlanDetails, Plans } from "@package/plans";
 import { ShoppingList } from "@package/shopping";
 import { ThemeProvider, useColors } from "@package/ui";
 
-import { Header } from "./header";
+import { Header, ShowcaseHeader } from "./header";
 import { Landing } from "./landing";
 import { Menu } from "./menu";
 
+const isShowcase = import.meta.env.MODE === "pages";
+
 export default function App() {
+  if (isShowcase) {
+    return (
+      <ThemeProvider>
+        <ShowcaseContent />
+      </ThemeProvider>
+    );
+  }
+
   return (
     <AuthSessionProvider>
       <ThemeProvider>
@@ -27,6 +37,25 @@ export default function App() {
     </AuthSessionProvider>
   );
 }
+
+const ShowcaseContent = () => {
+  const colors = useColors();
+
+  return (
+    <div
+      css={{
+        minHeight: "100dvh",
+        background: colors.background,
+        color: colors.textPrimary,
+        display: "flex",
+        flexDirection: "column",
+      }}
+    >
+      <ShowcaseHeader />
+      <Landing showcase />
+    </div>
+  );
+};
 
 const AppContent = () => {
   const colors = useColors();
