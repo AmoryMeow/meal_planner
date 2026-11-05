@@ -1,294 +1,279 @@
 # Meal Planner
 
-A modern full-stack application for meal planning with React frontend and Django backend.
+Meal Planner is a full-stack application for organizing recipes, personal and shared
+calendars, and shopping lists in one connected workflow.
 
-## Live Demo
+**Status:** Work in progress. The core MVP is functional and continues to evolve.
+
+## Live Showcase
 
 Explore the static product showcase on
-[GitHub Pages](https://amorymeow.github.io/meal_planner/). It includes the landing
-page and theme-aware screenshots of the application. The showcase does not connect
-to the Django API.
+[GitHub Pages](https://amorymeow.github.io/meal_planner/). It contains the landing
+page and real, theme-aware application screenshots. The showcase is frontend-only and
+does not connect to the Django API.
+
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="./frontend/public/landing/weekly-plan-dark.png"
+  />
+  <img
+    src="./frontend/public/landing/weekly-plan-light.png"
+    alt="Meal Planner weekly meal planning calendar"
+  />
+</picture>
 
 ## Features
 
-**Status:** Work in progress.
+- **Authentication:** registration, sign-in, sign-out, automatic access-token refresh,
+  and an HTTP-only refresh-token cookie with a seven-day lifetime.
+- **Meals:** create and edit meals with a source, serving yield, instructions, tags,
+  and reusable ingredients with quantities and units.
+- **Meal sharing:** keep meals private or share them with selected groups using read or
+  edit access.
+- **Meal plans:** personal and group calendars with week and month views, configurable
+  meal sections, multiple meals per slot, notes, servings, and drag-and-drop.
+- **Groups:** create groups, invite participants by email, accept or revoke invitations,
+  manage members, and protect owner-only settings on the backend.
+- **Shopping lists:** calculate and combine current recipe ingredients for selected
+  plans and date ranges.
+- **Responsive UI:** desktop and mobile layouts, keyboard focus states, reusable UI
+  components, and light and dark themes.
+- **Administration and API:** Django admin, protected REST endpoints, permission-scoped
+  querysets, and Swagger documentation.
 
-- Responsive React interface with light/dark themes, a landing page, and sign-in and registration forms.
-- Django REST API with user registration, JWT authentication, profile management, admin-only user endpoints, and Swagger documentation.
-- Planned: recipes, weekly meal plans, shared groups, and automatically generated shopping lists.
+## Roadmap
+
+- Add the profile settings interface for the existing `/api/me/` endpoint.
+- Archive meals while preserving calendar history.
+- Persist calendar filters and view preferences.
+- Build **Meal Poker**: private ranked voting that helps a group choose a meal and add
+  the winner to its plan.
+- Deploy the complete Django and PostgreSQL application as an interactive demo.
 
 ## Tech Stack
 
 ### Frontend
-- **React** - UI library
-- **TypeScript** - Type safety
-- **Vite** - Build tool
-- **Emotion** - CSS-in-JS styling
-- **React Router** - Client-side routing
+
+- React and TypeScript
+- Vite
+- React Router
+- TanStack Query
+- Emotion
+- dnd-kit
 
 ### Backend
-- **Django** - Web framework
-- **PostgreSQL** - Database
-- **Gunicorn** - WSGI server
+
+- Django and Django REST Framework
+- Simple JWT
+- PostgreSQL
+- drf-spectacular
+- Gunicorn
 
 ### Infrastructure
-- **Docker** - Containerization
-- **Nginx** - Reverse proxy
-- **Docker Compose** - Multi-container orchestration
 
+- Docker and Docker Compose
+- Nginx
+- GitHub Actions and GitHub Pages
 
+## Architecture
 
-### Quick Start
+The backend is a Django monolith split into domain applications. Each application owns
+its models, serializers, views, permissions, services, migrations, and tests. API
+querysets are restricted to resources available to the current user; the frontend is
+not treated as a security boundary.
 
-1. **Clone the repository:**
+The frontend is organized by product feature. TanStack Query owns server state, while
+React state and Context are used for local UI and authentication state. Access tokens
+stay in memory, and the refresh token is stored in an HTTP-only cookie.
+
+```text
+meal_planner/
+├── backend/
+│   ├── accounts/             # Users, authentication, and profile API
+│   ├── groups/               # Groups, memberships, and invitations
+│   ├── meals/                # Meals, tags, ingredients, and sharing
+│   ├── planning/             # Personal/group plans and calendar items
+│   ├── shopping/             # Generated shopping lists
+│   └── meal_planner_backend/ # Django configuration and root URLs
+├── frontend/
+│   ├── public/landing/       # Theme-aware showcase screenshots
+│   ├── scripts/              # Reproducible screenshot capture
+│   └── src/
+│       ├── app/              # Application shell and landing page
+│       ├── auth/
+│       ├── groups/
+│       ├── meals/
+│       ├── plan/             # Calendar screen
+│       ├── plans/            # Plan and group settings
+│       ├── shopping/
+│       └── ui/               # Reusable UI components and design tokens
+├── docker/                   # Compose, Nginx, and environment configuration
+└── .github/workflows/        # GitHub Pages deployment
+```
+
+## Quick Start
+
+### Requirements
+
+- Docker with Docker Compose
+- Git
+
+### Run the application
+
+1. Clone the repository:
+
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/AmoryMeow/meal_planner.git
    cd meal_planner
    ```
 
-2. **Set up environment variables:**
+2. Create the local environment file and replace the example secrets:
+
    ```bash
-   cd docker
-   cp .env.example .env
-   # Edit .env with your settings
+   cp docker/.env.example docker/.env
    ```
 
-3. **Start all services:**
+3. Build and start the services:
+
    ```bash
-   docker-compose up --build -d
+   docker compose -f docker/docker-compose.yml up -d --build
    ```
 
-4. **Apply database migrations:**
+4. Apply database migrations:
+
    ```bash
-   docker-compose exec backend python manage.py migrate
+   docker compose -f docker/docker-compose.yml exec backend \
+     python manage.py migrate
    ```
 
-5. **Create superuser (optional):**
+5. Optionally create an administrator:
+
    ```bash
-   docker-compose exec backend python manage.py createsuperuser
+   docker compose -f docker/docker-compose.yml exec backend \
+     python manage.py createsuperuser
    ```
 
-### Landing Page Screenshots
+### Local URLs
 
-The landing page uses reproducible demo data and real application screenshots. This
-workflow is available only in local development with `DEBUG=True`.
+- Application: [http://localhost](http://localhost)
+- Django API: [http://localhost/api/](http://localhost/api/)
+- Django admin: [http://localhost/admin/](http://localhost/admin/)
+- Swagger UI: [http://localhost/api/doc/](http://localhost/api/doc/) — staff access
+  required
+- PostgreSQL: `localhost:5432`
+
+## Environment Variables
+
+The application reads its local configuration from `docker/.env`:
+
+```env
+DB_NAME=meal_planner
+DB_USER=postgres
+DB_PASSWORD=change-me
+DB_HOST=postgres
+DB_PORT=5432
+
+SECRET_KEY=replace-with-a-random-secret
+DEBUG=False
+ALLOWED_HOSTS=localhost,127.0.0.1,backend,nginx
+AUTH_REFRESH_COOKIE_SECURE=False
+
+FRONTEND_URL=http://localhost
+EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
+DEFAULT_FROM_EMAIL=Mealendar <noreply@localhost>
+```
+
+`SECRET_KEY` is required and has no source-code fallback. `DEBUG` defaults to `False`.
+Use `AUTH_REFRESH_COOKIE_SECURE=True` behind HTTPS.
+
+The console email backend prints local group invitations to the backend logs:
+
+```bash
+docker compose -f docker/docker-compose.yml logs -f backend
+```
+
+For production delivery, configure Django's SMTP email backend and the `EMAIL_HOST`,
+`EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `EMAIL_USE_TLS` variables.
+
+## Development and Quality Checks
+
+### Backend
+
+```bash
+cd backend
+python3 -m venv venv_local
+source venv_local/bin/activate
+pip install -r requirements.txt
+
+ruff check .
+ruff format --check .
+python manage.py test
+```
+
+The local backend requires the database and environment variables from
+`docker/.env`. Tests can also be run inside the configured container:
+
+```bash
+docker compose -f docker/docker-compose.yml exec backend python manage.py test
+```
+
+### Frontend
+
+```bash
+cd frontend
+yarn install --frozen-lockfile
+
+yarn lint
+yarn format:check
+yarn build
+```
+
+To run Vite directly during frontend development:
+
+```bash
+yarn dev
+```
+
+## Reproducible Showcase Screenshots
+
+The landing page uses reproducible demo data and screenshots of the real application.
+This workflow is restricted to local development unless `--force` is explicitly used.
 
 1. Set `DEMO_USER_PASSWORD` in `docker/.env`, rebuild the backend, and seed the data:
+
    ```bash
    docker compose -f docker/docker-compose.yml up -d --build backend
    docker compose -f docker/docker-compose.yml exec backend \
      python manage.py seed_demo_data --force
    ```
 
-2. Export the same password for the local capture script and generate both themes:
+2. Export the same password and capture both themes:
+
    ```bash
    cd frontend
    export DEMO_USER_PASSWORD=your-local-demo-password
    yarn capture:landing
    ```
 
-The capture script forces the `en-US` locale and writes light and dark desktop/mobile
+The capture script uses the `en-US` locale and writes light and dark desktop/mobile
 images to `frontend/public/landing/`. Running the seed command again safely recreates
 the same demo users and content for the current week.
 
-### Access the Application
+## API Documentation
 
-- **Frontend:** http://localhost
-- **API Backend:** http://localhost:8000
-- **Admin Panel:** http://localhost/admin/
-- **API Documentation:** http://localhost/api/doc/ (requires admin login)
-- **PostgreSQL:** localhost:5432
-
-### Development Setup
-
-For local development with IDE support:
-
-1. **Backend (Django):**
-   ```bash
-   cd backend
-   python3 -m venv venv_local
-   source venv_local/bin/activate
-   pip install -r requirements.txt
-   ```
-
-2. **Frontend (React):**
-   ```bash
-   cd frontend
-   yarn install
-   yarn dev  # for development server
-   ```
-
-### Code Quality and Formatting
-
-The project uses modern tools for code quality and formatting:
-
-#### **VS Code Setup:**
-**Recommended Extensions:** VS Code will automatically suggest installing recommended extensions from `.vscode/extensions.json`
-
-**Auto-actions on save:**
-- **Python files:** Ruff formatting + import sorting
-- **JS/TS/React files:** Prettier formatting only (imports preserved as-is)
-- **JSON/CSS files:** Prettier formatting
-
-#### **Backend (Python) - Ruff:**
-```bash
-cd backend
-source venv_local/bin/activate
-
-# Check for linting errors
-ruff check .
-
-# Format all Python files
-ruff format .
-
-# Auto-fix fixable issues
-ruff check --fix .
-
-# Check specific file
-ruff check accounts/views.py
-```
-
-**What Ruff provides:**
-- Line length enforcement (88 characters)
-- Unused import detection and removal
-- Import sorting with Django-style organization
-- Auto-fixing of syntax and style issues
-- Integration with pycodestyle, pyflakes, and isort rules
-
-#### **Frontend (React/TypeScript) - ESLint + Prettier:**
-```bash
-cd frontend
-
-# Run all linting checks (ESLint + TypeScript)
-yarn lint
-
-# Check for linting errors only
-yarn test:eslint
-
-# Check TypeScript types only
-yarn test:typescript
-
-# Format code with Prettier
-yarn format
-
-# Check if code is formatted correctly
-yarn format:check
-
-# Auto-fix ESLint issues
-yarn lint:fix
-```
-
-**What ESLint + Prettier provides:**
-- **ESLint:** TypeScript/JavaScript error detection and unused variable warnings
-- **Prettier:** Code formatting with 2 spaces, semicolons, and 88 character line length
-- **Import organization:** Sorting and grouping with defined order
-- **Auto-fix capabilities:** Manual import organization and basic syntax fixes
-
-**Configured import organization rules:**
-1. **Built-in modules** (Node.js)
-2. **External libraries** (react, axios, etc.) - alphabetically sorted
-3. **Internal modules** (project components)
-4. **Relative imports** (../, ./)
-5. **Index imports**
-
-Empty lines between groups, duplicate imports merged automatically.
-
-## Project Structure
-
-```
-meal_planner/
-├── backend/                    # Django backend
-│   ├── meal_planner_backend/   # Django project
-│   ├── Dockerfile             # Backend container
-│   ├── requirements.txt       # Python dependencies
-│   └── manage.py              # Django CLI
-├── frontend/                   # React frontend
-│   ├── src/                   # Source code
-│   ├── Dockerfile             # Frontend container
-│   ├── package.json           # Node dependencies
-│   └── vite.config.ts         # Vite configuration
-├── docker/                     # Docker infrastructure
-│   ├── docker-compose.yml     # Multi-container setup
-│   ├── nginx/                 # Nginx configuration
-│   ├── .env.example           # Environment template
-│   └── .env                   # Environment variables (create this)
-└── README.md                   # This file
-```
-
-## Environment Variables
-
-Key environment variables in `docker/.env`:
-
-```env
-# Database
-DB_NAME=meal_planner
-DB_USER=postgres
-DB_PASSWORD=postgres
-DB_HOST=postgres
-DB_PORT=5432
-
-# Django
-SECRET_KEY=your-secret-key-here
-DEBUG=False
-ALLOWED_HOSTS=localhost,127.0.0.1,backend,nginx
-
-# Invitation links and email delivery
-FRONTEND_URL=http://localhost
-EMAIL_BACKEND=django.core.mail.backends.console.EmailBackend
-DEFAULT_FROM_EMAIL=Mealendar <noreply@localhost>
-```
-
-The console email backend prints invitation messages to backend logs during local
-development. For delivery through an email provider, set `EMAIL_BACKEND` to
-`django.core.mail.backends.smtp.EmailBackend` and configure `EMAIL_HOST`,
-`EMAIL_PORT`, `EMAIL_HOST_USER`, `EMAIL_HOST_PASSWORD`, and `EMAIL_USE_TLS`.
-
-## Docker Commands
+The REST API is available below `/api/`. Interactive Swagger documentation is served
+at `/api/doc/` and requires a staff user. Create one with:
 
 ```bash
-# Start all services
-docker-compose up -d
-
-# View logs
-docker-compose logs -f
-
-# Stop all services
-docker-compose down
-
-# Rebuild and restart
-docker-compose up --build -d
-
-# Execute commands in containers
-docker-compose exec backend python manage.py shell
-docker-compose exec postgres psql -U postgres -d meal_planner
-
-# Check container status
-docker-compose ps
+docker compose -f docker/docker-compose.yml exec backend \
+  python manage.py createsuperuser
 ```
-
-## API
-
-The Django REST API is available at `/api/` endpoint.
-
-### API Documentation
-
-Interactive API documentation is available via Swagger UI at:
-- **URL:** http://localhost/api/doc/
-- **Authentication:** Requires admin/staff user login
-- **Features:** Interactive API testing, request/response examples, schema definitions
-
-To access the documentation:
-1. Create a superuser account (if not already done):
-   ```bash
-   docker-compose exec backend python manage.py createsuperuser
-   ```
-2. Navigate to http://localhost/api/doc/
-3. Login with your admin credentials when prompted
 
 ## Deployment
 
-The GitHub Pages showcase is built automatically from `main` by the GitHub Actions
-workflow.
+The static landing-page showcase is built from `main` by GitHub Actions and published
+to GitHub Pages. It intentionally excludes authentication and API calls.
 
-The complete application requires Django and PostgreSQL. Run it locally with Docker
-Compose using the instructions in [Quick Start](#quick-start).
+The complete application requires a Django runtime, PostgreSQL, and secure production
+configuration; it is currently intended to run locally through Docker Compose.
