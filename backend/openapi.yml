@@ -1,0 +1,2731 @@
+openapi: 3.0.3
+info:
+  title: Meal Planner API
+  version: 1.0.0
+  description: Meal Planner API
+paths:
+  /api/auth/login/:
+    post:
+      operationId: auth_login_create
+      description: |-
+        Takes a set of user credentials and returns an access and refresh JSON web
+        token pair to prove the authentication of those credentials.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/LoginRequestRequest'
+        required: true
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessToken'
+          description: ''
+  /api/auth/logout/:
+    post:
+      operationId: auth_logout_create
+      tags:
+      - auth
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '204':
+          description: Refresh token revoked and cookie removed.
+  /api/auth/register/:
+    post:
+      operationId: auth_register_create
+      description: |-
+        User registration endpoint
+        POST /api/auth/register/
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserRegistrationRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      - {}
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserRegistration'
+          description: ''
+  /api/auth/token/refresh/:
+    post:
+      operationId: auth_token_refresh_create
+      description: |-
+        Takes a refresh type JSON web token and returns an access type JSON web
+        token if the refresh token is valid.
+      tags:
+      - auth
+      security:
+      - {}
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccessToken'
+          description: ''
+  /api/auth/token/verify/:
+    post:
+      operationId: auth_token_verify_create
+      description: |-
+        Takes a token and indicates if it is valid.  This view provides no
+        information about a token's fitness for a particular use.
+      tags:
+      - auth
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TokenVerifyRequest'
+        required: true
+      responses:
+        '200':
+          description: No response body
+  /api/groups/:
+    get:
+      operationId: groups_list
+      tags:
+      - groups
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Group'
+          description: ''
+    post:
+      operationId: groups_create
+      tags:
+      - groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GroupRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+  /api/groups/{group_pk}/invites/:
+    get:
+      operationId: groups_invites_list
+      parameters:
+      - in: path
+        name: group_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Invite'
+          description: ''
+    post:
+      operationId: groups_invites_create
+      parameters:
+      - in: path
+        name: group_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/InviteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/InviteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/InviteRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Invite'
+          description: ''
+  /api/groups/{group_pk}/invites/{id}/:
+    delete:
+      operationId: groups_invites_destroy
+      parameters:
+      - in: path
+        name: group_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/groups/{group_pk}/members/{id}/:
+    delete:
+      operationId: groups_members_destroy
+      parameters:
+      - in: path
+        name: group_pk
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/groups/{id}/:
+    get:
+      operationId: groups_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetail'
+          description: ''
+    put:
+      operationId: groups_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GroupDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/GroupDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/GroupDetailRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetail'
+          description: ''
+    patch:
+      operationId: groups_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - groups
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedGroupDetailRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedGroupDetailRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedGroupDetailRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupDetail'
+          description: ''
+  /api/ingredients/:
+    get:
+      operationId: ingredients_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - ingredients
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIngredientList'
+          description: ''
+    post:
+      operationId: ingredients_create
+      tags:
+      - ingredients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+  /api/ingredients/{id}/:
+    get:
+      operationId: ingredients_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ingredient.
+        required: true
+      tags:
+      - ingredients
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+    put:
+      operationId: ingredients_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ingredient.
+        required: true
+      tags:
+      - ingredients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+    patch:
+      operationId: ingredients_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this ingredient.
+        required: true
+      tags:
+      - ingredients
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedIngredientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedIngredientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedIngredientRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+  /api/invites/{token}/accept/:
+    post:
+      operationId: invites_accept_create
+      parameters:
+      - in: path
+        name: token
+        schema:
+          type: string
+          format: uuid
+        required: true
+      tags:
+      - invites
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Group'
+          description: ''
+  /api/me/:
+    get:
+      operationId: me_retrieve
+      description: |-
+        View and edit current user profile
+        GET/PATCH /api/me/
+      tags:
+      - me
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    put:
+      operationId: me_update
+      description: |-
+        View and edit current user profile
+        GET/PATCH /api/me/
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/UserProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/UserProfileRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+    patch:
+      operationId: me_partial_update
+      description: |-
+        View and edit current user profile
+        GET/PATCH /api/me/
+      tags:
+      - me
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedUserProfileRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserProfile'
+          description: ''
+  /api/meal-tags/:
+    get:
+      operationId: meal_tags_list
+      tags:
+      - meal-tags
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MealTagFilterOption'
+          description: ''
+  /api/meals/:
+    get:
+      operationId: meals_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMealList'
+          description: ''
+    post:
+      operationId: meals_create
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+          description: ''
+  /api/meals/{meal_pk}/ingredient-catalog/:
+    get:
+      operationId: meals_ingredient_catalog_list
+      parameters:
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedIngredientList'
+          description: ''
+    post:
+      operationId: meals_ingredient_catalog_create
+      parameters:
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/IngredientRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ingredient'
+          description: ''
+  /api/meals/{meal_pk}/ingredients/:
+    get:
+      operationId: meals_ingredients_list
+      parameters:
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedMealIngredientList'
+          description: ''
+    post:
+      operationId: meals_ingredients_create
+      parameters:
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealIngredientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealIngredientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealIngredientRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealIngredient'
+          description: ''
+  /api/meals/{meal_pk}/ingredients/{id}/:
+    get:
+      operationId: meals_ingredients_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealIngredient'
+          description: ''
+    put:
+      operationId: meals_ingredients_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealIngredientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealIngredientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealIngredientRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealIngredient'
+          description: ''
+    patch:
+      operationId: meals_ingredients_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMealIngredientRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMealIngredientRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMealIngredientRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealIngredient'
+          description: ''
+    delete:
+      operationId: meals_ingredients_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/meals/{meal_pk}/shares/:
+    get:
+      operationId: meals_shares_list
+      parameters:
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/MealShare'
+          description: ''
+    post:
+      operationId: meals_shares_create
+      parameters:
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealShareRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealShareRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealShareRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealShare'
+          description: ''
+  /api/meals/{meal_pk}/shares/{id}/:
+    get:
+      operationId: meals_shares_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealShare'
+          description: ''
+    put:
+      operationId: meals_shares_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealShareRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealShareRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealShareRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealShare'
+          description: ''
+    patch:
+      operationId: meals_shares_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMealShareRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMealShareRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMealShareRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MealShare'
+          description: ''
+    delete:
+      operationId: meals_shares_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/meals/{meal_pk}/tag-catalog/:
+    get:
+      operationId: meals_tag_catalog_list
+      parameters:
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTagList'
+          description: ''
+    post:
+      operationId: meals_tag_catalog_create
+      parameters:
+      - in: path
+        name: meal_pk
+        schema:
+          type: integer
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+  /api/meals/{id}/:
+    get:
+      operationId: meals_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this meal.
+        required: true
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+          description: ''
+    put:
+      operationId: meals_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this meal.
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MealRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/MealRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/MealRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+          description: ''
+    patch:
+      operationId: meals_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this meal.
+        required: true
+      tags:
+      - meals
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedMealRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedMealRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedMealRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Meal'
+          description: ''
+    delete:
+      operationId: meals_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this meal.
+        required: true
+      tags:
+      - meals
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/plan/:
+    get:
+      operationId: plan_retrieve
+      tags:
+      - plan
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    put:
+      operationId: plan_update
+      tags:
+      - plan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    patch:
+      operationId: plan_partial_update
+      tags:
+      - plan
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/plan-items/:
+    get:
+      operationId: plan_items_list
+      tags:
+      - plan-items
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PlanItem'
+          description: ''
+    post:
+      operationId: plan_items_create
+      tags:
+      - plan-items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlanItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlanItemRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanItem'
+          description: ''
+  /api/plan-items/{id}/:
+    get:
+      operationId: plan_items_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plan-items
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanItem'
+          description: ''
+    put:
+      operationId: plan_items_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plan-items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlanItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlanItemRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanItem'
+          description: ''
+    patch:
+      operationId: plan_items_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plan-items
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanItemRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanItemRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanItemRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanItem'
+          description: ''
+    delete:
+      operationId: plan_items_destroy
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plan-items
+      security:
+      - jwtAuth: []
+      responses:
+        '204':
+          description: No response body
+  /api/plans/:
+    get:
+      operationId: plans_list
+      tags:
+      - plans
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/plans/{id}/:
+    get:
+      operationId: plans_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plans
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    put:
+      operationId: plans_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PlanRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+    patch:
+      operationId: plans_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - plans
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedPlanRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Plan'
+          description: ''
+  /api/shopping-list/:
+    get:
+      operationId: shopping_list_list
+      parameters:
+      - in: query
+        name: date_from
+        schema:
+          type: string
+          format: date
+        required: true
+      - in: query
+        name: date_to
+        schema:
+          type: string
+          format: date
+        required: true
+      - in: query
+        name: plan_ids
+        schema:
+          type: string
+          minLength: 1
+      tags:
+      - shopping-list
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/ShoppingListItem'
+          description: ''
+  /api/tags/:
+    get:
+      operationId: tags_list
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      - name: search
+        required: false
+        in: query
+        description: A search term.
+        schema:
+          type: string
+      tags:
+      - tags
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedTagList'
+          description: ''
+    post:
+      operationId: tags_create
+      tags:
+      - tags
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+  /api/tags/{id}/:
+    get:
+      operationId: tags_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tag.
+        required: true
+      tags:
+      - tags
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+    put:
+      operationId: tags_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tag.
+        required: true
+      tags:
+      - tags
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/TagRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+    patch:
+      operationId: tags_partial_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this tag.
+        required: true
+      tags:
+      - tags
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchedTagRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PatchedTagRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PatchedTagRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Tag'
+          description: ''
+  /api/users/:
+    get:
+      operationId: users_list
+      description: |-
+        ViewSet for managing users (admin only)
+        GET /api/users/ - list users
+        GET /api/users/{id}/ - user details
+      parameters:
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedUserList'
+          description: ''
+  /api/users/{id}/:
+    get:
+      operationId: users_retrieve
+      description: |-
+        ViewSet for managing users (admin only)
+        GET /api/users/ - list users
+        GET /api/users/{id}/ - user details
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        description: A unique integer value identifying this User.
+        required: true
+      tags:
+      - users
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: ''
+components:
+  schemas:
+    AccessEnum:
+      enum:
+      - read
+      - edit
+      type: string
+      description: |-
+        * `read` - Read
+        * `edit` - Edit
+    AccessToken:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+      required:
+      - access
+    Group:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        color:
+          type: string
+          pattern: ^#[0-9A-Fa-f]{6}$
+          maxLength: 7
+        role:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        plan_id:
+          type: integer
+          readOnly: true
+        member_count:
+          type: integer
+          minimum: 0
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - member_count
+      - name
+      - plan_id
+      - role
+      - updated_at
+    GroupDetail:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        color:
+          type: string
+          pattern: ^#[0-9A-Fa-f]{6}$
+          maxLength: 7
+        role:
+          nullable: true
+          readOnly: true
+          oneOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          - $ref: '#/components/schemas/NullEnum'
+        plan_id:
+          type: integer
+          readOnly: true
+        member_count:
+          type: integer
+          minimum: 0
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+        members:
+          type: array
+          items:
+            $ref: '#/components/schemas/GroupMember'
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - member_count
+      - members
+      - name
+      - plan_id
+      - role
+      - updated_at
+    GroupDetailRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        color:
+          type: string
+          minLength: 1
+          pattern: ^#[0-9A-Fa-f]{6}$
+          maxLength: 7
+      required:
+      - name
+    GroupMember:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        role:
+          allOf:
+          - $ref: '#/components/schemas/RoleEnum'
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - first_name
+      - id
+      - last_name
+      - role
+      - user_id
+    GroupRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        color:
+          type: string
+          minLength: 1
+          pattern: ^#[0-9A-Fa-f]{6}$
+          maxLength: 7
+      required:
+      - name
+    Ingredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    IngredientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+      required:
+      - name
+    Invite:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          maxLength: 254
+        token:
+          type: string
+          format: uuid
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/StatusEnum'
+          readOnly: true
+        is_expired:
+          type: boolean
+          readOnly: true
+        expires_at:
+          type: string
+          format: date-time
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - email
+      - expires_at
+      - id
+      - is_expired
+      - status
+      - token
+    InviteRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          maxLength: 254
+      required:
+      - email
+    LoginRequestRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+    Meal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 255
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        servings:
+          type: integer
+          maximum: 32767
+          minimum: 1
+        tags:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+          readOnly: true
+        instructions:
+          type: string
+        ingredients:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealIngredient'
+          readOnly: true
+        is_owner:
+          type: boolean
+          readOnly: true
+        can_edit:
+          type: boolean
+          readOnly: true
+        can_delete:
+          type: boolean
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - can_delete
+      - can_edit
+      - created_at
+      - id
+      - ingredients
+      - is_owner
+      - name
+      - tags
+      - updated_at
+    MealIngredient:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        ingredient_id:
+          type: integer
+        name:
+          type: string
+          readOnly: true
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        unit:
+          type: string
+          maxLength: 32
+      required:
+      - id
+      - ingredient_id
+      - name
+      - quantity
+      - unit
+    MealIngredientRequest:
+      type: object
+      properties:
+        ingredient_id:
+          type: integer
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 32
+      required:
+      - ingredient_id
+      - quantity
+      - unit
+    MealRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        servings:
+          type: integer
+          maximum: 32767
+          minimum: 1
+        tag_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          writeOnly: true
+        instructions:
+          type: string
+      required:
+      - name
+    MealShare:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        group_id:
+          type: integer
+        group_name:
+          type: string
+          readOnly: true
+        group_color:
+          type: string
+          readOnly: true
+        access:
+          $ref: '#/components/schemas/AccessEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - group_color
+      - group_name
+      - id
+      - updated_at
+    MealShareRequest:
+      type: object
+      properties:
+        group_id:
+          type: integer
+        access:
+          $ref: '#/components/schemas/AccessEnum'
+    MealTagFilterOption:
+      type: object
+      properties:
+        value:
+          type: string
+        label:
+          type: string
+      required:
+      - label
+      - value
+    MealTypeEnum:
+      enum:
+      - breakfast
+      - lunch
+      - dinner
+      type: string
+      description: |-
+        * `breakfast` - Breakfast
+        * `lunch` - Lunch
+        * `dinner` - Dinner
+    NullEnum:
+      enum:
+      - null
+    PaginatedIngredientList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Ingredient'
+    PaginatedMealIngredientList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealIngredient'
+    PaginatedMealList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Meal'
+    PaginatedTagList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/Tag'
+    PaginatedUserList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
+    PatchedGroupDetailRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        color:
+          type: string
+          minLength: 1
+          pattern: ^#[0-9A-Fa-f]{6}$
+          maxLength: 7
+    PatchedIngredientRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+    PatchedMealIngredientRequest:
+      type: object
+      properties:
+        ingredient_id:
+          type: integer
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,8}(?:\.\d{0,2})?$
+        unit:
+          type: string
+          minLength: 1
+          maxLength: 32
+    PatchedMealRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 255
+        source:
+          $ref: '#/components/schemas/SourceEnum'
+        servings:
+          type: integer
+          maximum: 32767
+          minimum: 1
+        tag_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          writeOnly: true
+        instructions:
+          type: string
+    PatchedMealShareRequest:
+      type: object
+      properties:
+        group_id:
+          type: integer
+        access:
+          $ref: '#/components/schemas/AccessEnum'
+    PatchedPlanItemRequest:
+      type: object
+      properties:
+        plan_id:
+          type: integer
+          minimum: 1
+        date:
+          type: string
+          format: date
+        meal_type:
+          $ref: '#/components/schemas/MealTypeEnum'
+        meal_id:
+          type: integer
+        share_with_group:
+          type: boolean
+          writeOnly: true
+          default: false
+        servings:
+          type: integer
+          maximum: 32767
+          minimum: 1
+        note:
+          type: string
+    PatchedPlanRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        color:
+          type: string
+          minLength: 1
+          pattern: ^#[0-9A-Fa-f]{6}$
+          maxLength: 7
+        enabled_meal_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealTypeEnum'
+    PatchedTagRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+    PatchedUserProfileRequest:
+      type: object
+      description: Serializer for /me endpoint (current user)
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Email address
+          description: Required. Must be unique.
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+    Plan:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        scope:
+          allOf:
+          - $ref: '#/components/schemas/ScopeEnum'
+          readOnly: true
+        group_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        can_manage:
+          type: boolean
+          readOnly: true
+        name:
+          type: string
+          maxLength: 100
+        color:
+          type: string
+          pattern: ^#[0-9A-Fa-f]{6}$
+          maxLength: 7
+        enabled_meal_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealTypeEnum'
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - can_manage
+      - created_at
+      - enabled_meal_types
+      - group_id
+      - id
+      - scope
+      - updated_at
+    PlanItem:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        plan_id:
+          type: integer
+          minimum: 1
+        date:
+          type: string
+          format: date
+        meal_type:
+          $ref: '#/components/schemas/MealTypeEnum'
+        meal_id:
+          type: integer
+        servings:
+          type: integer
+          maximum: 32767
+          minimum: 1
+        note:
+          type: string
+        meal_snapshot:
+          readOnly: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - date
+      - id
+      - meal_id
+      - meal_snapshot
+      - meal_type
+      - updated_at
+    PlanItemRequest:
+      type: object
+      properties:
+        plan_id:
+          type: integer
+          minimum: 1
+        date:
+          type: string
+          format: date
+        meal_type:
+          $ref: '#/components/schemas/MealTypeEnum'
+        meal_id:
+          type: integer
+        share_with_group:
+          type: boolean
+          writeOnly: true
+          default: false
+        servings:
+          type: integer
+          maximum: 32767
+          minimum: 1
+        note:
+          type: string
+      required:
+      - date
+      - meal_id
+      - meal_type
+    PlanRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 100
+        color:
+          type: string
+          minLength: 1
+          pattern: ^#[0-9A-Fa-f]{6}$
+          maxLength: 7
+        enabled_meal_types:
+          type: array
+          items:
+            $ref: '#/components/schemas/MealTypeEnum'
+      required:
+      - enabled_meal_types
+    RoleEnum:
+      enum:
+      - owner
+      - member
+      type: string
+      description: |-
+        * `owner` - Owner
+        * `member` - Member
+    ScopeEnum:
+      enum:
+      - personal
+      - group
+      type: string
+      description: |-
+        * `personal` - Personal
+        * `group` - Group
+    ShoppingListItem:
+      type: object
+      properties:
+        name:
+          type: string
+        quantity:
+          type: string
+          format: decimal
+          pattern: ^-?\d{0,18}(?:\.\d{0,2})?$
+        unit:
+          type: string
+      required:
+      - name
+      - quantity
+      - unit
+    SourceEnum:
+      enum:
+      - home
+      - restaurant
+      - delivery
+      type: string
+      description: |-
+        * `home` - Home
+        * `restaurant` - Restaurant
+        * `delivery` - Delivery
+    StatusEnum:
+      enum:
+      - pending
+      - accepted
+      - revoked
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `revoked` - Revoked
+    Tag:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          maxLength: 64
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - created_at
+      - id
+      - name
+      - updated_at
+    TagRequest:
+      type: object
+      properties:
+        name:
+          type: string
+          minLength: 1
+          maxLength: 64
+      required:
+      - name
+    TokenVerifyRequest:
+      type: object
+      properties:
+        token:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - token
+    User:
+      type: object
+      description: Serializer for viewing and editing user profile
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          description: Required. Must be unique.
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - email
+      - id
+    UserProfile:
+      type: object
+      description: Serializer for /me endpoint (current user)
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          title: Email address
+          description: Required. Must be unique.
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        date_joined:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - date_joined
+      - email
+      - id
+    UserProfileRequest:
+      type: object
+      description: Serializer for /me endpoint (current user)
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Email address
+          description: Required. Must be unique.
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+      required:
+      - email
+    UserRegistration:
+      type: object
+      description: Serializer for user registration
+      properties:
+        email:
+          type: string
+          format: email
+          title: Email address
+          description: Required. Must be unique.
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+      required:
+      - email
+    UserRegistrationRequest:
+      type: object
+      description: Serializer for user registration
+      properties:
+        email:
+          type: string
+          format: email
+          minLength: 1
+          title: Email address
+          description: Required. Must be unique.
+          maxLength: 254
+        first_name:
+          type: string
+          maxLength: 150
+        last_name:
+          type: string
+          maxLength: 150
+        password:
+          type: string
+          writeOnly: true
+          minLength: 1
+        password_confirm:
+          type: string
+          writeOnly: true
+          minLength: 1
+      required:
+      - email
+      - password
+      - password_confirm
+  securitySchemes:
+    jwtAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT

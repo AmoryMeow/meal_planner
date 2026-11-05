@@ -242,5 +242,5 @@ SPECTACULAR_SETTINGS = {
     "ENUM_NAME_OVERRIDES": {
         "MealTypeEnum": "planning.models.MealType.choices",
     },
-    "SORT_OPERATIONS": False,
+    "SORT_OPERATIONS": True,
 }

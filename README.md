@@ -270,6 +270,14 @@ docker compose -f docker/docker-compose.yml exec backend \
   python manage.py createsuperuser
 ```
 
+The versioned OpenAPI contract is stored in `backend/openapi.yml`. After changing API
+serializers, views, or routes, regenerate and validate it from the repository root
+with the backend virtual environment activated:
+
+```bash
+make api-schema
+```
+
 ## Deployment
 
 The static landing-page showcase is built from `main` by GitHub Actions and published
