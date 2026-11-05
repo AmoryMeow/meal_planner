@@ -72,7 +72,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/UserRegistration'
+                $ref: '#/components/schemas/RegistrationResponse'
           description: ''
   /api/auth/token/refresh/:
     post:
@@ -2513,6 +2513,19 @@ components:
             $ref: '#/components/schemas/MealTypeEnum'
       required:
       - enabled_meal_types
+    RegistrationResponse:
+      type: object
+      properties:
+        access:
+          type: string
+          readOnly: true
+        user:
+          allOf:
+          - $ref: '#/components/schemas/User'
+          readOnly: true
+      required:
+      - access
+      - user
     RoleEnum:
       enum:
       - owner
@@ -2666,24 +2679,6 @@ components:
           type: string
           format: email
           minLength: 1
-          title: Email address
-          description: Required. Must be unique.
-          maxLength: 254
-        first_name:
-          type: string
-          maxLength: 150
-        last_name:
-          type: string
-          maxLength: 150
-      required:
-      - email
-    UserRegistration:
-      type: object
-      description: Serializer for user registration
-      properties:
-        email:
-          type: string
-          format: email
           title: Email address
           description: Required. Must be unique.
           maxLength: 254

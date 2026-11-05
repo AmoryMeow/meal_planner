@@ -902,6 +902,10 @@ export interface components {
       color?: string;
       enabled_meal_types: components["schemas"]["MealTypeEnum"][];
     };
+    RegistrationResponse: {
+      readonly access: string;
+      readonly user: components["schemas"]["User"];
+    };
     /**
      * @description * `owner` - Owner
      *     * `member` - Member
@@ -978,17 +982,6 @@ export interface components {
     };
     /** @description Serializer for /me endpoint (current user) */
     UserProfileRequest: {
-      /**
-       * Email address
-       * Format: email
-       * @description Required. Must be unique.
-       */
-      email: string;
-      first_name?: string;
-      last_name?: string;
-    };
-    /** @description Serializer for user registration */
-    UserRegistration: {
       /**
        * Email address
        * Format: email
@@ -1083,7 +1076,7 @@ export interface operations {
           [name: string]: unknown;
         };
         content: {
-          "application/json": components["schemas"]["UserRegistration"];
+          "application/json": components["schemas"]["RegistrationResponse"];
         };
       };
     };

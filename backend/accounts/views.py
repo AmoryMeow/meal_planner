@@ -2,7 +2,7 @@ from contextlib import suppress
 
 from django.conf import settings
 
-from drf_spectacular.utils import OpenApiResponse, extend_schema
+from drf_spectacular.utils import OpenApiResponse, extend_schema, extend_schema_view
 from rest_framework import generics, status, viewsets
 from rest_framework.permissions import AllowAny, IsAdminUser, IsAuthenticated
 from rest_framework.response import Response
@@ -22,6 +22,12 @@ from .serializers import (
 )
 
 
+@extend_schema_view(
+    post=extend_schema(
+        request=UserRegistrationSerializer,
+        responses={status.HTTP_201_CREATED: RegistrationResponseSerializer},
+    )
+)
 class RegisterView(generics.CreateAPIView):
     """
     User registration endpoint
@@ -32,10 +38,6 @@ class RegisterView(generics.CreateAPIView):
     serializer_class = UserRegistrationSerializer
     permission_classes = [AllowAny]
 
-    @extend_schema(
-        request=UserRegistrationSerializer,
-        responses={status.HTTP_201_CREATED: RegistrationResponseSerializer},
-    )
     def create(self, request, *args, **kwargs):
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)

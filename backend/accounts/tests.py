@@ -1,13 +1,31 @@
 from django.conf import settings
-from django.test import TestCase
+from django.test import SimpleTestCase, TestCase
 from django.urls import reverse
 
+from drf_spectacular.generators import SchemaGenerator
 from rest_framework import status
 from rest_framework.test import APITestCase
 from rest_framework_simplejwt.exceptions import TokenError
 from rest_framework_simplejwt.tokens import RefreshToken
 
 from .models import User
+
+
+class OpenApiSchemaTests(SimpleTestCase):
+    def test_registration_response_includes_access_token_and_user(self):
+        schema = SchemaGenerator().get_schema(public=True)
+        response_schema = schema["paths"]["/api/auth/register/"]["post"]["responses"][
+            "201"
+        ]["content"]["application/json"]["schema"]
+
+        self.assertEqual(
+            response_schema,
+            {"$ref": "#/components/schemas/RegistrationResponse"},
+        )
+        self.assertEqual(
+            set(schema["components"]["schemas"]["RegistrationResponse"]["required"]),
+            {"access", "user"},
+        )
 
 
 class UserManagerTests(TestCase):
