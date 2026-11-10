@@ -65,6 +65,7 @@ INSTALLED_APPS = [
     "groups",
     "meals",
     "planning",
+    "poker",
     "shopping",
 ]
 
