@@ -60,3 +60,43 @@ class PokerSession(models.Model):
 
     def __str__(self):
         return f"{self.group}: {self.date} {self.get_meal_type_display()}"
+
+
+class PokerParticipant(models.Model):
+    session = models.ForeignKey(
+        PokerSession,
+        on_delete=models.CASCADE,
+        related_name="participants",
+    )
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL,
+        on_delete=models.CASCADE,
+        related_name="poker_participations",
+    )
+    is_ready = models.BooleanField(default=False)
+    joined_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        ordering = ("joined_at", "id")
+        constraints = (
+            models.UniqueConstraint(
+                fields=("session", "user"),
+                name="unique_poker_session_participant",
+            ),
+        )
+
+    def clean(self):
+        super().clean()
+        if not self.session_id or not self.user_id:
+            return
+        if not Membership.objects.filter(
+            group_id=self.session.group_id,
+            user_id=self.user_id,
+        ).exists():
+            raise ValidationError(
+                {"user": "Participant must be a member of the session group."}
+            )
+
+    def __str__(self):
+        return f"{self.user} in {self.session}"

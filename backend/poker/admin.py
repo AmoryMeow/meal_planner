@@ -1,6 +1,13 @@
 from django.contrib import admin
 
-from .models import PokerSession
+from .models import PokerParticipant, PokerSession
+
+
+class PokerParticipantInline(admin.TabularInline):
+    model = PokerParticipant
+    extra = 0
+    autocomplete_fields = ("user",)
+    readonly_fields = ("joined_at", "updated_at")
 
 
 @admin.register(PokerSession)
@@ -19,3 +26,15 @@ class PokerSessionAdmin(admin.ModelAdmin):
     autocomplete_fields = ("group", "organizer")
     readonly_fields = ("created_at", "updated_at")
     ordering = ("-created_at",)
+    inlines = (PokerParticipantInline,)
+
+
+@admin.register(PokerParticipant)
+class PokerParticipantAdmin(admin.ModelAdmin):
+    list_display = ("user", "session", "is_ready", "joined_at")
+    list_filter = ("is_ready", "session__group")
+    search_fields = ("user__email", "session__group__name")
+    list_select_related = ("user", "session", "session__group")
+    autocomplete_fields = ("session", "user")
+    readonly_fields = ("joined_at", "updated_at")
+    ordering = ("-joined_at",)
