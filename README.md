@@ -37,6 +37,9 @@ does not connect to the Django API.
   manage members, and protect owner-only settings on the backend.
 - **Shopping lists:** calculate and combine current recipe ingredients for selected
   plans and date ranges.
+- **Meal Poker:** create a private group session, rank up to three shared meals, keep
+  votes hidden until everyone is ready, resolve tied results, and add the winner to
+  the group plan.
 - **Responsive UI:** desktop and mobile layouts, keyboard focus states, reusable UI
   components, and light and dark themes.
 - **Administration and API:** Django admin, protected REST endpoints, permission-scoped
@@ -47,8 +50,7 @@ does not connect to the Django API.
 - Add the profile settings interface for the existing `/api/me/` endpoint.
 - Archive meals while preserving calendar history.
 - Persist calendar filters and view preferences.
-- Build **Meal Poker**: private ranked voting that helps a group choose a meal and add
-  the winner to its plan.
+- Add Meal Poker notifications, optional voting timers, and reveal animations.
 - Deploy the complete Django and PostgreSQL application as an interactive demo.
 
 ## Tech Stack
@@ -94,6 +96,7 @@ meal_planner/
 │   ├── groups/               # Groups, memberships, and invitations
 │   ├── meals/                # Meals, tags, ingredients, and sharing
 │   ├── planning/             # Personal/group plans and calendar items
+│   ├── poker/                # Private ranked group voting
 │   ├── shopping/             # Generated shopping lists
 │   └── meal_planner_backend/ # Django configuration and root URLs
 ├── frontend/
@@ -106,6 +109,7 @@ meal_planner/
 │       ├── meals/
 │       ├── plan/             # Calendar screen
 │       ├── plans/            # Plan and group settings
+│       ├── poker/             # Session creation, voting, and results
 │       ├── shopping/
 │       └── ui/               # Reusable UI components and design tokens
 ├── docker/                   # Compose, Nginx, and environment configuration
