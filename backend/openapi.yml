@@ -1652,6 +1652,26 @@ paths:
         description: A page number within the paginated result set.
         schema:
           type: integer
+      - in: query
+        name: search
+        schema:
+          type: string
+      - in: query
+        name: source
+        schema:
+          type: array
+          items:
+            type: string
+            enum:
+            - delivery
+            - home
+            - restaurant
+      - in: query
+        name: tag
+        schema:
+          type: array
+          items:
+            type: string
       tags:
       - poker
       security:
@@ -2999,6 +3019,7 @@ components:
           allOf:
           - $ref: '#/components/schemas/PokerMeal'
           readOnly: true
+          nullable: true
         plan_item_id:
           type: integer
           readOnly: true

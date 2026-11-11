@@ -1,7 +1,7 @@
 from django.db.models import Prefetch
 from django.shortcuts import get_object_or_404
 
-from drf_spectacular.utils import extend_schema
+from drf_spectacular.utils import OpenApiParameter, extend_schema
 from rest_framework import generics, serializers, status
 from rest_framework.exceptions import PermissionDenied, ValidationError
 from rest_framework.permissions import IsAuthenticated
@@ -216,6 +216,34 @@ class PokerSessionMealListView(generics.ListAPIView):
             get_accessible_sessions(self.request.user).select_related("group"),
             pk=self.kwargs["pk"],
         )
+
+    @extend_schema(
+        parameters=[
+            OpenApiParameter(
+                name="search",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                required=False,
+            ),
+            OpenApiParameter(
+                name="source",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                enum=Meal.Source.values,
+                many=True,
+                required=False,
+            ),
+            OpenApiParameter(
+                name="tag",
+                type=str,
+                location=OpenApiParameter.QUERY,
+                many=True,
+                required=False,
+            ),
+        ]
+    )
+    def get(self, request, *args, **kwargs):
+        return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
         queryset = Meal.objects.filter(shares__group=self.get_session().group)

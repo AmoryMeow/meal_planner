@@ -85,7 +85,7 @@ class PokerSessionSerializer(serializers.ModelSerializer):
     has_joined = serializers.SerializerMethodField()
     can_manage = serializers.SerializerMethodField()
     results = serializers.SerializerMethodField()
-    winner = PokerMealSerializer(read_only=True)
+    winner = PokerMealSerializer(read_only=True, allow_null=True)
     plan_item_id = serializers.IntegerField(read_only=True, allow_null=True)
 
     class Meta:
