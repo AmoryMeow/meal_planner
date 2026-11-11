@@ -10,8 +10,8 @@ import {
 } from "@package/ui";
 
 import { type PokerSession, type PokerSessionStatus } from "./api";
+import { CancelSessionButton } from "./cancel-session-dialog";
 import {
-  useCancelPokerSessionMutation,
   useJoinPokerSessionMutation,
   usePokerSessionQuery,
   useStartPokerSessionMutation,
@@ -49,13 +49,11 @@ export const PokerSessionDetails = () => {
   const sessionQuery = usePokerSessionQuery(sessionId);
   const joining = useJoinPokerSessionMutation(sessionId);
   const starting = useStartPokerSessionMutation(sessionId);
-  const cancelling = useCancelPokerSessionMutation(sessionId);
   const session = sessionQuery.data;
   const currentParticipant = session?.participants.find(
     participant => participant.user_id === user?.id
   );
-  const actionError =
-    joining.submitError || starting.submitError || cancelling.submitError;
+  const actionError = joining.submitError || starting.submitError;
 
   return (
     <main
@@ -124,7 +122,6 @@ export const PokerSessionDetails = () => {
                   session={session}
                   joining={joining}
                   starting={starting}
-                  cancelling={cancelling}
                   actionError={actionError}
                 />
               ) : null}
@@ -165,17 +162,15 @@ const WaitingPanel = ({
   session,
   joining,
   starting,
-  cancelling,
   actionError,
 }: {
   session: PokerSession;
   joining: SessionMutation;
   starting: SessionMutation;
-  cancelling: SessionMutation;
   actionError: string;
 }) => {
   const colors = useColors();
-  const actionPending = joining.isPending || starting.isPending || cancelling.isPending;
+  const actionPending = joining.isPending || starting.isPending;
 
   return (
     <section
@@ -207,15 +202,7 @@ const WaitingPanel = ({
           >
             Start voting
           </Button>
-          <Button
-            variant="danger"
-            size="sm"
-            loading={cancelling.isPending}
-            disabled={actionPending}
-            onClick={() => cancelling.mutate()}
-          >
-            Cancel session
-          </Button>
+          <CancelSessionButton sessionId={session.id} disabled={actionPending} />
           {session.participant_count < 2 ? (
             <span css={{ color: colors.textSecondary, fontSize: 13 }}>
               At least two participants are required.

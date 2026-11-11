@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { Button, hexToRgba, useColors } from "@package/ui";
 
 import { type PokerMeal, type PokerSession } from "./api";
+import { CancelSessionButton } from "./cancel-session-dialog";
 import {
   useAddPokerWinnerToPlanMutation,
   useCompletePokerSessionMutation,
@@ -51,14 +52,17 @@ export const VotingControls = ({ session }: VotingControlsProps) => {
             : `${readyCount} of ${session.participant_count} participants are ready.`}
         </p>
       </div>
-      <Button
-        size="sm"
-        loading={revealing.isPending}
-        disabled={!everyoneIsReady}
-        onClick={() => revealing.mutate()}
-      >
-        Reveal cards
-      </Button>
+      <div css={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+        <CancelSessionButton sessionId={session.id} disabled={revealing.isPending} />
+        <Button
+          size="sm"
+          loading={revealing.isPending}
+          disabled={!everyoneIsReady}
+          onClick={() => revealing.mutate()}
+        >
+          Reveal cards
+        </Button>
+      </div>
       {revealing.submitError ? (
         <p
           role="alert"
