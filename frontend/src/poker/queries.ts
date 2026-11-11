@@ -56,6 +56,7 @@ export const usePokerSessionsQuery = () => {
     queryKey: pokerQueryKeys.list(user?.id ?? null),
     queryFn: () => getPokerSessions(request),
     enabled: Boolean(user),
+    refetchInterval: 10000,
   });
 };
 

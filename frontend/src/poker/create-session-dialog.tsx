@@ -1,4 +1,5 @@
 import { type FormEvent, type RefObject, useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { useGroupsQuery } from "@package/groups";
 import { type MealType, usePlansQuery } from "@package/plan";
@@ -33,6 +34,7 @@ export const CreatePokerSessionDialog = ({
   dialogRef,
 }: CreatePokerSessionDialogProps) => {
   const colors = useColors();
+  const navigate = useNavigate();
   const groupsQuery = useGroupsQuery();
   const plansQuery = usePlansQuery();
   const creation = useCreatePokerSessionMutation();
@@ -90,7 +92,12 @@ export const CreatePokerSessionDialog = ({
         date,
         meal_type: mealType,
       },
-      { onSuccess: () => dialogRef.current?.close() }
+      {
+        onSuccess: session => {
+          dialogRef.current?.close();
+          navigate(`/poker/${session.id}`);
+        },
+      }
     );
   };
 
