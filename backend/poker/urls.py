@@ -1,0 +1,67 @@
+from django.urls import path
+
+from .views import (
+    PokerSessionAddToPlanView,
+    PokerSessionCancelView,
+    PokerSessionCompleteView,
+    PokerSessionDetailView,
+    PokerSessionJoinView,
+    PokerSessionListCreateView,
+    PokerSessionMealListView,
+    PokerSessionRevealView,
+    PokerSessionStartView,
+    PokerSessionVoteView,
+)
+
+urlpatterns = [
+    path(
+        "poker/sessions/",
+        PokerSessionListCreateView.as_view(),
+        name="poker-session-list",
+    ),
+    path(
+        "poker/sessions/<int:pk>/",
+        PokerSessionDetailView.as_view(),
+        name="poker-session-detail",
+    ),
+    path(
+        "poker/sessions/<int:pk>/meals/",
+        PokerSessionMealListView.as_view(),
+        name="poker-session-meal-list",
+    ),
+    path(
+        "poker/sessions/<int:pk>/join/",
+        PokerSessionJoinView.as_view(),
+        name="poker-session-join",
+    ),
+    path(
+        "poker/sessions/<int:pk>/start/",
+        PokerSessionStartView.as_view(),
+        name="poker-session-start",
+    ),
+    path(
+        "poker/sessions/<int:pk>/vote/",
+        PokerSessionVoteView.as_view(),
+        name="poker-session-vote",
+    ),
+    path(
+        "poker/sessions/<int:pk>/reveal/",
+        PokerSessionRevealView.as_view(),
+        name="poker-session-reveal",
+    ),
+    path(
+        "poker/sessions/<int:pk>/complete/",
+        PokerSessionCompleteView.as_view(),
+        name="poker-session-complete",
+    ),
+    path(
+        "poker/sessions/<int:pk>/add-to-plan/",
+        PokerSessionAddToPlanView.as_view(),
+        name="poker-session-add-to-plan",
+    ),
+    path(
+        "poker/sessions/<int:pk>/cancel/",
+        PokerSessionCancelView.as_view(),
+        name="poker-session-cancel",
+    ),
+]

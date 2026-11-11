@@ -7,7 +7,7 @@ from django.urls import reverse
 from accounts.models import User
 from groups.models import Group, Membership
 from planning.models import MealType
-from poker.models import PokerParticipant, PokerSession
+from poker.models import PokerParticipant, PokerSession, PokerVote
 
 
 class PokerAdminTests(TestCase):
@@ -39,6 +39,9 @@ class PokerAdminTests(TestCase):
 
     def test_poker_participant_is_registered(self):
         self.assertTrue(admin.site.is_registered(PokerParticipant))
+
+    def test_poker_vote_is_registered(self):
+        self.assertTrue(admin.site.is_registered(PokerVote))
 
     def test_poker_session_admin_lists_sessions(self):
         response = self.client.get(reverse("admin:poker_pokersession_changelist"))

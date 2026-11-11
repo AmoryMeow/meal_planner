@@ -1485,6 +1485,256 @@ paths:
               schema:
                 $ref: '#/components/schemas/Plan'
           description: ''
+  /api/poker/sessions/:
+    get:
+      operationId: poker_sessions_list
+      tags:
+      - poker
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PokerSession'
+          description: ''
+    post:
+      operationId: poker_sessions_create
+      tags:
+      - poker
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PokerSessionCreateRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PokerSessionCreateRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PokerSessionCreateRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokerSession'
+          description: ''
+  /api/poker/sessions/{id}/:
+    get:
+      operationId: poker_sessions_retrieve
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poker
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokerSession'
+          description: ''
+  /api/poker/sessions/{id}/add-to-plan/:
+    post:
+      operationId: poker_sessions_add_to_plan_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poker
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlanItem'
+          description: ''
+  /api/poker/sessions/{id}/cancel/:
+    post:
+      operationId: poker_sessions_cancel_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poker
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokerSession'
+          description: ''
+  /api/poker/sessions/{id}/complete/:
+    post:
+      operationId: poker_sessions_complete_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poker
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PokerCompleteRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PokerCompleteRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PokerCompleteRequest'
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokerSession'
+          description: ''
+  /api/poker/sessions/{id}/join/:
+    post:
+      operationId: poker_sessions_join_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poker
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokerSession'
+          description: ''
+  /api/poker/sessions/{id}/meals/:
+    get:
+      operationId: poker_sessions_meals_list
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      - name: page
+        required: false
+        in: query
+        description: A page number within the paginated result set.
+        schema:
+          type: integer
+      tags:
+      - poker
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginatedPokerMealList'
+          description: ''
+  /api/poker/sessions/{id}/reveal/:
+    post:
+      operationId: poker_sessions_reveal_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poker
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokerSession'
+          description: ''
+  /api/poker/sessions/{id}/start/:
+    post:
+      operationId: poker_sessions_start_create
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poker
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokerSession'
+          description: ''
+  /api/poker/sessions/{id}/vote/:
+    put:
+      operationId: poker_sessions_vote_update
+      parameters:
+      - in: path
+        name: id
+        schema:
+          type: integer
+        required: true
+      tags:
+      - poker
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PokerVoteSubmissionRequest'
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: '#/components/schemas/PokerVoteSubmissionRequest'
+          multipart/form-data:
+            schema:
+              $ref: '#/components/schemas/PokerVoteSubmissionRequest'
+        required: true
+      security:
+      - jwtAuth: []
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PokerSession'
+          description: ''
   /api/shopping-list/:
     get:
       operationId: shopping_list_list
@@ -1923,7 +2173,7 @@ components:
           readOnly: true
         status:
           allOf:
-          - $ref: '#/components/schemas/StatusEnum'
+          - $ref: '#/components/schemas/InviteStatusEnum'
           readOnly: true
         is_expired:
           type: boolean
@@ -1954,6 +2204,16 @@ components:
           maxLength: 254
       required:
       - email
+    InviteStatusEnum:
+      enum:
+      - pending
+      - accepted
+      - revoked
+      type: string
+      description: |-
+        * `pending` - Pending
+        * `accepted` - Accepted
+        * `revoked` - Revoked
     LoginRequestRequest:
       type: object
       properties:
@@ -2268,6 +2528,29 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Meal'
+    PaginatedPokerMealList:
+      type: object
+      required:
+      - count
+      - results
+      properties:
+        count:
+          type: integer
+          example: 123
+        next:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=4
+        previous:
+          type: string
+          nullable: true
+          format: uri
+          example: http://api.example.org/accounts/?page=2
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PokerMeal'
     PaginatedTagList:
       type: object
       required:
@@ -2568,6 +2851,242 @@ components:
             $ref: '#/components/schemas/MealTypeEnum'
       required:
       - enabled_meal_types
+    PokerCompleteRequest:
+      type: object
+      properties:
+        winner_id:
+          type: integer
+          minimum: 1
+          nullable: true
+    PokerMeal:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        name:
+          type: string
+          readOnly: true
+        source:
+          allOf:
+          - $ref: '#/components/schemas/SourceEnum'
+          readOnly: true
+      required:
+      - id
+      - name
+      - source
+    PokerParticipant:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        user_id:
+          type: integer
+          readOnly: true
+        email:
+          type: string
+          format: email
+          readOnly: true
+        first_name:
+          type: string
+          readOnly: true
+        last_name:
+          type: string
+          readOnly: true
+        is_ready:
+          type: boolean
+          readOnly: true
+        votes:
+          type: array
+          items:
+            $ref: '#/components/schemas/PokerVote'
+          nullable: true
+          readOnly: true
+        joined_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - email
+      - first_name
+      - id
+      - is_ready
+      - joined_at
+      - last_name
+      - updated_at
+      - user_id
+      - votes
+    PokerResult:
+      type: object
+      properties:
+        meal:
+          allOf:
+          - $ref: '#/components/schemas/PokerMeal'
+          readOnly: true
+        score:
+          type: integer
+          minimum: 1
+          readOnly: true
+        first_place_votes:
+          type: integer
+          minimum: 0
+          readOnly: true
+      required:
+      - first_place_votes
+      - meal
+      - score
+    PokerSession:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        group_id:
+          type: integer
+          readOnly: true
+        group_name:
+          type: string
+          readOnly: true
+        group_color:
+          type: string
+          readOnly: true
+        organizer_id:
+          type: integer
+          readOnly: true
+        organizer_email:
+          type: string
+          format: email
+          readOnly: true
+        date:
+          type: string
+          format: date
+          readOnly: true
+        meal_type:
+          allOf:
+          - $ref: '#/components/schemas/MealTypeEnum'
+          readOnly: true
+        status:
+          allOf:
+          - $ref: '#/components/schemas/PokerSessionStatusEnum'
+          readOnly: true
+        participant_count:
+          type: integer
+          minimum: 0
+          readOnly: true
+        has_joined:
+          type: boolean
+          readOnly: true
+        can_manage:
+          type: boolean
+          readOnly: true
+        participants:
+          type: array
+          items:
+            $ref: '#/components/schemas/PokerParticipant'
+          readOnly: true
+        results:
+          type: array
+          items:
+            $ref: '#/components/schemas/PokerResult'
+          nullable: true
+          readOnly: true
+        winner:
+          allOf:
+          - $ref: '#/components/schemas/PokerMeal'
+          readOnly: true
+        plan_item_id:
+          type: integer
+          readOnly: true
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+          readOnly: true
+        updated_at:
+          type: string
+          format: date-time
+          readOnly: true
+      required:
+      - can_manage
+      - created_at
+      - date
+      - group_color
+      - group_id
+      - group_name
+      - has_joined
+      - id
+      - meal_type
+      - organizer_email
+      - organizer_id
+      - participant_count
+      - participants
+      - plan_item_id
+      - results
+      - status
+      - updated_at
+      - winner
+    PokerSessionCreateRequest:
+      type: object
+      properties:
+        group_id:
+          type: integer
+        date:
+          type: string
+          format: date
+        meal_type:
+          $ref: '#/components/schemas/MealTypeEnum'
+      required:
+      - date
+      - group_id
+      - meal_type
+    PokerSessionStatusEnum:
+      enum:
+      - waiting
+      - voting
+      - revealed
+      - completed
+      - cancelled
+      type: string
+      description: |-
+        * `waiting` - Waiting
+        * `voting` - Voting
+        * `revealed` - Revealed
+        * `completed` - Completed
+        * `cancelled` - Cancelled
+    PokerVote:
+      type: object
+      properties:
+        id:
+          type: integer
+          readOnly: true
+        priority:
+          type: integer
+          readOnly: true
+        meal:
+          allOf:
+          - $ref: '#/components/schemas/PokerMeal'
+          readOnly: true
+      required:
+      - id
+      - meal
+      - priority
+    PokerVoteSubmissionRequest:
+      type: object
+      properties:
+        meal_ids:
+          type: array
+          items:
+            type: integer
+            minimum: 1
+          maxItems: 3
+          minItems: 1
+      required:
+      - meal_ids
     RegistrationResponse:
       type: object
       properties:
@@ -2622,16 +3141,6 @@ components:
         * `home` - Home
         * `restaurant` - Restaurant
         * `delivery` - Delivery
-    StatusEnum:
-      enum:
-      - pending
-      - accepted
-      - revoked
-      type: string
-      description: |-
-        * `pending` - Pending
-        * `accepted` - Accepted
-        * `revoked` - Revoked
     Tag:
       type: object
       properties:
