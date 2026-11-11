@@ -1,4 +1,5 @@
 import { useRef } from "react";
+import { Link } from "react-router-dom";
 
 import {
   Button,
@@ -157,7 +158,9 @@ const SessionRow = ({ session }: { session: PokerSession }) => {
   const statusColors = getStatusColors(session.status, colors);
 
   return (
-    <article
+    <Link
+      to={`/poker/${session.id}`}
+      aria-label={`Open ${session.group_name} Meal Poker session`}
       css={{
         minHeight: 84,
         boxSizing: "border-box",
@@ -170,6 +173,18 @@ const SessionRow = ({ session }: { session: PokerSession }) => {
         borderLeft: `5px solid ${session.group_color}`,
         borderRadius: 14,
         background: `linear-gradient(90deg, ${hexToRgba(session.group_color, 0.08)}, ${colors.surface} 38%)`,
+        color: "inherit",
+        textDecoration: "none",
+        transition: "border-color 0.15s ease, transform 0.15s ease",
+        "&:hover": {
+          borderColor: session.group_color,
+          transform: "translateY(-1px)",
+        },
+        "&:focus": { outline: "none" },
+        "&:focus-visible": {
+          outline: `3px solid ${colors.focus}`,
+          outlineOffset: 2,
+        },
       }}
     >
       <div css={{ minWidth: 0 }}>
@@ -227,7 +242,7 @@ const SessionRow = ({ session }: { session: PokerSession }) => {
       >
         {session.has_joined ? "Joined" : "Not joined"}
       </span>
-    </article>
+    </Link>
   );
 };
 

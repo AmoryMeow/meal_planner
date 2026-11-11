@@ -25,3 +25,4 @@ export {
   useSubmitPokerVotesMutation,
 } from "./queries";
 export { PokerSessions } from "./sessions";
+export { PokerSessionDetails } from "./session-details";

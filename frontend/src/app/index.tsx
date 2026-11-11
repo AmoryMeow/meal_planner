@@ -11,7 +11,7 @@ import { InviteAcceptance } from "@package/groups";
 import { CreateMealPage, MealDetailsPage, Meals } from "@package/meals";
 import { Plan } from "@package/plan";
 import { PlanDetails, Plans } from "@package/plans";
-import { PokerSessions } from "@package/poker";
+import { PokerSessionDetails, PokerSessions } from "@package/poker";
 import { ShoppingList } from "@package/shopping";
 import { ThemeProvider, useColors } from "@package/ui";
 
@@ -93,6 +93,7 @@ const AppContent = () => {
             <Route path="/meals/:mealId" element={<MealDetailsPage />} />
             <Route path="/shopping-list" element={<ShoppingList />} />
             <Route path="/poker" element={<PokerSessions />} />
+            <Route path="/poker/:sessionId" element={<PokerSessionDetails />} />
           </Route>
         </Route>
 

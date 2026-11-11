@@ -69,13 +69,17 @@ export const usePokerSessionQuery = (sessionId: number) => {
   });
 };
 
-export const usePokerMealsQuery = (sessionId: number, query: PokerMealQuery = {}) => {
+export const usePokerMealsQuery = (
+  sessionId: number,
+  query: PokerMealQuery = {},
+  enabled = true
+) => {
   const { request, user } = useAuthSession();
 
   return useQuery({
     queryKey: pokerQueryKeys.meals(user?.id ?? null, sessionId, query),
     queryFn: () => getPokerMeals(request, sessionId, query),
-    enabled: Boolean(user && sessionId),
+    enabled: Boolean(enabled && user && sessionId),
   });
 };
 
