@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import { useAuthSession } from "@package/auth";
@@ -229,6 +230,21 @@ const WaitingPanel = ({
 const SessionHeader = ({ session }: { session: PokerSession }) => {
   const colors = useColors();
   const statusColors = getStatusColors(session.status, colors);
+  const [copyStatus, setCopyStatus] = useState<"idle" | "copied" | "error">("idle");
+
+  const copySessionLink = async () => {
+    setCopyStatus("idle");
+    try {
+      const sessionUrl = new URL(
+        `/poker/${session.id}`,
+        window.location.origin
+      ).toString();
+      await navigator.clipboard.writeText(sessionUrl);
+      setCopyStatus("copied");
+    } catch {
+      setCopyStatus("error");
+    }
+  };
 
   return (
     <header
@@ -241,26 +257,50 @@ const SessionHeader = ({ session }: { session: PokerSession }) => {
         background: `linear-gradient(90deg, ${hexToRgba(session.group_color, 0.1)}, ${colors.surface} 45%)`,
       }}
     >
-      <div css={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 9 }}>
-        <h1 css={{ margin: 0, color: colors.textPrimary, fontSize: 24 }}>
-          {session.group_name} · {mealTypeLabels[session.meal_type]}
-        </h1>
-        <span
-          css={{
-            padding: "4px 9px",
-            borderRadius: 999,
-            background: statusColors.background,
-            color: statusColors.text,
-            fontSize: 12,
-            fontWeight: 700,
-          }}
-        >
-          {statusLabels[session.status]}
-        </span>
+      <div
+        css={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          flexWrap: "wrap",
+          gap: 12,
+        }}
+      >
+        <div css={{ minWidth: 0 }}>
+          <div
+            css={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 9 }}
+          >
+            <h1 css={{ margin: 0, color: colors.textPrimary, fontSize: 24 }}>
+              {session.group_name} · {mealTypeLabels[session.meal_type]}
+            </h1>
+            <span
+              css={{
+                padding: "4px 9px",
+                borderRadius: 999,
+                background: statusColors.background,
+                color: statusColors.text,
+                fontSize: 12,
+                fontWeight: 700,
+              }}
+            >
+              {statusLabels[session.status]}
+            </span>
+          </div>
+          <p css={{ margin: "7px 0 0", color: colors.textSecondary, fontSize: 14 }}>
+            {formatSessionDate(session.date)} · organized by {session.organizer_email}
+          </p>
+        </div>
+        <div css={{ display: "flex", alignItems: "center", flexWrap: "wrap", gap: 8 }}>
+          {copyStatus === "error" ? (
+            <span role="alert" css={{ color: colors.danger, fontSize: 13 }}>
+              Unable to copy link.
+            </span>
+          ) : null}
+          <Button variant="secondary" size="sm" onClick={() => void copySessionLink()}>
+            {copyStatus === "copied" ? "Copied" : "Copy link"}
+          </Button>
+        </div>
       </div>
-      <p css={{ margin: "7px 0 0", color: colors.textSecondary, fontSize: 14 }}>
-        {formatSessionDate(session.date)} · organized by {session.organizer_email}
-      </p>
     </header>
   );
 };
