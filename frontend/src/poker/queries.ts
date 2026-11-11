@@ -66,6 +66,10 @@ export const usePokerSessionQuery = (sessionId: number) => {
     queryKey: pokerQueryKeys.detail(user?.id ?? null, sessionId),
     queryFn: () => getPokerSession(request, sessionId),
     enabled: Boolean(user && sessionId),
+    refetchInterval: query => {
+      const status = query.state.data?.status;
+      return status === "waiting" || status === "voting" ? 5000 : false;
+    },
   });
 };
 

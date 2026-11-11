@@ -16,6 +16,7 @@ import {
   usePokerSessionQuery,
   useStartPokerSessionMutation,
 } from "./queries";
+import { PokerResults, VotingControls } from "./results";
 import { VoteEditor } from "./vote-editor";
 
 const mealTypeLabels: Record<PokerSession["meal_type"], string> = {
@@ -128,7 +129,10 @@ export const PokerSessionDetails = () => {
                 />
               ) : null}
               {session.status === "voting" && currentParticipant ? (
-                <VoteEditor sessionId={session.id} participant={currentParticipant} />
+                <>
+                  <VoteEditor sessionId={session.id} participant={currentParticipant} />
+                  <VotingControls session={session} />
+                </>
               ) : null}
               {session.status === "voting" && !currentParticipant ? (
                 <StateMessage
@@ -136,21 +140,8 @@ export const PokerSessionDetails = () => {
                   description="Only participants who joined before voting started can submit cards."
                 />
               ) : null}
-              {session.status === "revealed" ? (
-                <StateMessage
-                  title="Cards have been revealed"
-                  description="The result view will be added in the next step."
-                />
-              ) : null}
-              {session.status === "completed" ? (
-                <StateMessage
-                  title="This session is complete"
-                  description={
-                    session.winner
-                      ? `${session.winner.name} won this round.`
-                      : "The organizer completed this round."
-                  }
-                />
+              {session.status === "revealed" || session.status === "completed" ? (
+                <PokerResults session={session} />
               ) : null}
               {session.status === "cancelled" ? (
                 <StateMessage
