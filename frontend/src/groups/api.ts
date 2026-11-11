@@ -17,7 +17,7 @@ export type {
   Invite as GroupInvite,
   InviteRequest as CreateGroupInviteInput,
   RoleEnum as GroupRole,
-  StatusEnum as GroupInviteStatus,
+  InviteStatusEnum as GroupInviteStatus,
 } from "@package/api/generated/schema";
 
 export const getGroups = (request: AuthenticatedRequest) =>

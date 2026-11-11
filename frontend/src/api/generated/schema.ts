@@ -480,6 +480,166 @@ export interface paths {
     patch: operations["plans_partial_update"];
     trace?: never;
   };
+  "/api/poker/sessions/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["poker_sessions_list"];
+    put?: never;
+    post: operations["poker_sessions_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["poker_sessions_retrieve"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/add-to-plan/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["poker_sessions_add_to_plan_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/cancel/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["poker_sessions_cancel_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/complete/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["poker_sessions_complete_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/join/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["poker_sessions_join_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/meals/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get: operations["poker_sessions_meals_list"];
+    put?: never;
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/reveal/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["poker_sessions_reveal_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/start/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put?: never;
+    post: operations["poker_sessions_start_create"];
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
+  "/api/poker/sessions/{id}/vote/": {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    get?: never;
+    put: operations["poker_sessions_vote_update"];
+    post?: never;
+    delete?: never;
+    options?: never;
+    head?: never;
+    patch?: never;
+    trace?: never;
+  };
   "/api/shopping-list/": {
     parameters: {
       query?: never;
@@ -648,7 +808,7 @@ export interface components {
       email: string;
       /** Format: uuid */
       readonly token: string;
-      readonly status: components["schemas"]["StatusEnum"];
+      readonly status: components["schemas"]["InviteStatusEnum"];
       readonly is_expired: boolean;
       /** Format: date-time */
       readonly expires_at: string;
@@ -659,6 +819,13 @@ export interface components {
       /** Format: email */
       email: string;
     };
+    /**
+     * @description * `pending` - Pending
+     *     * `accepted` - Accepted
+     *     * `revoked` - Revoked
+     * @enum {string}
+     */
+    InviteStatusEnum: "pending" | "accepted" | "revoked";
     LoginRequestRequest: {
       /** Format: email */
       email: string;
@@ -790,6 +957,21 @@ export interface components {
       previous?: string | null;
       results: components["schemas"]["Meal"][];
     };
+    PaginatedPokerMealList: {
+      /** @example 123 */
+      count: number;
+      /**
+       * Format: uri
+       * @example http://api.example.org/accounts/?page=4
+       */
+      next?: string | null;
+      /**
+       * Format: uri
+       * @example http://api.example.org/accounts/?page=2
+       */
+      previous?: string | null;
+      results: components["schemas"]["PokerMeal"][];
+    };
     PaginatedTagList: {
       /** @example 123 */
       count: number;
@@ -918,6 +1100,85 @@ export interface components {
       color?: string;
       enabled_meal_types: components["schemas"]["MealTypeEnum"][];
     };
+    PokerCompleteRequest: {
+      winner_id?: number | null;
+    };
+    PokerMeal: {
+      readonly id: number;
+      readonly name: string;
+      readonly source: components["schemas"]["SourceEnum"];
+    };
+    PokerParticipant: {
+      readonly id: number;
+      readonly user_id: number;
+      /** Format: email */
+      readonly email: string;
+      readonly first_name: string;
+      readonly last_name: string;
+      readonly is_ready: boolean;
+      readonly votes: components["schemas"]["PokerVote"][] | null;
+      /** Format: date-time */
+      readonly joined_at: string;
+      /** Format: date-time */
+      readonly updated_at: string;
+    };
+    PokerResult: {
+      readonly meal: components["schemas"]["PokerMeal"];
+      readonly score: number;
+      readonly first_place_votes: number;
+    };
+    PokerSession: {
+      readonly id: number;
+      readonly group_id: number;
+      readonly group_name: string;
+      readonly group_color: string;
+      readonly organizer_id: number;
+      /** Format: email */
+      readonly organizer_email: string;
+      /** Format: date */
+      readonly date: string;
+      readonly meal_type: components["schemas"]["MealTypeEnum"];
+      readonly status: components["schemas"]["PokerSessionStatusEnum"];
+      readonly participant_count: number;
+      readonly has_joined: boolean;
+      readonly can_manage: boolean;
+      readonly participants: components["schemas"]["PokerParticipant"][];
+      readonly results: components["schemas"]["PokerResult"][] | null;
+      readonly winner: components["schemas"]["PokerMeal"] | null;
+      readonly plan_item_id: number | null;
+      /** Format: date-time */
+      readonly created_at: string;
+      /** Format: date-time */
+      readonly updated_at: string;
+    };
+    PokerSessionCreateRequest: {
+      group_id: number;
+      /** Format: date */
+      date: string;
+      meal_type: components["schemas"]["MealTypeEnum"];
+    };
+    /**
+     * @description * `waiting` - Waiting
+     *     * `voting` - Voting
+     *     * `revealed` - Revealed
+     *     * `completed` - Completed
+     *     * `cancelled` - Cancelled
+     * @enum {string}
+     */
+    PokerSessionStatusEnum:
+      | "waiting"
+      | "voting"
+      | "revealed"
+      | "completed"
+      | "cancelled";
+    PokerVote: {
+      readonly id: number;
+      readonly priority: number;
+      readonly meal: components["schemas"]["PokerMeal"];
+    };
+    PokerVoteSubmissionRequest: {
+      meal_ids: number[];
+    };
     RegistrationResponse: {
       readonly access: string;
       readonly user: components["schemas"]["User"];
@@ -947,13 +1208,6 @@ export interface components {
      * @enum {string}
      */
     SourceEnum: "home" | "restaurant" | "delivery";
-    /**
-     * @description * `pending` - Pending
-     *     * `accepted` - Accepted
-     *     * `revoked` - Revoked
-     * @enum {string}
-     */
-    StatusEnum: "pending" | "accepted" | "revoked";
     Tag: {
       readonly id: number;
       name: string;
@@ -1038,6 +1292,7 @@ export type Ingredient = components["schemas"]["Ingredient"];
 export type IngredientRequest = components["schemas"]["IngredientRequest"];
 export type Invite = components["schemas"]["Invite"];
 export type InviteRequest = components["schemas"]["InviteRequest"];
+export type InviteStatusEnum = components["schemas"]["InviteStatusEnum"];
 export type LoginRequestRequest = components["schemas"]["LoginRequestRequest"];
 export type Meal = components["schemas"]["Meal"];
 export type MealIngredient = components["schemas"]["MealIngredient"];
@@ -1054,6 +1309,7 @@ export type PaginatedIngredientList = components["schemas"]["PaginatedIngredient
 export type PaginatedMealIngredientList =
   components["schemas"]["PaginatedMealIngredientList"];
 export type PaginatedMealList = components["schemas"]["PaginatedMealList"];
+export type PaginatedPokerMealList = components["schemas"]["PaginatedPokerMealList"];
 export type PaginatedTagList = components["schemas"]["PaginatedTagList"];
 export type PaginatedUserList = components["schemas"]["PaginatedUserList"];
 export type PatchedGroupDetailRequest =
@@ -1073,12 +1329,22 @@ export type Plan = components["schemas"]["Plan"];
 export type PlanItem = components["schemas"]["PlanItem"];
 export type PlanItemRequest = components["schemas"]["PlanItemRequest"];
 export type PlanRequest = components["schemas"]["PlanRequest"];
+export type PokerCompleteRequest = components["schemas"]["PokerCompleteRequest"];
+export type PokerMeal = components["schemas"]["PokerMeal"];
+export type PokerParticipant = components["schemas"]["PokerParticipant"];
+export type PokerResult = components["schemas"]["PokerResult"];
+export type PokerSession = components["schemas"]["PokerSession"];
+export type PokerSessionCreateRequest =
+  components["schemas"]["PokerSessionCreateRequest"];
+export type PokerSessionStatusEnum = components["schemas"]["PokerSessionStatusEnum"];
+export type PokerVote = components["schemas"]["PokerVote"];
+export type PokerVoteSubmissionRequest =
+  components["schemas"]["PokerVoteSubmissionRequest"];
 export type RegistrationResponse = components["schemas"]["RegistrationResponse"];
 export type RoleEnum = components["schemas"]["RoleEnum"];
 export type ScopeEnum = components["schemas"]["ScopeEnum"];
 export type ShoppingListItem = components["schemas"]["ShoppingListItem"];
 export type SourceEnum = components["schemas"]["SourceEnum"];
-export type StatusEnum = components["schemas"]["StatusEnum"];
 export type Tag = components["schemas"]["Tag"];
 export type TagRequest = components["schemas"]["TagRequest"];
 export type TokenVerifyRequest = components["schemas"]["TokenVerifyRequest"];
@@ -2491,6 +2757,257 @@ export interface operations {
         };
         content: {
           "application/json": components["schemas"]["Plan"];
+        };
+      };
+    };
+  };
+  poker_sessions_list: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"][];
+        };
+      };
+    };
+  };
+  poker_sessions_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path?: never;
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PokerSessionCreateRequest"];
+        "application/x-www-form-urlencoded": components["schemas"]["PokerSessionCreateRequest"];
+        "multipart/form-data": components["schemas"]["PokerSessionCreateRequest"];
+      };
+    };
+    responses: {
+      201: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"];
+        };
+      };
+    };
+  };
+  poker_sessions_retrieve: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"];
+        };
+      };
+    };
+  };
+  poker_sessions_add_to_plan_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PlanItem"];
+        };
+      };
+    };
+  };
+  poker_sessions_cancel_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"];
+        };
+      };
+    };
+  };
+  poker_sessions_complete_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: {
+      content: {
+        "application/json": components["schemas"]["PokerCompleteRequest"];
+        "application/x-www-form-urlencoded": components["schemas"]["PokerCompleteRequest"];
+        "multipart/form-data": components["schemas"]["PokerCompleteRequest"];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"];
+        };
+      };
+    };
+  };
+  poker_sessions_join_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"];
+        };
+      };
+    };
+  };
+  poker_sessions_meals_list: {
+    parameters: {
+      query?: {
+        /** @description A page number within the paginated result set. */
+        page?: number;
+        search?: string;
+        source?: ("delivery" | "home" | "restaurant")[];
+        tag?: string[];
+      };
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PaginatedPokerMealList"];
+        };
+      };
+    };
+  };
+  poker_sessions_reveal_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"];
+        };
+      };
+    };
+  };
+  poker_sessions_start_create: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody?: never;
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"];
+        };
+      };
+    };
+  };
+  poker_sessions_vote_update: {
+    parameters: {
+      query?: never;
+      header?: never;
+      path: {
+        id: number;
+      };
+      cookie?: never;
+    };
+    requestBody: {
+      content: {
+        "application/json": components["schemas"]["PokerVoteSubmissionRequest"];
+        "application/x-www-form-urlencoded": components["schemas"]["PokerVoteSubmissionRequest"];
+        "multipart/form-data": components["schemas"]["PokerVoteSubmissionRequest"];
+      };
+    };
+    responses: {
+      200: {
+        headers: {
+          [name: string]: unknown;
+        };
+        content: {
+          "application/json": components["schemas"]["PokerSession"];
         };
       };
     };
