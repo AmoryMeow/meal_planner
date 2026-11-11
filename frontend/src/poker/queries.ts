@@ -88,8 +88,13 @@ export const useCreatePokerSessionMutation = () => {
     mutationFn: (input: CreatePokerSessionInput) => createPokerSession(request, input),
     onSuccess: session => updatePokerSessionCache(queryClient, userId, session),
   });
+  const apiFieldErrors = getCreateSessionFieldErrors(mutation.error);
 
-  return withSubmitError(mutation);
+  return {
+    ...mutation,
+    apiFieldErrors,
+    submitError: getSubmitError(mutation.error, apiFieldErrors),
+  };
 };
 
 const usePokerSessionActionMutation = (
@@ -196,11 +201,32 @@ const updatePokerSessionCache = (
 
 const withSubmitError = <T extends { error: Error | null }>(mutation: T) => ({
   ...mutation,
-  submitError: getSubmitError(mutation.error),
+  submitError: getSubmitError(mutation.error, {}),
 });
 
-const getSubmitError = (error: Error | null): string => {
-  if (!error) return "";
+type CreateSessionFieldErrors = Partial<Record<keyof CreatePokerSessionInput, string>>;
+
+const getCreateSessionFieldErrors = (error: Error | null): CreateSessionFieldErrors => {
+  if (!(error instanceof ApiError)) return {};
+
+  return {
+    group_id: getFirstError(error.body?.group_id),
+    date: getFirstError(error.body?.date),
+    meal_type: getFirstError(error.body?.meal_type),
+  };
+};
+
+const getSubmitError = (
+  error: Error | null,
+  apiFieldErrors: Record<string, string | undefined>
+): string => {
+  if (!error || Object.values(apiFieldErrors).some(Boolean)) return "";
   if (error instanceof ApiError) return error.message;
   return "Unable to connect to the server. Please try again.";
+};
+
+const getFirstError = (value: unknown): string | undefined => {
+  if (typeof value === "string") return value;
+  if (Array.isArray(value) && typeof value[0] === "string") return value[0];
+  return undefined;
 };

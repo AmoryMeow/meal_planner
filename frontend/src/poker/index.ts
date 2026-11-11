@@ -24,3 +24,4 @@ export {
   useStartPokerSessionMutation,
   useSubmitPokerVotesMutation,
 } from "./queries";
+export { PokerSessions } from "./sessions";

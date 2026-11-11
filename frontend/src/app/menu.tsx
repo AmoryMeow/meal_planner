@@ -28,6 +28,11 @@ const config: MenuType[] = [
     icon: <span aria-hidden>🛒</span>,
   },
   {
+    link: "/poker",
+    label: "Poker",
+    icon: <span aria-hidden>🃏</span>,
+  },
+  {
     link: "/plans",
     label: "Plans",
     icon: <span aria-hidden>🗂️</span>,
