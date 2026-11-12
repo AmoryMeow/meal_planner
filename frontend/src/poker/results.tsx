@@ -82,9 +82,15 @@ export const PokerResults = ({ session }: { session: PokerSession }) => {
   const addingToPlan = useAddPokerWinnerToPlanMutation(session.id);
   const results = session.results ?? [];
   const highestScore = results[0]?.score;
+  const highestFirstPlaceVotes = results[0]?.first_place_votes;
   const leaders = useMemo(
-    () => results.filter(result => result.score === highestScore),
-    [highestScore, results]
+    () =>
+      results.filter(
+        result =>
+          result.score === highestScore &&
+          result.first_place_votes === highestFirstPlaceVotes
+      ),
+    [highestFirstPlaceVotes, highestScore, results]
   );
   const [selectedWinnerId, setSelectedWinnerId] = useState<number | null>(
     session.winner?.id ?? leaders[0]?.meal.id ?? null
@@ -126,7 +132,7 @@ export const PokerResults = ({ session }: { session: PokerSession }) => {
               Results
             </h2>
             <p css={{ margin: "4px 0 0", color: colors.textSecondary, fontSize: 14 }}>
-              First choice earns 3 points, second 2 and third 1.
+              First choice earns 4 points, second 3 and third 1.
             </p>
           </div>
           {session.winner ? <WinnerBadge meal={session.winner} /> : null}
@@ -143,7 +149,9 @@ export const PokerResults = ({ session }: { session: PokerSession }) => {
             }}
           >
             {results.map((result, index) => {
-              const isLeader = result.score === highestScore;
+              const isLeader =
+                result.score === highestScore &&
+                result.first_place_votes === highestFirstPlaceVotes;
               return (
                 <li
                   key={result.meal.id}
@@ -168,7 +176,9 @@ export const PokerResults = ({ session }: { session: PokerSession }) => {
                   </span>
                   <span css={{ color: colors.textSecondary, fontSize: 13 }}>
                     <strong css={{ color: colors.textPrimary }}>{result.score}</strong>{" "}
-                    {result.score === 1 ? "point" : "points"}
+                    {result.score === 1 ? "point" : "points"} ·{" "}
+                    {result.first_place_votes} first-place{" "}
+                    {result.first_place_votes === 1 ? "vote" : "votes"}
                   </span>
                 </li>
               );

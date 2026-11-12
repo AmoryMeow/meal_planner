@@ -180,7 +180,7 @@ class PokerApiTests(APITestCase):
                 for participant in reveal_response.data["participants"]
             )
         )
-        self.assertEqual(reveal_response.data["results"][0]["score"], 6)
+        self.assertEqual(reveal_response.data["results"][0]["score"], 8)
         self.assertEqual(reveal_response.data["winner"]["id"], self.pasta.id)
 
         complete_response = self.client.post(complete_url, {}, format="json")

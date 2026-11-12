@@ -159,7 +159,7 @@ class PokerServiceTests(TestCase):
         with self.assertRaises(PokerStateError):
             reveal_results(session=session, actor=self.owner)
 
-    def test_results_use_three_two_one_scoring(self):
+    def test_results_use_four_three_one_scoring(self):
         session = self.prepare_voting()
         submit_votes(
             session=session,
@@ -179,8 +179,70 @@ class PokerServiceTests(TestCase):
         self.assertEqual(revealed_session.winner, self.pasta)
         self.assertEqual(
             [(result.meal, result.score) for result in results],
-            [(self.pasta, 6), (self.pizza, 2)],
+            [(self.pasta, 8), (self.pizza, 3)],
         )
+
+    def test_consensus_second_choice_beats_opposed_first_choices(self):
+        ramen = Meal.objects.create(owner=self.owner, name="Ramen")
+        MealShare.objects.create(meal=ramen, group=self.group)
+        session = self.prepare_voting()
+
+        submit_votes(
+            session=session,
+            user=self.owner,
+            ordered_meal_ids=[self.pasta.id, self.pizza.id, ramen.id],
+        )
+        submit_votes(
+            session=session,
+            user=self.member,
+            ordered_meal_ids=[ramen.id, self.pizza.id, self.pasta.id],
+        )
+
+        session = reveal_results(session=session, actor=self.owner)
+        results = calculate_results(session)
+
+        self.assertEqual(session.winner, self.pizza)
+        self.assertEqual(
+            [(result.meal, result.score) for result in results],
+            [(self.pizza, 6), (self.pasta, 5), (ramen, 5)],
+        )
+
+    def test_first_place_votes_break_score_tie(self):
+        ramen = Meal.objects.create(owner=self.owner, name="Ramen")
+        MealShare.objects.create(meal=ramen, group=self.group)
+        Membership.objects.create(
+            group=self.group,
+            user=self.outsider,
+            role=Membership.Role.MEMBER,
+        )
+        session = self.create_session()
+        join_session(session=session, user=self.member)
+        join_session(session=session, user=self.outsider)
+        session = start_voting(session=session, actor=self.owner)
+
+        submit_votes(
+            session=session,
+            user=self.owner,
+            ordered_meal_ids=[self.pasta.id, self.pizza.id],
+        )
+        submit_votes(
+            session=session,
+            user=self.member,
+            ordered_meal_ids=[self.pasta.id, ramen.id, self.pizza.id],
+        )
+        submit_votes(
+            session=session,
+            user=self.outsider,
+            ordered_meal_ids=[self.pizza.id],
+        )
+
+        session = reveal_results(session=session, actor=self.owner)
+        results = calculate_results(session)
+
+        self.assertEqual(results[0].score, results[1].score)
+        self.assertEqual(results[0].first_place_votes, 2)
+        self.assertEqual(results[1].first_place_votes, 1)
+        self.assertEqual(session.winner, self.pasta)
 
     def test_tied_session_requires_organizer_to_choose_leader(self):
         session = self.prepare_voting()

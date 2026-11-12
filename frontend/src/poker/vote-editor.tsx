@@ -90,7 +90,7 @@ export const VoteEditor = ({ sessionId, participant }: VoteEditorProps) => {
             Your cards
           </h2>
           <p css={{ margin: "4px 0 0", color: colors.textSecondary, fontSize: 14 }}>
-            Choose up to three meals. Their order determines 3, 2 and 1 points.
+            Choose up to three meals. Their order determines 4, 3 and 1 points.
           </p>
         </div>
         <span

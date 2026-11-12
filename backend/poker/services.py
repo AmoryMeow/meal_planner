@@ -30,6 +30,13 @@ class PokerSelectionError(PokerServiceError):
     pass
 
 
+POINTS_BY_PRIORITY = {
+    1: 4,
+    2: 3,
+    3: 1,
+}
+
+
 @dataclass(frozen=True)
 class PokerResult:
     meal: Meal
@@ -176,7 +183,7 @@ def calculate_results(session: PokerSession) -> list[PokerResult]:
     )
     for vote in votes:
         meals[vote.meal_id] = vote.meal
-        totals[vote.meal_id] += 4 - vote.priority
+        totals[vote.meal_id] += POINTS_BY_PRIORITY[vote.priority]
         if vote.priority == 1:
             first_place_votes[vote.meal_id] += 1
 
@@ -202,8 +209,13 @@ def get_leading_meals(session: PokerSession) -> list[Meal]:
     results = calculate_results(session)
     if not results:
         return []
-    highest_score = results[0].score
-    return [result.meal for result in results if result.score == highest_score]
+    leading_result = results[0]
+    return [
+        result.meal
+        for result in results
+        if result.score == leading_result.score
+        and result.first_place_votes == leading_result.first_place_votes
+    ]
 
 
 @transaction.atomic
