@@ -1,6 +1,7 @@
-from datetime import date
+from datetime import timedelta
 
 from django.test import TestCase
+from django.utils import timezone
 
 from accounts.models import User
 from groups.models import Membership
@@ -48,12 +49,13 @@ class PokerServiceTests(TestCase):
         self.pizza = Meal.objects.create(owner=self.member, name="Pizza")
         MealShare.objects.create(meal=self.pasta, group=self.group)
         MealShare.objects.create(meal=self.pizza, group=self.group)
+        self.session_date = timezone.localdate() + timedelta(days=3)
 
     def create_session(self):
         return create_session(
             group=self.group,
             organizer=self.owner,
-            scheduled_date=date(2026, 11, 14),
+            scheduled_date=self.session_date,
             meal_type=MealType.DINNER,
         )
 
@@ -75,13 +77,25 @@ class PokerServiceTests(TestCase):
             create_session(
                 group=self.group,
                 organizer=self.outsider,
-                scheduled_date=date(2026, 11, 14),
+                scheduled_date=self.session_date,
                 meal_type=MealType.DINNER,
             )
 
         session = self.create_session()
         with self.assertRaises(PokerPermissionError):
             join_session(session=session, user=self.outsider)
+
+    def test_create_session_rejects_past_date(self):
+        with self.assertRaisesRegex(
+            PokerSelectionError,
+            "Session date cannot be in the past.",
+        ):
+            create_session(
+                group=self.group,
+                organizer=self.owner,
+                scheduled_date=timezone.localdate() - timedelta(days=1),
+                meal_type=MealType.DINNER,
+            )
 
     def test_join_rejects_duplicate_participant(self):
         session = self.create_session()

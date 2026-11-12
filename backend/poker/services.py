@@ -4,6 +4,7 @@ from datetime import date
 from typing import Optional
 
 from django.db import transaction
+from django.utils import timezone
 
 from groups.models import Group, Membership
 from meals.models import Meal, MealShare
@@ -62,6 +63,8 @@ def create_session(
 ) -> PokerSession:
     if not Membership.objects.filter(group=group, user=organizer).exists():
         raise PokerPermissionError("You must be a group member to create a session.")
+    if scheduled_date < timezone.localdate():
+        raise PokerSelectionError("Session date cannot be in the past.")
     if meal_type not in group.plan.enabled_meal_types:
         raise PokerSelectionError("This meal section is disabled for the group plan.")
 

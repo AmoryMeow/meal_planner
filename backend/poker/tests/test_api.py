@@ -1,4 +1,7 @@
+from datetime import timedelta
+
 from django.urls import reverse
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.test import APITestCase
@@ -48,6 +51,7 @@ class PokerApiTests(APITestCase):
         MealShare.objects.create(meal=self.pasta, group=self.group)
         MealShare.objects.create(meal=self.pizza, group=self.group)
         self.list_url = reverse("poker-session-list")
+        self.session_date = timezone.localdate() + timedelta(days=3)
 
     def create_session(self):
         self.client.force_authenticate(user=self.owner)
@@ -55,7 +59,7 @@ class PokerApiTests(APITestCase):
             self.list_url,
             {
                 "group_id": self.group.id,
-                "date": "2026-11-14",
+                "date": self.session_date.isoformat(),
                 "meal_type": MealType.DINNER,
             },
             format="json",
@@ -81,6 +85,23 @@ class PokerApiTests(APITestCase):
         self.assertEqual(response.data[0]["participant_count"], 1)
         self.assertTrue(response.data[0]["has_joined"])
         self.assertEqual(session.participants.get().user, self.owner)
+
+    def test_create_session_rejects_past_date(self):
+        self.client.force_authenticate(user=self.owner)
+
+        response = self.client.post(
+            self.list_url,
+            {
+                "group_id": self.group.id,
+                "date": (timezone.localdate() - timedelta(days=1)).isoformat(),
+                "meal_type": MealType.DINNER,
+            },
+            format="json",
+        )
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.data["detail"], "Session date cannot be in the past.")
+        self.assertFalse(PokerSession.objects.exists())
 
     def test_non_member_cannot_list_or_retrieve_session(self):
         session = self.create_session()
